@@ -21,7 +21,7 @@ export default function Footer() {
   return (
     <footer className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 relative w-full border-b border-gray-200">
       {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-12"
+      <div className="container mx-auto px-4 pt-10"
         style={{
             background: 'transparent url("data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'10\' cy=\'10\' r=\'0.5\' fill=\'white\' opacity=\'0.8\'/><circle cx=\'30\' cy=\'20\' r=\'0.3\' fill=\'white\' opacity=\'0.6\'/><circle cx=\'60\' cy=\'15\' r=\'0.4\' fill=\'white\' opacity=\'0.9\'/><circle cx=\'80\' cy=\'25\' r=\'0.2\' fill=\'white\' opacity=\'0.7\'/><circle cx=\'20\' cy=\'40\' r=\'0.3\' fill=\'white\' opacity=\'0.5\'/><circle cx=\'50\' cy=\'35\' r=\'0.5\' fill=\'white\' opacity=\'0.8\'/><circle cx=\'90\' cy=\'45\' r=\'0.3\' fill=\'white\' opacity=\'0.6\'/><circle cx=\'15\' cy=\'70\' r=\'0.4\' fill=\'white\' opacity=\'0.7\'/><circle cx=\'40\' cy=\'65\' r=\'0.2\' fill=\'white\' opacity=\'0.5\'/><circle cx=\'70\' cy=\'75\' r=\'0.5\' fill=\'white\' opacity=\'0.9\'/><circle cx=\'85\' cy=\'80\' r=\'0.3\' fill=\'white\' opacity=\'0.6\'/></svg>") repeat',
             backgroundSize: '200px 200px'
@@ -161,7 +161,7 @@ export default function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-800">
+      <div>
         <div className="container mx-auto px-4 pb-6">
           <div className="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0">
             <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm text-[#fff]">
@@ -172,15 +172,6 @@ export default function Footer() {
                 </Link>
               </div>
             </div>
-
-            {/* Scroll to top button */}
-            {/* <button
-              onClick={scrollToTop}
-              className="flex items-center space-x-2 text-[#fff] hover:text-white transition-colors text-sm"
-            >
-              <ArrowUp className="w-4 h-4" />
-              <span>Scroll to top</span>
-            </button> */}
           </div>
         </div>
       </div>
