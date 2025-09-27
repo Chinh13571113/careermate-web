@@ -2,7 +2,7 @@
 
 import React from "react";
 import { LucideIcon } from "lucide-react";
-import { TabsList, TabsTrigger } from "./tabs";
+import { TabsList, TabsTrigger, useTab } from "./tabs";
 
 type SidebarItem = {
   value: string;
@@ -12,11 +12,11 @@ type SidebarItem = {
 
 interface SidebarProps {
   items: SidebarItem[];
-  activeTab: string; // Tab
-  onTabChange: (value: string) => void; // Callback
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ items, activeTab, onTabChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ items }) => {
+  const { activeTab, setActiveTab } = useTab();
+
   return (
     <TabsList className="flex flex-col p-1 rounded-md">
       {items.map((item) => (
@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, activeTab, onTabChange }) => {
           key={item.value}
           value={item.value}
           isActive={activeTab === item.value}
-          onClick={() => onTabChange(item.value)}
+          onClick={() => setActiveTab(item.value)}
           className="justify-start p-2 text-left text-xs "
         >
           <div className="flex">

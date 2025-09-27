@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { createContext, useContext, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface TabsListProps {
@@ -13,10 +13,10 @@ export const TabsList: React.FC<TabsListProps> = ({ children, className }) => {
 };
 
 interface TabsTriggerProps {
-  children: React.ReactNode;
   value: string;
   isActive?: boolean;
   onClick?: () => void;
+  children: React.ReactNode;
   className?: string;
 }
 
@@ -38,4 +38,41 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
       {children}
     </button>
   );
+};
+
+// Tab Content
+interface TabContentProps {
+  value?: string;
+  children: React.ReactNode;
+}
+
+export const TabContent: React.FC<TabContentProps> = ({ value, children }) => {
+  const { activeTab } = useTab();
+  return <>{activeTab === value && <div>{children}</div>}</>;
+};
+
+// Tab Context
+interface TabContextProps {
+  activeTab: string;
+  setActiveTab: (value: string) => void;
+}
+
+const TabContext = createContext<TabContextProps | undefined>(undefined);
+
+export const TabProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  return (
+    <TabContext.Provider value={{ activeTab, setActiveTab }}>
+      {children}
+    </TabContext.Provider>
+  );
+};
+
+export const useTab = () => {
+  const context = useContext(TabContext);
+  if (!context) throw new Error("useTab must be used within TabProvider");
+  return context;
 };
