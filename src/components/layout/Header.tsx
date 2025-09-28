@@ -15,6 +15,7 @@ export default function Header() {
     { name: "Dashboard", href: "/dashboard" },
     { name: "Khóa học", href: "/courses" },
     { name: "Đánh giá", href: "/assessment" },
+    { name: "Tạo CV", href: "/cv-templates" },
     { name: "Mentor", href: "/mentors" },
     { name: "Việc làm", href: "/jobs" },
   ];
@@ -97,35 +98,35 @@ export default function Header() {
                   <User className="w-4 h-4" />
                 </div>
                 <span className="hidden md:block text-[#f9f9f9] text-sm font-medium">
-                  Tài khoản
+                  Nguyễn Văn A
                 </span>
                 <ChevronDown className="w-4 h-4" />
               </button>
 
               {/* User Dropdown */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
+                <div className="absolute right-0.9 mt-0 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
                   <Link
                     href="/profile"
                     className="block px-4 py-2 text-sm text-bg-gray-50 hover:bg-gray-50"
                   >
-                    Hồ sơ cá nhân
+                    Profile
                   </Link>
                   <Link
                     href="/settings"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Cài đặt
+                    Setting
                   </Link>
                   <Link
                     href="/billing"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Thanh toán
+                    Payment
                   </Link>
                   <hr className="my-2" />
                   <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                    Đăng xuất
+                    Logout
                   </button>
                 </div>
               )}

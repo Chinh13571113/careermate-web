@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { ArrowRight, Target, BookOpen, Users, TrendingUp } from 'lucide-react';
+import { ArrowRight, Target, BookOpen, Users, TrendingUp, FileText } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -32,7 +32,7 @@ export default function Home() {
         </div>
 
         {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-16">
           <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
               <Target className="w-6 h-6 text-blue-600" />
@@ -51,6 +51,18 @@ export default function Home() {
             <p className="text-gray-600">
               Lộ trình học tập được tùy chỉnh dựa trên mục tiêu và trình độ của bạn
             </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
+            <Link href="/cv-templates" className="block h-full">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                <FileText className="w-6 h-6 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">Tạo CV chuyên nghiệp</h3>
+              <p className="text-gray-600">
+                Công cụ tạo CV với nhiều template đẹp mắt và chuyên nghiệp
+              </p>
+            </Link>
           </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
