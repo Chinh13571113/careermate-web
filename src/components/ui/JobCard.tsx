@@ -96,7 +96,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onApply, onSave }) => {
               className={`px-4 py-2 border rounded transition-colors text-sm cursor-pointer ${
                 job.isSaved
                   ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
               }`}
             >
               {job.isSaved ? "Saved" : "Save"}
