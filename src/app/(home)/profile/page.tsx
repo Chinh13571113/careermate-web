@@ -12,6 +12,7 @@ import Sidebar from "@/components/ui/sidebar";
 import { TabContent, TabProvider } from "@/components/ui/tabs";
 import Dashboard from "@/features/client/profile/ui/components/dashboard";
 import CVAttachment from "@/features/client/profile/ui/components/cv-attachment";
+import MyJob from "@/features/client/profile/ui/components/my-job";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -40,6 +41,10 @@ export default function ProfilePage() {
 
           <TabContent value="cv_attachment">
             <CVAttachment />
+          </TabContent>
+
+          <TabContent value="my_job">
+            <MyJob />
           </TabContent>
         </div>
       </TabProvider>
