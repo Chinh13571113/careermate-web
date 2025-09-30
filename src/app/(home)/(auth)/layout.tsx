@@ -1,4 +1,6 @@
+import AuthGuard from "@/components/auth/auth-guard";
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>;
+  return <AuthGuard mode="guest" redirectTo="/" >{children}</AuthGuard>;
 }
  
