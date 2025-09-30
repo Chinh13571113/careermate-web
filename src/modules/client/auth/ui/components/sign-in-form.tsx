@@ -24,7 +24,7 @@ export default function SignInForm({
     useSignInHook();
   return (
     <>
-      <section className="relative z-10 overflow-hidden pt-36 pb-16 md:pb-20 lg:pt-[180px] lg:pb-28">
+      <section className="py-16 md:py-20 lg:py-24">
         <div className="container">
           <div className={cn("-mx-4 flex flex-wrap", className)} {...props}>
             <div className="w-full px-4">
