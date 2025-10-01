@@ -6,7 +6,6 @@ import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import AuthGuard from "@/components/auth/auth-guard";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -28,16 +27,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <AuthProvider>
-          
-            {children}
-          
+          {children}
+
           <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
-          <Analytics/>
+          <Analytics />
         </AuthProvider>
       </body>
     </html>
