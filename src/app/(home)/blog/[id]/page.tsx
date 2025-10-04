@@ -30,7 +30,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                                 <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                                     <span className="text-white font-bold text-sm">H</span>
                                 </div>
-                                <span className="text-xl font-bold text-white">HireMate</span>
+                                <span className="text-xl font-bold text-white">CareerMate</span>
                                 <span className="text-white font-bold text-xl">Blog</span>
                             </Link>
                         </div>
@@ -131,10 +131,10 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                             <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">H</span>
                             </div>
-                            <span className="text-xl font-bold">HireMate</span>
+                            <span className="text-xl font-bold">CareerMate</span>
                         </div>
                         <p className="text-gray-400">
-                            © {new Date().getFullYear()} HireMate. All rights reserved.
+                            © {new Date().getFullYear()} CareerMate. All rights reserved.
                         </p>
                     </div>
                 </div>

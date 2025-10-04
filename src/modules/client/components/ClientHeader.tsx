@@ -17,7 +17,7 @@ export function ClientHeader() {
                             <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">H</span>
                             </div>
-                            <span className="text-xl font-bold text-white">HireMate</span>
+                            <span className="text-xl font-bold text-white">CareerMate</span>
                         </Link>
                     </div>
 
@@ -41,7 +41,7 @@ export function ClientHeader() {
                             Blog
                         </Link>
 
-                        <Link href="/cv-templates" className="text-gray-300 hover:text-white transition-colors">
+                        <Link href="/cv-templates-introduction" className="text-gray-300 hover:text-white transition-colors">
                             CV Templates
                         </Link>
 
@@ -61,7 +61,7 @@ export function ClientHeader() {
                             Sign In
                         </Link>
 
-                        <Link href="/sign-up" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <Link href="/sign-up" className="px-4 py-2 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors">
                             Sign Up
                         </Link>
 
@@ -88,7 +88,7 @@ export function ClientHeader() {
                             <Link href="/blog" className="block text-gray-300 hover:text-white">
                                 Blog
                             </Link>
-                            <Link href="/cv-templates" className="block text-gray-300 hover:text-white">
+                            <Link href="/cv-templates-introduction" className="block text-gray-300 hover:text-white">
                                 CV Templates
                             </Link>
                             <Link href="/ai-jobs" className="block text-gray-300 hover:text-white">

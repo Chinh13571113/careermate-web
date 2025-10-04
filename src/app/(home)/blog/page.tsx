@@ -2,8 +2,8 @@ import { BlogList } from "@/modules/client/blog/components/BlogList";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "ITviec Blog - Việc làm IT, Sự nghiệp IT, Chuyên môn IT",
-    description: "Blog ITviec - Chia sẻ kiến thức về việc làm IT, sự nghiệp IT, chuyên môn IT và các câu chuyện thú vị trong ngành công nghệ",
+    title: "CareerMate Blog - IT Jobs, IT Career, IT Expertise",
+    description: "CareerMate Blog - Share knowledge about IT jobs, IT careers, IT expertise and interesting stories in the technology industry",
 };
 
 export default function BlogPage() {

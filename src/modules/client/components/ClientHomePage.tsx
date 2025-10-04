@@ -54,7 +54,7 @@ function AnimatedCounter({ end, duration = 2000, suffix = "" }) {
     }, [isVisible, end, duration]);
 
     return (
-        <span ref={ref} className="text-4xl md:text-5xl font-bold text-blue-600">
+        <span ref={ref} className="text-4xl md:text-5xl font-bold text-gray-600">
             {count.toLocaleString()}{suffix}
         </span>
     );
@@ -75,9 +75,9 @@ export function ClientHomePage() {
 
             <main>
                 {/* Hero Section */}
-                <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white py-20 pb-32">
+                <section className="bg-gradient-to-br from-gray-900 via-white-900 to-indigo-900 text-white py-20 pb-32">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
                             Find Your Dream Job
                         </h1>
                         <p className="text-xl md:text-2xl mb-12 text-blue-100 max-w-3xl mx-auto">
@@ -119,7 +119,7 @@ export function ClientHomePage() {
                                             </svg>
                                         </div>
                                     </div>
-                                    <button className="px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                                    <button className="px-8 py-4 font-semibold shadow-lg hover:shadow-xl bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors">
                                         Search Jobs
                                     </button>
                                 </div>
@@ -152,25 +152,25 @@ export function ClientHomePage() {
                                 <div className="mb-2">
                                     <AnimatedCounter end={10000} suffix="+" duration={2500} />
                                 </div>
-                                <div className="text-gray-600 text-lg font-medium">Active Jobs</div>
+                                <div className="text-gray-600 text-lg font-sans">Active Jobs</div>
                             </div>
                             <div className="group">
                                 <div className="mb-2">
                                     <AnimatedCounter end={500} suffix="+" duration={2000} />
                                 </div>
-                                <div className="text-gray-600 text-lg font-medium">Top Companies</div>
+                                <div className="text-gray-600 text-lg font-sans">Top Companies</div>
                             </div>
                             <div className="group">
                                 <div className="mb-2">
                                     <AnimatedCounter end={50000} suffix="+" duration={3000} />
                                 </div>
-                                <div className="text-gray-600 text-lg font-medium">Candidates</div>
+                                <div className="text-gray-600 text-lg font-sans">Candidates</div>
                             </div>
                             <div className="group">
                                 <div className="mb-2">
                                     <AnimatedCounter end={95} suffix="%" duration={1500} />
                                 </div>
-                                <div className="text-gray-600 text-lg font-medium">Success Rate</div>
+                                <div className="text-gray-600 text-lg font-sans">Success Rate</div>
                             </div>
                         </div>
                     </div>
