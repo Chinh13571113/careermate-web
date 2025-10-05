@@ -37,22 +37,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const res = await api.post("/auth/token", { email, password });
+      const res = await api.post("/api/auth/token", { email, password });
       const result = res.data.result as TokenResponse;
       const { accessToken, refreshToken, authenticated } = result;
-      
+
       // Store tokens
       localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
       setCookie(COOKIE_TOKEN_KEY, accessToken);
-      
-      set({ 
+
+      set({
         accessToken,
         refreshToken,
-        isLoading: false, 
-        isAuthenticated: authenticated 
+        isLoading: false,
+        isAuthenticated: authenticated
       });
-    } catch (err:any) {
+    } catch (err: any) {
       set({ isLoading: false });
       const backendMessage = err.response?.data?.message || err.message;
       throw backendMessage;
@@ -74,27 +74,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refresh: async (refreshToken: string) => {
     try {
-      const res = await api.post("/auth/refresh", { token: refreshToken });
+      const res = await api.post("/api/auth/refresh", { token: refreshToken });
       const result = res.data.result as TokenResponse;
       const { accessToken, refreshToken: newRefreshToken } = result;
-      
+
       localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
       localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
       setCookie(COOKIE_TOKEN_KEY, accessToken);
-      
-      set({ 
-        accessToken, 
-        refreshToken: newRefreshToken 
+
+      set({
+        accessToken,
+        refreshToken: newRefreshToken
       });
       return accessToken;
     } catch (err) {
       console.error("Refresh failed:", err);
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
-      set({ 
-        accessToken: null, 
+      set({
+        accessToken: null,
         refreshToken: null,
-        isAuthenticated: false 
+        isAuthenticated: false
       });
       return null;
     }
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   introspect: async (token: string) => {
     try {
-      const res = await api.post("/auth/introspect", { token });
+      const res = await api.post("/api/auth/introspect", { token });
       const { valid, exp } = res.data.result;
       return { valid, exp };
     } catch {
@@ -114,9 +114,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { accessToken, refreshToken } = get();
       if (accessToken) {
-        await api.post("/auth/logout", { 
-          accessToken, 
-          refreshToken 
+        await api.post("/api/auth/logout", {
+          accessToken,
+          refreshToken
         });
       }
     } catch (err) {
@@ -126,10 +126,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       removeCookie(COOKIE_TOKEN_KEY);
-      set({ 
-        accessToken: null, 
+      set({
+        accessToken: null,
         refreshToken: null,
-        isAuthenticated: false 
+        isAuthenticated: false
       });
     }
   },

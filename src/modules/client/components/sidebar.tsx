@@ -2,7 +2,7 @@
 
 import React from "react";
 import { LucideIcon } from "lucide-react";
-import { TabsList, TabsTrigger, useTab } from "./tabs";
+import { TabsList, TabsTrigger, useTab } from "@/components/ui/tabs";
 
 type SidebarItem = {
   value: string;

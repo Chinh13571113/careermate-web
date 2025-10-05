@@ -3,6 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hide delete buttons on read-only blog pages */
+.delete-image-btn {
+  display: none !important;
+}
+
+/* Show delete buttons only in edit mode */
+.image-wrapper.edit-mode .delete-image-btn {
+  display: flex !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -73,6 +83,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -111,13 +122,13 @@
 }
 
 @utility dot {
-  input#togglePlan:checked ~ & {
+  input#togglePlan:checked~& {
     @apply translate-x-full;
   }
 }
 
 @utility box {
-  input#checkboxLabel:checked ~ & span {
+  input#checkboxLabel:checked~& span {
     @apply opacity-100;
   }
 }
@@ -129,7 +140,96 @@
 }
 
 @layer components {
-  input[type="checkbox"]:checked ~ label span svg {
+  input[type="checkbox"]:checked~label span svg {
     @apply inline-flex;
+  }
+
+  /* Blog content formatting styles */
+  .prose {
+    color: #374151;
+    max-width: none;
+  }
+
+  .prose h1 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 2rem 0 1rem 0;
+    color: #111827;
+  }
+
+  .prose h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 1.75rem 0 0.875rem 0;
+    color: #111827;
+  }
+
+  .prose h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 1.5rem 0 0.75rem 0;
+    color: #111827;
+  }
+
+  .prose p {
+    margin: 1rem 0;
+    line-height: 1.7;
+  }
+
+  .prose strong {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .prose em {
+    font-style: italic;
+  }
+
+  .prose s {
+    text-decoration: line-through;
+  }
+
+  .prose ul {
+    margin: 1rem 0;
+    padding-left: 2rem;
+    list-style-type: disc;
+  }
+
+  .prose ol {
+    margin: 1rem 0;
+    padding-left: 2rem;
+    list-style-type: decimal;
+  }
+
+  .prose li {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+  }
+
+  .prose blockquote {
+    margin: 1.5rem 0;
+    padding-left: 1rem;
+    border-left: 4px solid #e5e7eb;
+    font-style: italic;
+    color: #6b7280;
+  }
+
+  .prose img {
+    margin: 1.5rem 0;
+    border-radius: 0.5rem;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .prose a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  .prose a:hover {
+    color: #1d4ed8;
   }
 }

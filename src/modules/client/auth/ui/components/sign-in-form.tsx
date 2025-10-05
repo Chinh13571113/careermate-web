@@ -97,7 +97,8 @@ export default function SignInForm({
                                 id="email"
                                 type="email"
                                 className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
-                                placeholder="email@example.com"
+                                placeholder="Enter your email"
+                                autoComplete="email"
                                 {...field}
                               />
                             </FormControl>
@@ -125,7 +126,8 @@ export default function SignInForm({
                                   id="password"
                                   type={showPassword ? "text" : "password"}
                                   className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
-                                  placeholder="********"
+                                  placeholder="Enter your password"
+                                  autoComplete="current-password"
                                   {...field}
                                 />
                                 <Button

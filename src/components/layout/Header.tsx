@@ -18,6 +18,7 @@ export default function Header() {
     { name: "Tạo CV", href: "/cv-templates" },
     { name: "Mentor", href: "/mentors" },
     { name: "Việc làm", href: "/jobs" },
+    { name: "Blog", href: "/blog" },
   ];
 
   const isActivePath = (path: string) => {
@@ -59,11 +60,10 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActivePath(item.href)
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActivePath(item.href)
                     ? "bg-blue-100 text-blue-700"
                     : "text-[#f9f9f9] hover:text-blue-600 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {item.name}
               </Link>
@@ -155,11 +155,10 @@ export default function Header() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActivePath(item.href)
+                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActivePath(item.href)
                       ? "bg-blue-100 text-blue-700"
                       : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {item.name}
                 </Link>

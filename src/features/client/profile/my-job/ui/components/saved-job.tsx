@@ -1,5 +1,5 @@
-import { Job } from "@/components/ui/JobCard";
-import JobCardList from "@/components/ui/JobCardList";
+import { Job } from "@/modules/client/job/components/JobCard";
+import JobCardList from "@/modules/client/job/components/JobCardList";
 import React from "react";
 
 const mockJobs: Job[] = [

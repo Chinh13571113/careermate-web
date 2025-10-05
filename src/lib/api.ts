@@ -1,8 +1,12 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/use-auth-store";
 
+// Debug the API URL being used
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+console.log('🌐 API Base URL:', baseURL);
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
+  baseURL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
@@ -25,12 +29,12 @@ function onTokenRefreshed(token: string) {
 // Add request interceptor
 api.interceptors.request.use(async (config) => {
   // Don't intercept refresh token request to prevent infinite loop
-  if (config.url?.includes('/auth/refresh')) {
+  if (config.url?.includes('/api/auth/refresh')) {
     return config;
   }
 
   const { accessToken } = useAuthStore.getState();
-  
+
   if (!accessToken) return config;
 
   // Add token to headers
@@ -48,7 +52,7 @@ api.interceptors.response.use(
     // Handle token expiration
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
         // If we're already refreshing, wait for the new token
         if (isRefreshing) {
@@ -69,7 +73,7 @@ api.interceptors.response.use(
         }
 
         const newToken = await refresh(refreshToken);
-        
+
         if (newToken) {
           onTokenRefreshed(newToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -94,9 +98,19 @@ api.interceptors.response.use(
     } else if (!error.response) {
       console.error("Network error - check backend or CORS");
     } else {
-      console.error("Server error:", error.response?.status, error.response?.data);
+      // Don't log 404 errors for image deletion (expected fallback behavior)
+      const isImageDeletion = error.config?.url?.includes('/api/images/');
+      const is404 = error.response?.status === 404;
+
+      if (isImageDeletion && is404) {
+        // Silently suppress expected 404 for image deletion attempts
+        // (these are handled by our fallback logic)
+      } else {
+        console.error("Server error:");
+        console.error(error.response?.status, error.response?.data);
+      }
     }
-    
+
     return Promise.reject(error);
   }
 );

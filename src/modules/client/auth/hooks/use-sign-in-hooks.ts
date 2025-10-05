@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/use-auth-store";
+import { useAdminCheck } from "@/lib/auth-admin";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -19,6 +20,7 @@ const useSignInHook = () => {
   const route = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((s) => s.login);
+  const { isAdmin } = useAdminCheck();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -28,19 +30,30 @@ const useSignInHook = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
-     try {
+    try {
       await login(data.email, data.password);
       toast.success("Login successful!");
-      route.replace("/");
-    } catch (err:any) {
+      form.reset(); // Clear form after successful login
+
+      // Redirect based on user role
+      if (isAdmin) {
+        route.replace("/admin");
+      } else {
+        route.replace("/");
+      }
+    } catch (err: any) {
       toast.error(err);
       console.error("Login error", err);
     }
   };
+
+  const clearForm = () => {
+    form.reset({ email: "", password: "" });
+  };
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-  return { onSubmit, form, showPassword, togglePasswordVisibility };
+  return { onSubmit, form, showPassword, togglePasswordVisibility, clearForm };
 };
 
 export default useSignInHook;
