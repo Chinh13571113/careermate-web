@@ -98,13 +98,16 @@ api.interceptors.response.use(
     } else if (!error.response) {
       console.error("Network error - check backend or CORS");
     } else {
-      // Don't log 404 errors for image deletion (expected fallback behavior)
+      // Don't log expected errors
       const isImageDeletion = error.config?.url?.includes('/api/images/');
+      const isLogout = error.config?.url?.includes('/api/auth/logout');
       const is404 = error.response?.status === 404;
+      const is400 = error.response?.status === 400;
 
-      if (isImageDeletion && is404) {
-        // Silently suppress expected 404 for image deletion attempts
-        // (these are handled by our fallback logic)
+      if ((isImageDeletion && is404) || (isLogout && is400)) {
+        // Silently suppress expected errors:
+        // - 404 for image deletion attempts (handled by fallback logic)
+        // - 400 for logout attempts (backend might not have logout endpoint)
       } else {
         console.error("Server error:");
         console.error(error.response?.status, error.response?.data);

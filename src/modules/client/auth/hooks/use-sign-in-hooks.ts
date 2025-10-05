@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -6,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/use-auth-store";
-import { useAdminCheck } from "@/lib/auth-admin";
+import { decodeJWT, ADMIN_ROLES } from "@/lib/auth-admin";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -16,11 +15,11 @@ const formSchema = z.object({
     .min(2, "Password must be at least 6 characters"),
 });
 type FormValues = z.infer<typeof formSchema>;
+
 const useSignInHook = () => {
   const route = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((s) => s.login);
-  const { isAdmin } = useAdminCheck();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -29,11 +28,28 @@ const useSignInHook = () => {
     },
   });
 
+  const checkIsAdmin = (token: string): boolean => {
+    try {
+      const decoded = decodeJWT(token);
+      const roles = decoded?.scope ? [decoded.scope] : decoded?.roles || [];
+      return ADMIN_ROLES.some(role => roles.includes(role));
+    } catch (error) {
+      console.error('Error checking admin role:', error);
+      return false;
+    }
+  };
+
   const onSubmit = async (data: FormValues) => {
     try {
-      await login(data.email, data.password);
+      const result = await login(data.email, data.password);
       toast.success("Login successful!");
       form.reset(); // Clear form after successful login
+
+      // Get the token from the auth store after login
+      const { accessToken } = useAuthStore.getState();
+
+      // Check admin status with the new token
+      const isAdmin = accessToken ? checkIsAdmin(accessToken) : false;
 
       // Redirect based on user role
       if (isAdmin) {

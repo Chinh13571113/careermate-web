@@ -1,7 +1,5 @@
 "use client";
 
-import { ClientHeader } from "./ClientHeader";
-import { ClientFooter } from "./ClientFooter";
 import { TopEmployers } from "./TopEmployers";
 import { FeedbackButton } from "./FeedbackButton";
 import { useState, useEffect, useRef } from "react";
@@ -71,7 +69,6 @@ export function ClientHomePage() {
           direction: ltr !important;
         }
       `}</style>
-            <ClientHeader />
 
             <main>
                 {/* Hero Section */}
@@ -226,7 +223,6 @@ export function ClientHomePage() {
                 </section>
             </main>
 
-            <ClientFooter />
             <FeedbackButton />
         </div>
     );

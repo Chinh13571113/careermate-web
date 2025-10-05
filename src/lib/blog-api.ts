@@ -397,42 +397,102 @@ class BlogApiService {
         return response.data.result!.imageUrl;
     }
 
-    // Comment endpoints (keeping existing functionality)
+    // Comment endpoints - Updated to match new backend API
     async getComments(blogId: number, params: CommentPaginationParams = {}): Promise<PagedResponse<Comment>> {
         const { page = 0, size = 20 } = params;
-        const response = await api.get(`/blogs/${blogId}/comments?page=${page}&size=${size}`);
-        return response.data;
+        const response = await api.get(`/api/blogs/${blogId}/comments?page=${page}&size=${size}`);
+        const responseData = response.data;
+
+        // Handle wrapped response format
+        if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+            throw new Error(responseData.message || 'Failed to fetch comments');
+        }
+        if (responseData.result) {
+            return responseData.result;
+        }
+        if ((responseData as any).content !== undefined) {
+            return responseData as unknown as PagedResponse<Comment>;
+        }
+        throw new Error('Unexpected response format from server');
     }
 
     async createComment(blogId: number, data: CommentCreateRequest): Promise<Comment> {
-        const response = await api.post(`/blogs/${blogId}/comments`, data);
+        const response = await api.post(`/api/blogs/${blogId}/comments`, data);
+        const responseData = response.data;
+
+        // Handle wrapped response format
+        if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+            throw new Error(responseData.message || 'Failed to create comment');
+        }
+        if (responseData.result) {
+            return responseData.result;
+        }
+        if ((responseData as any).id !== undefined) {
+            return responseData as unknown as Comment;
+        }
+        throw new Error('Unexpected response format from server');
+    }
+
+    async updateComment(blogId: number, commentId: number, data: CommentUpdateRequest): Promise<Comment> {
+        const response = await api.put(`/api/blogs/${blogId}/comments/${commentId}`, data);
         return response.data;
     }
 
-    async updateComment(commentId: number, data: CommentUpdateRequest): Promise<Comment> {
-        const response = await api.put(`/comments/${commentId}`, data);
-        return response.data;
+    async deleteComment(blogId: number, commentId: number): Promise<void> {
+        await api.delete(`/api/blogs/${blogId}/comments/${commentId}`);
     }
 
-    async deleteComment(commentId: number): Promise<void> {
-        await api.delete(`/comments/${commentId}`);
-    }
-
-    // Rating endpoints (keeping existing functionality)
+    // Rating endpoints - Updated to match new backend API
     async getRatings(blogId: number): Promise<Rating[]> {
-        const response = await api.get(`/blogs/${blogId}/ratings`);
-        return response.data;
+        const response = await api.get(`/api/blogs/${blogId}/ratings`);
+        const responseData = response.data;
+
+        // Handle wrapped response format
+        if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+            throw new Error(responseData.message || 'Failed to fetch ratings');
+        }
+        if (responseData.result) {
+            return responseData.result;
+        }
+        if (Array.isArray(responseData)) {
+            return responseData as unknown as Rating[];
+        }
+        throw new Error('Unexpected response format from server');
     }
 
     async createOrUpdateRating(blogId: number, data: RatingCreateRequest): Promise<Rating> {
-        const response = await api.post(`/blogs/${blogId}/ratings`, data);
-        return response.data;
+        const response = await api.post(`/api/blogs/${blogId}/ratings`, data);
+        const responseData = response.data;
+
+        // Handle wrapped response format
+        if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+            throw new Error(responseData.message || 'Failed to create/update rating');
+        }
+        if (responseData.result) {
+            return responseData.result;
+        }
+        if ((responseData as any).id !== undefined) {
+            return responseData as unknown as Rating;
+        }
+        throw new Error('Unexpected response format from server');
     }
 
     async getUserRating(blogId: number): Promise<Rating | null> {
         try {
-            const response = await api.get(`/blogs/${blogId}/ratings/user`);
-            return response.data;
+            const response = await api.get(`/api/blogs/${blogId}/ratings/my-rating`);
+            const responseData = response.data;
+
+            // Handle wrapped response format
+            if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+                throw new Error(responseData.message || 'Failed to fetch user rating');
+            }
+            if (responseData.result) {
+                return responseData.result;
+            }
+            if ((responseData as any).id !== undefined) {
+                return responseData as unknown as Rating;
+            }
+            return null;
         } catch (error: any) {
             // Return null if user hasn't rated (404) or other error
             if (error.response?.status === 404) {
@@ -444,8 +504,8 @@ class BlogApiService {
         }
     }
 
-    async deleteRating(ratingId: number): Promise<void> {
-        await api.delete(`/ratings/${ratingId}`);
+    async deleteRating(blogId: number): Promise<void> {
+        await api.delete(`/api/blogs/${blogId}/ratings`);
     }
 }
 

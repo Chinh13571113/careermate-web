@@ -114,15 +114,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { accessToken, refreshToken } = get();
       if (accessToken) {
-        await api.post("/api/auth/logout", {
-          accessToken,
-          refreshToken
-        });
+        try {
+          // Try to notify backend about logout
+          await api.post("/api/auth/logout", {
+            accessToken,
+            refreshToken
+          });
+        } catch (backendError) {
+          // Backend logout failed, but we still clear local tokens
+          console.log("Backend logout failed (this is okay):", backendError);
+        }
       }
     } catch (err) {
-      console.error("Logout failed:", err);
+      console.error("Logout error:", err);
     } finally {
-      // Clear all tokens
+      // Always clear all tokens regardless of backend response
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       removeCookie(COOKIE_TOKEN_KEY);

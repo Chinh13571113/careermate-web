@@ -73,7 +73,7 @@ class PublicBlogApiService {
         size?: number;
     }): Promise<PagedResponse<Comment>> {
         try {
-            const url = `/blogs/${blogId}/comments?page=${params.page || 0}&size=${params.size || 20}`;
+            const url = `/api/blogs/${blogId}/comments?page=${params.page || 0}&size=${params.size || 20}`;
             const response = await publicApi.get<PagedResponse<Comment>>(url);
             return response.data;
         } catch (error: any) {
@@ -106,12 +106,25 @@ class PublicBlogApiService {
 
     async getRatings(blogId: number): Promise<Rating[]> {
         try {
-            const response = await publicApi.get<Rating[]>(`/blogs/${blogId}/ratings`);
+            const response = await publicApi.get<Rating[]>(`/api/blogs/${blogId}/ratings`);
             return response.data;
         } catch (error: any) {
             // Ratings require authentication - return empty array for unauthorized users
             if (error.response?.status === 401) {
                 return [];
+            }
+            throw error;
+        }
+    }
+
+    async getUserRating(blogId: number): Promise<Rating | null> {
+        try {
+            const response = await publicApi.get<Rating>(`/api/blogs/${blogId}/ratings/my-rating`);
+            return response.data;
+        } catch (error: any) {
+            // Return null if user hasn't rated (404) or unauthorized (401)
+            if (error.response?.status === 404 || error.response?.status === 401) {
+                return null;
             }
             throw error;
         }
