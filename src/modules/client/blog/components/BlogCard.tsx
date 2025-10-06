@@ -25,7 +25,7 @@ export function BlogCard({ post }: BlogCardProps) {
 
             {/* Title */}
             <h2 className="text-lg font-semibold text-gray-900 mb-3 leading-relaxed">
-                <Link href={`/blog/${post.id}`} className="hover:text-blue-600">
+                <Link href={`/blog/${post.id}`} className="hover:text-[#5b5b5b]">
                     {post.title}
                 </Link>
             </h2>
@@ -44,9 +44,9 @@ export function BlogCard({ post }: BlogCardProps) {
             <div className="mt-4">
                 <Link
                     href={`/blog/${post.id}`}
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                    className="text-[#373737] hover:text-[#222222] font-medium text-sm"
                 >
-                    Bắt đầu đọc ({post.readTime} phút) →
+                    Start Reading ({post.readTime} min) →
                 </Link>
             </div>
         </article>

@@ -19,7 +19,7 @@ export function VideoCard({ video }: VideoCardProps) {
                     </div>
                 </div>
 
-                {/* HireMate Logo */}
+                {/* CareerMate Logo */}
                 <div className="absolute top-3 left-3">
                     <div className="flex items-center space-x-1">
                         <span className="text-red-500 font-bold text-sm">H</span>

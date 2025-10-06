@@ -30,7 +30,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                                 <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                                     <span className="text-white font-bold text-sm">H</span>
                                 </div>
-                                <span className="text-xl font-bold text-white">HireMate</span>
+                                <span className="text-xl font-bold text-white">CareerMate</span>
                                 <span className="text-white font-bold text-xl">Blog</span>
                             </Link>
                         </div>
@@ -75,7 +75,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
                                     {post.category}
                                 </span>
-                                <span className="text-gray-500 text-sm">
+                                <span className="text-[#6B7280] text-sm">
                                     {post.readTime} phút đọc
                                 </span>
                             </div>
@@ -124,21 +124,21 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             </main>
 
             {/* Footer */}
-            <footer className="bg-gray-900 text-white">
+            {/* <footer className="bg-gray-900 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="text-center">
                         <div className="flex items-center justify-center space-x-2 mb-4">
                             <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">H</span>
                             </div>
-                            <span className="text-xl font-bold">HireMate</span>
+                            <span className="text-xl font-bold">CareerMate</span>
                         </div>
                         <p className="text-gray-400">
-                            © {new Date().getFullYear()} HireMate. All rights reserved.
+                            © {new Date().getFullYear()} CareerMate. All rights reserved.
                         </p>
                     </div>
                 </div>
-            </footer>
+            </footer> */}
         </div>
     );
 }

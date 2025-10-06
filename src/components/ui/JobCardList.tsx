@@ -46,7 +46,7 @@ const JobCardList: React.FC<JobCardListProps> = ({ jobs, onApply, onSave }) => {
             className={`cursor-pointer ${
               currentPage === i + 1
                 ? "text-blue-300 font-bold hover:text-blue-500"
-                : "text-gray-400 hover:text-gray-500"
+                : "text-gray-400 hover:text-[#6B7280]"
             }`}
           >
             {i + 1}
