@@ -31,14 +31,17 @@ const JobCard: React.FC<JobCardProps> = ({
   return (
     <div className={`bg-white rounded-lg border p-4 mb-4 transition-all ${
       isSelected 
-        ? 'border-blue-500 border-l-4 shadow-md bg-blue-50' 
+        ? 'border-[#3a4660] border-l-4 shadow-md bg-[#f0f2f5]' 
         : 'border-gray-200 hover:shadow-md'
     }`}>
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             {isHot && (
-              <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded font-semibold">
+              <span className="bg-red-600 text-white text-xs px-2 py-1 rounded font-semibold flex items-center gap-1">
+                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path>
+                </svg>
                 HOT
               </span>
             )}
@@ -48,7 +51,7 @@ const JobCard: React.FC<JobCardProps> = ({
           </div>
           
           <div className="flex items-center gap-2 mb-2">
-            <span className="w-4 h-4 bg-blue-500 rounded-sm flex-shrink-0"></span>
+            <span className="w-4 h-4 bg-[#3a4660] rounded-sm flex-shrink-0"></span>
             <span className="text-sm font-medium text-gray-700">{company}</span>
           </div>
         </div>
@@ -57,14 +60,26 @@ const JobCard: React.FC<JobCardProps> = ({
       <div className="space-y-2 mb-3">
         {isNegotiable && (
           <div className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-            <span className="text-sm text-blue-600 font-medium">Negotiate</span>
+            <span className="w-2 h-2 bg-[#3a4660] rounded-full"></span>
+            <span className="text-sm text-[#3a4660] font-medium">Negotiate</span>
           </div>
         )}
         
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>📍 {workMode}</span>
-          <span>🏢 {location}</span>
+          <span className="flex items-center gap-1">
+            <svg className="w-5 h-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+            </svg>
+            {workMode}
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-5 h-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            {location}
+          </span>
         </div>
         
         {companyType && (
