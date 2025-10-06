@@ -85,7 +85,7 @@
 //             {/* Notifications */}
 //             <button className="relative p-2 text-[#f9f9f9] hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors">
 //               <Bell className="w-5 h-5" />
-//               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+//               <span className="absolute top-1 right-1 w-2 h-2 bg-gray-500 rounded-full"></span>
 //             </button>
 
 //             {/* User Menu */}

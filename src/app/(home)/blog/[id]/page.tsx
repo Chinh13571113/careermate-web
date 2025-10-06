@@ -75,7 +75,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
                                     {post.category}
                                 </span>
-                                <span className="text-gray-500 text-sm">
+                                <span className="text-[#6B7280] text-sm">
                                     {post.readTime} phút đọc
                                 </span>
                             </div>
@@ -124,7 +124,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             </main>
 
             {/* Footer */}
-            <footer className="bg-gray-900 text-white">
+            {/* <footer className="bg-gray-900 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="text-center">
                         <div className="flex items-center justify-center space-x-2 mb-4">
@@ -138,7 +138,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                         </p>
                     </div>
                 </div>
-            </footer>
+            </footer> */}
         </div>
     );
 }

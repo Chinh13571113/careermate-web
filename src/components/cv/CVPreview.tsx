@@ -156,7 +156,7 @@ export default function CVPreview({
                   </svg>
                 </button>
 
-                <span className="text-base text-gray-500">50%</span>
+                <span className="text-base text-[#6B7280]">50%</span>
 
                 {/* Custom Zoom Slider */}
                 <div className="relative w-24 h-6 flex items-center">
@@ -202,7 +202,7 @@ export default function CVPreview({
                   ></div>
                 </div>
 
-                <span className="text-base text-gray-500">100%</span>
+                <span className="text-base text-[#6B7280]">100%</span>
 
                 <button
                   onClick={() => handleZoomChange(zoom + 10)}
@@ -295,7 +295,7 @@ export default function CVPreview({
                         <h3 className="font-medium text-gray-800">
                           {exp.position}
                         </h3>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-[#6B7280]">
                           {exp.period}
                         </span>
                       </div>
@@ -361,7 +361,7 @@ export default function CVPreview({
                         <h3 className="font-medium text-gray-800">
                           {edu.degree}
                         </h3>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-[#6B7280]">
                           {edu.period}
                         </span>
                       </div>
@@ -506,7 +506,7 @@ export default function CVPreview({
                             {edu.degree}
                           </h3>
                           <p className="text-blue-600 text-sm">{edu.school}</p>
-                          <p className="text-gray-500 text-sm">{edu.period}</p>
+                          <p className="text-[#6B7280] text-sm">{edu.period}</p>
                           {edu.gpa && (
                             <p className="text-gray-600 text-sm">
                               GPA: {edu.gpa}
@@ -804,7 +804,7 @@ export default function CVPreview({
                             {edu.degree}
                           </h3>
                           <p className="text-green-600 text-sm">{edu.school}</p>
-                          <p className="text-gray-500 text-sm">{edu.period}</p>
+                          <p className="text-[#6B7280] text-sm">{edu.period}</p>
                           {edu.gpa && (
                             <p className="text-gray-600 text-sm">
                               GPA: {edu.gpa}
@@ -1024,7 +1024,7 @@ export default function CVPreview({
                               <p className="text-gray-600 text-xs">
                                 {cert.issuer}
                               </p>
-                              <p className="text-gray-500 text-xs">
+                              <p className="text-[#6B7280] text-xs">
                                 {cert.date}
                               </p>
                             </div>

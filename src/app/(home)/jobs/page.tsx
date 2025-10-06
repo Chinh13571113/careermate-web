@@ -197,7 +197,7 @@ export default function JobsPage() {
     <div className="min-h-screen bg-white">
       {/* Use shared header */}
       <ClientHeader />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-16">{/* Added margin-top for fixed header */}
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-gray-900 via-white-900 to-indigo-900 rounded-lg text-white p-8 mb-8">
           <div className="max-w-3xl">
@@ -275,7 +275,7 @@ export default function JobsPage() {
                         className={`text-sm ${
                           selectedJobType === type.id
                             ? "text-gray-300"
-                            : "text-gray-500"
+                            : "text-[#6B7280]"
                         }`}
                       >
                         ({type.count})
@@ -391,7 +391,7 @@ export default function JobsPage() {
                                 {job.company}
                               </p>
 
-                              <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                              <div className="flex items-center space-x-4 text-sm text-[#6B7280] mb-3">
                                 <div className="flex items-center space-x-1">
                                   <MapPin className="w-4 h-4" />
                                   <span>{job.location}</span>
@@ -460,7 +460,7 @@ export default function JobsPage() {
                                 </span>
                               ))}
                               {job.benefits.length > 3 && (
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-[#6B7280]">
                                   +{job.benefits.length - 3} more
                                 </span>
                               )}
@@ -471,7 +471,7 @@ export default function JobsPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center space-x-4 text-sm text-[#6B7280]">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
                           <span>Posted {job.postedDate}</span>

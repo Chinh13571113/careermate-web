@@ -22,7 +22,7 @@ export function BlogList() {
             <ClientHeader />
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">{/* Added margin-top for fixed header */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* Left Column - Blog Posts */}
                     <div className="lg:col-span-3">
@@ -47,7 +47,7 @@ export function BlogList() {
                                     key={page}
                                     onClick={() => setCurrentPage(page)}
                                     className={`px-3 py-2 rounded ${page === currentPage
-                                        ? 'bg-red-500 text-white'
+                                        ? 'bg-gray-500 text-white'
                                         : 'text-gray-600 hover:text-gray-900'
                                         }`}
                                 >
