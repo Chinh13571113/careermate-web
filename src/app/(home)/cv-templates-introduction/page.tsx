@@ -12,8 +12,6 @@ import {
   Eye,
   Heart,
 } from "lucide-react";
-import { ClientHeader } from "@/modules/client/components/ClientHeader";
-import { ClientFooter } from "@/modules/client/components/ClientFooter";
 
 export default function CVTemplatesIntroductionPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(0);
@@ -98,7 +96,6 @@ export default function CVTemplatesIntroductionPage() {
 
   return (
     <div>
-      <ClientHeader />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-white-900 to-indigo-900">
         <div className="pt-16">
           {/* Hero Section */}
@@ -460,7 +457,6 @@ export default function CVTemplatesIntroductionPage() {
           </div>
         </div>
       </div>
-      <ClientFooter />
     </div>
   );
 }

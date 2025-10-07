@@ -65,76 +65,76 @@ export function ClientHeader() {
     };
 
     // Show loading state during hydration
-    if (!isHydrated) {
-        return (
-            <header className="bg-gray-800 text-white shadow-lg">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-                        {/* Logo */}
-                        <div className="flex items-center">
-                            <Link href="/" className="flex items-center space-x-2">
-                                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                                    <span className="text-white font-bold text-sm">H</span>
-                                </div>
-                                <span className="text-xl font-bold text-white">HireMate</span>
-                            </Link>
-                        </div>
+    // if (!isHydrated) {
+    //     return (
+    //         <header className="bg-gray-800 text-white shadow-lg">
+    //             <div className="max-w-7xl mx-auto">
+    //                 <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+    //                     {/* Logo */}
+    //                     <div className="flex items-center">
+    //                         <Link href="/" className="flex items-center space-x-2">
+    //                             <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+    //                                 <span className="text-white font-bold text-sm">H</span>
+    //                             </div>
+    //                             <span className="text-xl font-bold text-white">HireMate</span>
+    //                         </Link>
+    //                     </div>
 
-                        {/* Desktop Navigation */}
-                        <nav className="hidden lg:flex items-center space-x-8">
-                            <div className="relative group">
-                                <Link href="/jobs" className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors">
-                                    <span>All Jobs</span>
-                                    <ChevronDown className="w-4 h-4" />
-                                </Link>
-                            </div>
+    //                     {/* Desktop Navigation */}
+    //                     <nav className="hidden lg:flex items-center space-x-8">
+    //                         <div className="relative group">
+    //                             <Link href="/jobs" className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors">
+    //                                 <span>All Jobs</span>
+    //                                 <ChevronDown className="w-4 h-4" />
+    //                             </Link>
+    //                         </div>
 
-                            <div className="relative group">
-                                <Link href="/companies" className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors">
-                                    <span>Companies</span>
-                                    <ChevronDown className="w-4 h-4" />
-                                </Link>
-                            </div>
+    //                         <div className="relative group">
+    //                             <Link href="/companies" className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors">
+    //                                 <span>Companies</span>
+    //                                 <ChevronDown className="w-4 h-4" />
+    //                             </Link>
+    //                         </div>
 
-                            <Link href="/blog" className="text-gray-300 hover:text-white transition-colors">
-                                Blog
-                            </Link>
+    //                         <Link href="/blog" className="text-gray-300 hover:text-white transition-colors">
+    //                             Blog
+    //                         </Link>
 
-                            <Link href="/cv-templates" className="text-gray-300 hover:text-white transition-colors">
-                                CV Templates
-                            </Link>
+    //                         <Link href="/cv-templates" className="text-gray-300 hover:text-white transition-colors">
+    //                             CV Templates
+    //                         </Link>
 
-                            <Link href="/ai-jobs" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                                <span>AI Jobs</span>
-                                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">HOT</span>
-                            </Link>
-                        </nav>
+    //                         <Link href="/ai-jobs" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
+    //                             <span>AI Jobs</span>
+    //                             <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">HOT</span>
+    //                         </Link>
+    //                     </nav>
 
-                        {/* Right Side - Loading state */}
-                        <div className="flex items-center space-x-4">
-                            <Link href="/recruiter" className="hidden sm:block text-gray-300 hover:text-white transition-colors">
-                                For Employers
-                            </Link>
+    //                     {/* Right Side - Loading state */}
+    //                     <div className="flex items-center space-x-4">
+    //                         <Link href="/recruiter" className="hidden sm:block text-gray-300 hover:text-white transition-colors">
+    //                             For Employers
+    //                         </Link>
 
-                            {/* Placeholder for auth state during hydration */}
-                            <div className="flex items-center space-x-4">
-                                <div className="w-16 h-8 bg-gray-700 rounded animate-pulse"></div>
-                                <div className="w-20 h-8 bg-gray-700 rounded animate-pulse"></div>
-                            </div>
+    //                         {/* Placeholder for auth state during hydration */}
+    //                         <div className="flex items-center space-x-4">
+    //                             <div className="w-16 h-8 bg-gray-700 rounded animate-pulse"></div>
+    //                             <div className="w-20 h-8 bg-gray-700 rounded animate-pulse"></div>
+    //                         </div>
 
-                            {/* Mobile Menu Button */}
-                            <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="lg:hidden p-2 text-gray-300 hover:text-white"
-                            >
-                                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-        );
-    }
+    //                         {/* Mobile Menu Button */}
+    //                         <button
+    //                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+    //                             className="lg:hidden p-2 text-gray-300 hover:text-white"
+    //                         >
+    //                             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+    //                         </button>
+    //                     </div>
+    //                 </div>
+    //             </div>
+    //         </header>
+    //     );
+    // }
 
     return (
         <header className="bg-[#1b1b20f5] text-[#fff] shadow-lg fixed top-0 left-0 right-0 z-50">

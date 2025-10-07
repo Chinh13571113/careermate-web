@@ -17,8 +17,6 @@ import {
   Briefcase,
   TrendingUp,
 } from "lucide-react";
-import { ClientHeader } from "@/modules/client/components/ClientHeader";
-import { ClientFooter } from "@/modules/client/components/ClientFooter";
 
 export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -195,8 +193,6 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Use shared header */}
-      <ClientHeader />
       <div className="container mx-auto px-4 py-8 mt-16">{/* Added margin-top for fixed header */}
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-gray-900 via-white-900 to-indigo-900 rounded-lg text-white p-8 mb-8">
@@ -509,8 +505,6 @@ export default function JobsPage() {
           </div>
         </div>
       </div>
-      {/* Use shared footer */}
-      <ClientFooter />
     </div>
   );
 }
