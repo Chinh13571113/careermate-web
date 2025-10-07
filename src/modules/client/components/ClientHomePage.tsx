@@ -1,7 +1,5 @@
 "use client";
 
-import { ClientHeader } from "./ClientHeader";
-import { ClientFooter } from "./ClientFooter";
 import { TopEmployers } from "./TopEmployers";
 import { FeedbackButton } from "./FeedbackButton";
 import { useState, useEffect, useRef } from "react";
@@ -74,7 +72,6 @@ export function ClientHomePage() {
           direction: ltr !important;
         }
       `}</style>
-      <ClientHeader />
 
       <main className="mt-16">
         {/* Added margin-top equal to header height */}
@@ -245,25 +242,9 @@ export function ClientHomePage() {
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg p-8 text-center shadow-sm">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">⚡</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-4">Quick Apply</h3>
-                <p className="text-gray-600">
-                  Apply to multiple jobs with one click using our intelligent
-                  application system.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <ClientFooter />
-      <FeedbackButton />
-    </div>
-  );
+            <FeedbackButton />
+        </div>
+    );
 }
 
 export default ClientHomePage;

@@ -8,7 +8,7 @@ import {
   Inbox,
   FileText,
 } from "lucide-react";
-import Sidebar from "@/components/ui/sidebar";
+import Sidebar from "@/modules/client/components/sidebar";
 import { TabContent, TabProvider } from "@/components/ui/tabs";
 import Dashboard from "@/features/client/profile/ui/components/dashboard";
 import CVAttachment from "@/features/client/profile/ui/components/cv-attachment";

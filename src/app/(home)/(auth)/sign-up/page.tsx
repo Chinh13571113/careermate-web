@@ -8,9 +8,9 @@ export const metadata = {
 
 const SignUpPage = () => {
   return (
-    
-      <SignUpForm />
-    
+
+    <SignUpForm />
+
   );
 }
 
