@@ -114,7 +114,7 @@ export function TopEmployers() {
                 <div className="text-center mt-8">
                     <Link
                         href="/client/companies"
-                        className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center px-6 py-3  bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-lg hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors"
                     >
                         View All Companies
                         <ArrowRight className="w-5 h-5 ml-2" />

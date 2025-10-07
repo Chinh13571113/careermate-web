@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
 
 export function ClientFooter() {
     return (
-        <footer className="bg-gray-900 text-white">
+        <footer className="bg-[#1b1b20f5] text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                     {/* Company Info */}
@@ -13,24 +14,24 @@ export function ClientFooter() {
                             <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">H</span>
                             </div>
-                            <span className="text-xl font-bold">HireMate</span>
+                            <span className="text-xl font-bold">CareerMate</span>
                         </div>
                         <p className="text-gray-400 mb-4 max-w-md">
                             The leading AI-powered job portal connecting talented candidates with top employers.
                             Find your dream job or discover exceptional talent.
                         </p>
                         <div className="flex space-x-4">
-                            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                                Facebook
+                            <Link href="#" className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg">
+                                <Facebook className="w-5 h-5" />
                             </Link>
-                            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                                Twitter
+                            <Link href="#" className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg">
+                                <Twitter className="w-5 h-5" />
                             </Link>
-                            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                                LinkedIn
+                            <Link href="#" className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg">
+                                <Linkedin className="w-5 h-5" />
                             </Link>
-                            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                                Instagram
+                            <Link href="#" className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg">
+                                <Instagram className="w-5 h-5" />
                             </Link>
                         </div>
                     </div>
@@ -94,7 +95,7 @@ export function ClientFooter() {
                 <div className="border-t border-gray-800 mt-8 pt-8">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         <div className="text-gray-400 text-sm">
-                            © {new Date().getFullYear()} HireMate. All rights reserved.
+                            © {new Date().getFullYear()} CareerMate. All rights reserved.
                         </div>
                         <div className="flex space-x-6 mt-4 md:mt-0">
                             <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">

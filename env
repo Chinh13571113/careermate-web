@@ -1,0 +1,12 @@
+# .env
+
+COMPOSE_PROJECT_NAME=be
+
+# Spring Boot datasource
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/MyPostgresDB
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=123456
+
+# Email config
+EMAIL_NAME=your-email@example.com
+EMAIL_PASSWORD=your-email-password

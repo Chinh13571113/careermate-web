@@ -8,7 +8,7 @@ export function FeedbackButton() {
             <div className="flex flex-col items-center">
                 <div className="relative">
                     <MessageCircle className="w-6 h-6" />
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-gray-500 rounded-full"></div>
                 </div>
                 <span className="text-xs mt-1 font-medium">Feedback</span>
             </div>

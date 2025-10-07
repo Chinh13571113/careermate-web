@@ -137,16 +137,14 @@ export function ClientHeader() {
     }
 
     return (
-        <header className="bg-gray-800 text-white shadow-lg">
+        <header className="bg-[#1b1b20f5] text-[#fff] shadow-lg fixed top-0 left-0 right-0 z-50">
             <div className="max-w-7xl mx-auto">
                 <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                     {/* Logo */}
                     <div className="flex items-center">
                         <Link href="/" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">H</span>
-                            </div>
-                            <span className="text-xl font-bold text-white">HireMate</span>
+                            <img src="/images/general/newlogo.png" alt="Logo" className="h-14 w-auto" />
+                            <span className="text-xl font-bold text-[#ffffff]">CareerMate</span>
                         </Link>
                     </div>
 
@@ -170,13 +168,13 @@ export function ClientHeader() {
                             Blog
                         </Link>
 
-                        <Link href="/cv-templates" className="text-gray-300 hover:text-white transition-colors">
+                        <Link href="/cv-templates-introduction" className="text-gray-300 hover:text-white transition-colors">
                             CV Templates
                         </Link>
 
                         <Link href="/ai-jobs" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
                             <span>AI Jobs</span>
-                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">HOT</span>
+                            <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">HOT</span>
                         </Link>
                     </nav>
 
@@ -249,7 +247,7 @@ export function ClientHeader() {
 
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
-                    <div className="lg:hidden border-t border-gray-700 bg-gray-800">
+                    <div className="lg:hidden border-t border-gray-700 bg-gray-800 fixed left-0 right-0 top-16 z-50">
                         <div className="px-4 py-4 space-y-4">
                             <Link href="/jobs" className="block text-gray-300 hover:text-white">
                                 All Jobs
@@ -260,11 +258,14 @@ export function ClientHeader() {
                             <Link href="/blog" className="block text-gray-300 hover:text-white">
                                 Blog
                             </Link>
-                            <Link href="/cv-templates" className="block text-gray-300 hover:text-white">
+                            <Link href="/cv-templates-introduction" className="block text-gray-300 hover:text-white">
                                 CV Templates
                             </Link>
                             <Link href="/ai-jobs" className="block text-gray-300 hover:text-white">
                                 AI Jobs
+                            </Link>
+                            <Link href="/update-cvprofile" className="block text-gray-300 hover:text-white">
+                                My Profile
                             </Link>
                             <Link href="/recruiter" className="block text-gray-300 hover:text-white">
                                 For Employers

@@ -26,20 +26,20 @@ export interface BlogCategory {
 }
 
 export const blogCategories: BlogCategory[] = [
-    { id: '1', name: 'Việc Làm IT', slug: 'viec-lam-it' },
-    { id: '2', name: 'Sự Nghiệp IT', slug: 'su-nghiep-it' },
-    { id: '3', name: 'Ứng Tuyển & Thăng Tiến', slug: 'ung-tuyen-thang-tien' },
-    { id: '4', name: 'Chuyên Môn IT', slug: 'chuyen-mon-it' },
-    { id: '5', name: 'Chuyện IT', slug: 'chuyen-it' },
+    { id: '1', name: 'IT Jobs', slug: 'it-jobs' },
+    { id: '2', name: 'IT Career', slug: 'it-career' },
+    { id: '3', name: 'Job Application & Promotion', slug: 'job-application-promotion' },
+    { id: '4', name: 'IT Expertise', slug: 'it-expertise' },
+    { id: '5', name: 'IT Stories', slug: 'it-stories' },
 ];
 
 export const mockBlogPosts: BlogPost[] = [
     {
         id: '1',
-        title: 'DevSecOps workflow ra đời giúp giải quyết bài toán cân bằng giữa tốc độ phát triển phần mềm và yêu cầu bảo mật ngày càng cao. Bài viết này sẽ hướng dẫn 7 bước "xương sống" của một quy trình...',
-        excerpt: 'DevSecOps workflow ra đời giúp giải quyết bài toán cân bằng giữa tốc độ phát triển phần mềm và yêu cầu bảo mật ngày càng cao.',
+        title: 'DevSecOps workflow emerged to solve the balance between software development speed and increasingly high security requirements. This article will guide you through 7 "backbone" steps of a process...',
+        excerpt: 'DevSecOps workflow emerged to solve the balance between software development speed and increasingly high security requirements.',
         content: 'Full content here...',
-        category: 'Chuyên Môn IT',
+        category: 'IT Expertise',
         tags: ['DevSecOps', 'Security', 'Development'],
         readTime: 26,
         publishedAt: '2024-01-15',
@@ -48,10 +48,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '2',
-        title: 'DevSecOps đóng vai trò quan trọng trong bối cảnh an ninh mạng ngày càng phức tạp và các chu kỳ phát triển phần mềm được rút ngắn. Nếu bạn yêu thích và muốn có sự nghiệp thành công trong lĩnh...',
-        excerpt: 'DevSecOps đóng vai trò quan trọng trong bối cảnh an ninh mạng ngày càng phức tạp và các chu kỳ phát triển phần mềm được rút ngắn.',
+        title: 'DevSecOps plays an important role in the context of increasingly complex cybersecurity and shortened software development cycles. If you love and want to have a successful career in this field...',
+        excerpt: 'DevSecOps plays an important role in the context of increasingly complex cybersecurity and shortened software development cycles.',
         content: 'Full content here...',
-        category: 'Sự Nghiệp IT',
+        category: 'IT Career',
         tags: ['DevSecOps', 'Career', 'Security'],
         readTime: 34,
         publishedAt: '2024-01-12',
@@ -60,10 +60,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '3',
-        title: 'Cách xây dựng portfolio IT ấn tượng để thu hút nhà tuyển dụng',
-        excerpt: 'Portfolio là một trong những yếu tố quan trọng nhất giúp bạn nổi bật trong mắt nhà tuyển dụng IT.',
+        title: 'How to build an impressive IT portfolio to attract recruiters',
+        excerpt: 'Portfolio is one of the most important factors that help you stand out in the eyes of IT recruiters.',
         content: 'Full content here...',
-        category: 'Ứng Tuyển & Thăng Tiến',
+        category: 'Job Application & Promotion',
         tags: ['Portfolio', 'Career', 'Job Search'],
         readTime: 15,
         publishedAt: '2024-01-10',
@@ -72,10 +72,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '4',
-        title: 'Top 10 kỹ năng lập trình được săn đón nhất năm 2024',
-        excerpt: 'Thị trường IT luôn thay đổi và các kỹ năng lập trình cũng không ngoại lệ. Đây là những kỹ năng hot nhất hiện tại.',
+        title: 'Top 10 most sought-after programming skills in 2024',
+        excerpt: 'The IT market is always changing and programming skills are no exception. These are the hottest skills right now.',
         content: 'Full content here...',
-        category: 'Chuyên Môn IT',
+        category: 'IT Expertise',
         tags: ['Programming', 'Skills', 'Technology'],
         readTime: 20,
         publishedAt: '2024-01-08',
@@ -84,10 +84,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '5',
-        title: 'Câu chuyện thành công: Từ sinh viên IT đến Tech Lead tại startup',
-        excerpt: 'Chia sẻ hành trình từ một sinh viên IT bình thường đến vị trí Tech Lead tại một startup thành công.',
+        title: 'Success story: From IT student to Tech Lead at startup',
+        excerpt: 'Sharing the journey from an ordinary IT student to Tech Lead position at a successful startup.',
         content: 'Full content here...',
-        category: 'Chuyện IT',
+        category: 'IT Stories',
         tags: ['Success Story', 'Career Path', 'Startup'],
         readTime: 18,
         publishedAt: '2024-01-05',
@@ -96,10 +96,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '6',
-        title: 'Cách chuẩn bị CV IT chuyên nghiệp để gây ấn tượng với nhà tuyển dụng',
-        excerpt: 'CV là bước đầu tiên quan trọng trong quá trình ứng tuyển. Hãy học cách tạo một CV IT chuyên nghiệp.',
+        title: 'How to prepare a professional IT CV to impress recruiters',
+        excerpt: 'CV is the first important step in the application process. Learn how to create a professional IT CV.',
         content: 'Full content here...',
-        category: 'Ứng Tuyển & Thăng Tiến',
+        category: 'Job Application & Promotion',
         tags: ['CV', 'Resume', 'Job Application'],
         readTime: 12,
         publishedAt: '2024-01-03',
@@ -108,10 +108,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '7',
-        title: 'Kỹ năng mềm quan trọng cho developer: Giao tiếp và teamwork',
-        excerpt: 'Kỹ năng mềm không kém phần quan trọng so với kỹ năng kỹ thuật trong sự nghiệp IT.',
+        title: 'Important soft skills for developers: Communication and teamwork',
+        excerpt: 'Soft skills are no less important than technical skills in an IT career.',
         content: 'Full content here...',
-        category: 'Sự Nghiệp IT',
+        category: 'IT Career',
         tags: ['Soft Skills', 'Communication', 'Teamwork'],
         readTime: 14,
         publishedAt: '2024-01-01',
@@ -120,10 +120,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '8',
-        title: 'Xu hướng công nghệ 2024: AI, Blockchain và Cloud Computing',
-        excerpt: 'Khám phá những xu hướng công nghệ hot nhất năm 2024 mà mọi IT professional nên biết.',
+        title: 'Technology trends 2024: AI, Blockchain and Cloud Computing',
+        excerpt: 'Explore the hottest technology trends of 2024 that every IT professional should know.',
         content: 'Full content here...',
-        category: 'Chuyên Môn IT',
+        category: 'IT Expertise',
         tags: ['Technology Trends', 'AI', 'Blockchain'],
         readTime: 22,
         publishedAt: '2023-12-28',
@@ -132,10 +132,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '9',
-        title: 'Làm việc remote: Tips để thành công trong môi trường làm việc từ xa',
-        excerpt: 'Remote work đang trở thành xu hướng. Hãy học cách làm việc hiệu quả từ xa.',
+        title: 'Remote work: Tips to succeed in a remote work environment',
+        excerpt: 'Remote work is becoming a trend. Learn how to work effectively from home.',
         content: 'Full content here...',
-        category: 'Sự Nghiệp IT',
+        category: 'IT Career',
         tags: ['Remote Work', 'Productivity', 'Work Life'],
         readTime: 16,
         publishedAt: '2023-12-25',
@@ -144,10 +144,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '10',
-        title: 'Code Review: Best practices để review code hiệu quả',
-        excerpt: 'Code review là một phần quan trọng trong quy trình phát triển phần mềm. Học cách review code tốt.',
+        title: 'Code Review: Best practices for effective code review',
+        excerpt: 'Code review is an important part of the software development process. Learn how to review code well.',
         content: 'Full content here...',
-        category: 'Chuyên Môn IT',
+        category: 'IT Expertise',
         tags: ['Code Review', 'Best Practices', 'Development'],
         readTime: 18,
         publishedAt: '2023-12-22',
@@ -156,10 +156,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '11',
-        title: 'Chuyển đổi nghề nghiệp sang IT: Hành trình từ zero đến hero',
-        excerpt: 'Câu chuyện của những người đã thành công chuyển đổi sang nghề IT từ các ngành khác.',
+        title: 'Career transition to IT: Journey from zero to hero',
+        excerpt: 'Stories of people who successfully transitioned to IT careers from other fields.',
         content: 'Full content here...',
-        category: 'Chuyện IT',
+        category: 'IT Stories',
         tags: ['Career Change', 'Success Story', 'Motivation'],
         readTime: 20,
         publishedAt: '2023-12-20',
@@ -168,10 +168,10 @@ export const mockBlogPosts: BlogPost[] = [
     },
     {
         id: '12',
-        title: 'Testing trong phát triển phần mềm: Unit test, Integration test và E2E test',
-        excerpt: 'Testing là một phần không thể thiếu trong phát triển phần mềm. Tìm hiểu các loại test khác nhau.',
+        title: 'Testing in software development: Unit test, Integration test and E2E test',
+        excerpt: 'Testing is an indispensable part of software development. Learn about different types of tests.',
         content: 'Full content here...',
-        category: 'Chuyên Môn IT',
+        category: 'IT Expertise',
         tags: ['Testing', 'Quality Assurance', 'Development'],
         readTime: 24,
         publishedAt: '2023-12-18',
@@ -183,84 +183,84 @@ export const mockBlogPosts: BlogPost[] = [
 export const mockVideos: VideoContent[] = [
     {
         id: '1',
-        title: 'HireMate Talks! | CODE YOUR LIFE',
+        title: 'CareerMate Talks! | CODE YOUR LIFE',
         thumbnail: '/images/videos/video1.jpg',
         duration: '15:30',
         views: 12500
     },
     {
         id: '2',
-        title: 'HireMate Talks! | FIND YOUR TEAM',
+        title: 'CareerMate Talks! | FIND YOUR TEAM',
         thumbnail: '/images/videos/video2.jpg',
         duration: '12:45',
         views: 8900
     },
     {
         id: '3',
-        title: 'HireMate Talks! | TECH INTERVIEWS',
+        title: 'CareerMate Talks! | TECH INTERVIEWS',
         thumbnail: '/images/videos/video1.jpg',
         duration: '18:20',
         views: 15600
     },
     {
         id: '4',
-        title: 'HireMate Talks! | SALARY NEGOTIATION',
+        title: 'CareerMate Talks! | SALARY NEGOTIATION',
         thumbnail: '/images/videos/video2.jpg',
         duration: '14:15',
         views: 11200
     },
     {
         id: '5',
-        title: 'HireMate Talks! | REMOTE WORK',
+        title: 'CareerMate Talks! | REMOTE WORK',
         thumbnail: '/images/videos/video1.jpg',
         duration: '16:40',
         views: 9800
     },
     {
         id: '6',
-        title: 'HireMate Talks! | CAREER GROWTH',
+        title: 'CareerMate Talks! | CAREER GROWTH',
         thumbnail: '/images/videos/video2.jpg',
         duration: '13:25',
         views: 13400
     },
     {
         id: '7',
-        title: 'HireMate Talks! | STARTUP LIFE',
+        title: 'CareerMate Talks! | STARTUP LIFE',
         thumbnail: '/images/videos/video1.jpg',
         duration: '17:50',
         views: 8700
     },
     {
         id: '8',
-        title: 'HireMate Talks! | TECH TRENDS',
+        title: 'CareerMate Talks! | TECH TRENDS',
         thumbnail: '/images/videos/video2.jpg',
         duration: '15:10',
         views: 15200
     },
     {
         id: '9',
-        title: 'HireMate Talks! | SOFT SKILLS',
+        title: 'CareerMate Talks! | SOFT SKILLS',
         thumbnail: '/images/videos/video1.jpg',
         duration: '12:30',
         views: 10900
     },
     {
         id: '10',
-        title: 'HireMate Talks! | LEADERSHIP',
+        title: 'CareerMate Talks! | LEADERSHIP',
         thumbnail: '/images/videos/video2.jpg',
         duration: '19:45',
         views: 12800
     },
     {
         id: '11',
-        title: 'HireMate Talks! | NETWORKING',
+        title: 'CareerMate Talks! | NETWORKING',
         thumbnail: '/images/videos/video1.jpg',
         duration: '14:20',
         views: 9600
     },
     {
         id: '12',
-        title: 'HireMate Talks! | WORK-LIFE BALANCE',
+        title: 'CareerMate Talks! | WORK-LIFE BALANCE',
         thumbnail: '/images/videos/video2.jpg',
         duration: '16:15',
         views: 11800

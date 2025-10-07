@@ -24,7 +24,7 @@ export default function CVTemplateGallery({ onTemplateSelect }: Props) {
             <div className="text-center border-b border-gray-200 pb-2 mb-2">
               <div className="font-bold text-gray-800 mb-1">NGUYỄN VĂN A</div>
               <div className="text-gray-600 text-[6px] uppercase tracking-widest">FRONTEND DEVELOPER</div>
-              <div className="text-gray-500 text-[6px] mt-1">email • phone • location</div>
+              <div className="text-[#6B7280] text-[6px] mt-1">email • phone • location</div>
             </div>
             <div className="space-y-2">
               <div>
@@ -158,7 +158,7 @@ export default function CVTemplateGallery({ onTemplateSelect }: Props) {
       default:
         return (
           <div className="w-full h-48 bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center">
-            <span className="text-gray-500 text-sm">Preview</span>
+            <span className="text-[#6B7280] text-sm">Preview</span>
           </div>
         );
     }

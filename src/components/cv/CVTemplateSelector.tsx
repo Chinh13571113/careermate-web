@@ -25,7 +25,7 @@ export default function CVTemplateSelector({ onTemplateSelect }: Props) {
           <div className="text-4xl mb-2">{template.icon}</div>
           <div className="text-center px-4">
             <h4 className="font-semibold text-gray-700 text-sm mb-1">{template.name}</h4>
-            <p className="text-xs text-gray-500 line-clamp-2">{template.description}</p>
+            <p className="text-xs text-[#6B7280] line-clamp-2">{template.description}</p>
           </div>
         </div>
 
