@@ -67,7 +67,7 @@ export interface FileUploadResponse {
     message: string;
     result: {
         imageUrl: string;
-        publicId: string;
+        publicId: string; // Firebase storage path
         fileName: string;
         fileSize: number;
         originalName: string;
@@ -151,7 +151,7 @@ class FileUploadApiService {
             formData.append('folder', folder);
         }
 
-        console.log('📤 Uploading image:', file.name, 'Size:', file.size, 'Folder:', folder || 'root');
+        console.log('📤 Uploading image to Firebase:', file.name, 'Size:', file.size, 'Folder:', folder || 'root');
         console.log('📤 Will upload to:', `${api.defaults.baseURL}/api/upload/image`);
 
         // Get token from store for debugging
@@ -163,6 +163,13 @@ class FileUploadApiService {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                timeout: 60000, // 60 seconds timeout for file uploads
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        console.log(`📤 Upload progress: ${percentCompleted}%`);
+                    }
+                },
             });
 
             console.log('📤 Upload response:', response.status, response.data);
@@ -172,9 +179,11 @@ class FileUploadApiService {
             }
 
             const imageUrl = response.data.result.imageUrl;
-            console.log('✅ Image uploaded successfully:', imageUrl);
+            const publicId = response.data.result.publicId;
+            console.log('✅ Image uploaded to Firebase successfully:', imageUrl);
+            console.log('📁 Firebase storage path:', publicId);
 
-            // Return cloudinary URL directly (no processing needed)
+            // Return Firebase URL directly (no processing needed)
             return imageUrl;
         } catch (error: any) {
             console.error('❌ Upload error:', error.response?.status, error.response?.data);
@@ -195,7 +204,8 @@ class FileUploadApiService {
             } else if (error.response?.status >= 500) {
                 throw new Error('Server error. Please try again later.');
             } else if (error.code === 'ECONNABORTED') {
-                throw new Error('Upload timeout. File might be too large or connection is slow.');
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                throw new Error(`Upload timeout after 60 seconds. File (${fileSizeMB}MB) might be too large or connection is slow. Try compressing the image or using a smaller file.`);
             } else if (!error.response) {
                 throw new Error('Network error. Please check your connection and try again.');
             }
@@ -211,7 +221,7 @@ class FileUploadApiService {
      * @returns Full URL to the image
      */
     getImageUrl(imagePath: string): string {
-        // If it's already a full URL (cloudinary, internet, base64), return as is
+        // If it's already a full URL (Firebase, internet, base64), return as is
         if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('//')) {
             return imagePath;
         }
@@ -233,15 +243,15 @@ class FileUploadApiService {
      */
     async processImageUrl(url: string): Promise<string> {
         if (!this.isValidImageUrl(url)) {
-            throw new Error('Invalid image URL. Please provide a valid image URL (jpg, png, gif, webp, svg, or cloudinary)');
+            throw new Error('Invalid image URL. Please provide a valid image URL (jpg, png, gif, webp, svg, or Firebase)');
         }
 
-        // For Cloudinary or other CDN URLs, return as-is
-        if (url.includes('cloudinary.com') || url.includes('amazonaws.com') || url.includes('images.unsplash.com')) {
+        // For Firebase Storage URLs or other CDN URLs, return as-is
+        if (url.includes('firebase') || url.includes('googleapis.com') || url.includes('amazonaws.com') || url.includes('images.unsplash.com')) {
             return url;
         }
 
-        // For other URLs, you could optionally upload them to Cloudinary for consistency
+        // For other URLs, you could optionally upload them to Firebase for consistency
         // For now, we'll just validate and return the URL
         return url;
     }
@@ -267,8 +277,8 @@ class FileUploadApiService {
     }
 
     /**
-     * Delete an image file from Cloudinary using public ID
-     * @param publicId - The Cloudinary public ID to delete
+     * Delete an image file from Firebase Storage using public ID
+     * @param publicId - The Firebase storage path to delete
      * @returns Promise with deletion result
      */
     async deleteImage(publicId: string): Promise<boolean> {
@@ -276,32 +286,45 @@ class FileUploadApiService {
             throw new Error('Admin privileges required to delete images');
         }
 
-        // Extract filename only (backend expects filename, not full path)
-        const filenameOnly = publicId.split('/').pop();
-        const deleteId = filenameOnly || publicId;
-
-        console.log('🔍 Deleting Cloudinary image:', deleteId);
-        console.log('🔍 Delete URL:', `${api.defaults.baseURL}/api/images/${deleteId}`);
+        console.log('🔍 Deleting Firebase image:', publicId);
+        console.log('🔍 Delete URL:', `${api.defaults.baseURL}/api/images/${encodeURIComponent(publicId)}`);
 
         try {
-            const response = await api.delete<ImageDeleteResponse>(`/api/images/${deleteId}`);
+            // Try URL path method first (DELETE /api/images/{publicId})
+            const response = await api.delete<ImageDeleteResponse>(`/api/images/${encodeURIComponent(publicId)}`);
 
             if (response.data.code !== 1000 && response.data.code !== 0) {
                 throw new Error(response.data.message);
             }
 
-            console.log('✅ Image deleted successfully:', deleteId);
+            console.log('✅ Image deleted from Firebase successfully:', publicId);
             return true;
         } catch (error: any) {
             // Handle specific error cases
             console.error('❌ Delete error:', error.response?.status, error.response?.data);
+
             if (error.response?.status === 401) {
                 throw new Error('Authentication expired. Please log in again as admin.');
             } else if (error.response?.status === 403) {
                 throw new Error('Access denied. Admin privileges required for image deletion.');
             } else if (error.response?.status === 404) {
-                console.warn('⚠️ Backend deletion endpoint missing - backend needs: DELETE /api/images/{publicId}');
-                throw new Error('Backend deletion endpoint not implemented. Image removed from editor but remains in Cloudinary.');
+                // Try request body method as fallback (DELETE /api/images with body)
+                console.log('🔄 Trying request body method for deletion...');
+                try {
+                    const bodyResponse = await api.delete<ImageDeleteResponse>('/api/images', {
+                        data: { publicId: publicId }
+                    });
+
+                    if (bodyResponse.data.code !== 1000 && bodyResponse.data.code !== 0) {
+                        throw new Error(bodyResponse.data.message);
+                    }
+
+                    console.log('✅ Image deleted from Firebase successfully (body method):', publicId);
+                    return true;
+                } catch (bodyError: any) {
+                    console.warn('⚠️ Both deletion methods failed:', bodyError.response?.status, bodyError.response?.data);
+                    throw new Error('Backend deletion endpoint not implemented. Image removed from editor but remains in Firebase.');
+                }
             }
             throw error;
         }
@@ -319,7 +342,8 @@ class FileUploadApiService {
             const pathname = urlObj.pathname.toLowerCase();
 
             return validExtensions.some(ext => pathname.endsWith(ext)) ||
-                url.includes('cloudinary.com') ||
+                url.includes('firebase') ||
+                url.includes('googleapis.com') ||
                 url.includes('images.unsplash.com') ||
                 url.startsWith('data:image/');
         } catch {

@@ -55,12 +55,22 @@ export default function BlogEditor({ blogId, isEdit = false }: BlogEditorProps) 
             throw new Error('No thumbnail file to upload');
         }
 
+        const fileSizeMB = (thumbnailFile.size / (1024 * 1024)).toFixed(1);
+        console.log(`📤 Starting upload: ${thumbnailFile.name} (${fileSizeMB}MB)`);
+
         try {
+            toast.loading(`Uploading thumbnail (${fileSizeMB}MB)... This may take up to 60 seconds for large files.`, {
+                duration: 5000,
+            });
+
             const cloudinaryUrl = await fileUploadApi.uploadImage(thumbnailFile);
             setFormData(prev => ({ ...prev, thumbnailUrl: cloudinaryUrl }));
+
+            toast.success(`Thumbnail uploaded successfully! (${fileSizeMB}MB)`);
             return cloudinaryUrl;
         } catch (error: any) {
             console.error('❌ Failed to upload thumbnail:', error);
+            toast.error(`Upload failed: ${error.message}`);
             throw new Error(`Failed to upload thumbnail: ${error.message}`);
         }
     };

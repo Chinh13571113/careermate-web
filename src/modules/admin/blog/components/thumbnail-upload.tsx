@@ -19,6 +19,7 @@ interface ThumbnailUploadProps {
 
 export default function ThumbnailUpload({ value, onChange, className = '', onThumbnailChanged, onFileChanged, onThumbnailDeleted }: ThumbnailUploadProps) {
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [urlInput, setUrlInput] = useState('');
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +34,10 @@ export default function ThumbnailUpload({ value, onChange, className = '', onThu
                 return;
             }
 
+            // Show file size info
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            console.log(`📁 Selected file: ${file.name} (${fileSizeMB}MB)`);
+
             // Create local URL for preview
             const localUrl = URL.createObjectURL(file);
 
@@ -41,7 +46,7 @@ export default function ThumbnailUpload({ value, onChange, className = '', onThu
             if (onFileChanged) {
                 onFileChanged(file);
             }
-            toast.success('Thumbnail added (will be uploaded when saved)');
+            toast.success(`Thumbnail added (${fileSizeMB}MB) - will be uploaded when saved`);
 
             // Clear file input
             event.target.value = '';
@@ -74,16 +79,22 @@ export default function ThumbnailUpload({ value, onChange, className = '', onThu
     };
 
     const handleRemove = async () => {
-        // Extract publicId if it's a Cloudinary image
-        const publicIdMatch = value.match(/\/upload\/[^\/]+\/([^.]+\.\w+)$/);
+        // Extract publicId if it's a Firebase image
+        let publicId: string | null = null;
+
+        if (value.includes('firebase') || value.includes('googleapis.com')) {
+            // Extract Firebase storage path from URL
+            // Firebase URLs typically look like: https://firebasestorage.googleapis.com/v0/b/bucket/o/path%2Fto%2Fimage.jpg
+            const urlMatch = value.match(/\/o\/(.+)$/);
+            if (urlMatch) {
+                publicId = decodeURIComponent(urlMatch[1]);
+                console.log('📝 Tracking deleted Firebase thumbnail for cleanup:', publicId);
+            }
+        }
 
         // Track deleted thumbnail for later cleanup (don't delete immediately)
-        if (publicIdMatch && value.includes('cloudinary.com')) {
-            const publicId = publicIdMatch[1];
-            console.log('📝 Tracking deleted thumbnail for cleanup:', publicId);
-            if (onThumbnailDeleted) {
-                onThumbnailDeleted(publicId);
-            }
+        if (publicId && onThumbnailDeleted) {
+            onThumbnailDeleted(publicId);
         }
 
         // Always remove from editor and clear stored file
@@ -94,7 +105,7 @@ export default function ThumbnailUpload({ value, onChange, className = '', onThu
         if (onThumbnailChanged) {
             onThumbnailChanged(null);
         }
-        toast.success('Thumbnail removed (will be deleted from Cloudinary when saved)');
+        toast.success('Thumbnail removed (will be deleted from Firebase when saved)');
     };
 
     return (
@@ -115,7 +126,7 @@ export default function ThumbnailUpload({ value, onChange, className = '', onThu
                         size="sm"
                         onClick={handleRemove}
                         className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white shadow-lg"
-                        title="Remove thumbnail (will also delete from Cloudinary)"
+                        title="Remove thumbnail (will also delete from Firebase)"
                     >
                         <X className="h-4 w-4" />
                     </Button>
@@ -171,9 +182,26 @@ export default function ThumbnailUpload({ value, onChange, className = '', onThu
                 </div>
             </div>
 
+            {/* Upload Progress */}
+            {uploading && (
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600">
+                        <span>Uploading...</span>
+                        <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                    </div>
+                </div>
+            )}
+
             {/* Help Text */}
             <p className="text-sm text-gray-500">
                 Upload a thumbnail image for your blog post. Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP.
+                {uploading && <span className="block mt-1 text-blue-600">Large files may take up to 60 seconds to upload...</span>}
             </p>
         </div>
     );

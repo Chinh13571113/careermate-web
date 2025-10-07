@@ -101,13 +101,15 @@ api.interceptors.response.use(
       // Don't log expected errors
       const isImageDeletion = error.config?.url?.includes('/api/images/');
       const isLogout = error.config?.url?.includes('/api/auth/logout');
+      const isUserRating = error.config?.url?.includes('/ratings/my-rating');
       const is404 = error.response?.status === 404;
       const is400 = error.response?.status === 400;
 
-      if ((isImageDeletion && is404) || (isLogout && is400)) {
+      if ((isImageDeletion && is404) || (isLogout && is400) || (isUserRating && is404)) {
         // Silently suppress expected errors:
         // - 404 for image deletion attempts (handled by fallback logic)
         // - 400 for logout attempts (backend might not have logout endpoint)
+        // - 404 for user rating requests (user hasn't rated yet - normal behavior)
       } else {
         console.error("Server error:");
         console.error(error.response?.status, error.response?.data);

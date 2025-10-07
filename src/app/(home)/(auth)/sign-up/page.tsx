@@ -1,4 +1,5 @@
 import SignUpForm from "@/modules/client/auth/ui/components/sign-up-form"
+import AuthGuard from "@/components/auth/auth-guard";
 
 export const metadata = {
   title: "Sign Up - CareerMate",
@@ -7,7 +8,9 @@ export const metadata = {
 
 const SignUpPage = () => {
   return (
+
     <SignUpForm />
+
   );
 }
 

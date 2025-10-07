@@ -178,28 +178,9 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                 // Keep empty comments data - don't show error to user
             }
 
-            // Get user rating (only for authenticated users)
-            let userRatingData: Rating | null = null;
-            if (isAuthenticated) {
-                try {
-                    userRatingData = await blogApi.getUserRating(blogId);
-                    console.log('User rating fetched:', userRatingData);
-                } catch (error) {
-                    console.log('Failed to fetch user rating:', error);
-                    // Keep null rating data
-                }
-            }
-
             setBlog(blogData);
             setComments(commentsData.content || []);
-            setUserRating(userRatingData);
-            if (userRatingData) {
-                console.log('Setting rating to:', userRatingData.rating);
-                setRating(userRatingData.rating);
-            } else {
-                console.log('No user rating found, setting rating to 0');
-                setRating(0);
-            }
+            // Note: User rating will be fetched by refreshUserRating() in useEffect
 
             // Fetch related blogs
             await fetchRelatedBlogs(blogData);

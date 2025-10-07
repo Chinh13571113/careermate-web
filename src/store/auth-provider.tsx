@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAndRefreshToken = useCallback(async () => {
     // Prevent concurrent refreshes
     if (isRefreshingRef.current) return;
-    
+
     // Don't check if no token
     if (!accessToken) return;
 
@@ -26,17 +26,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       isRefreshingRef.current = true;
-      
+
       // Get token expiration without making a network call
       const tokenExp = getTokenExpiration(accessToken);
       const timeLeft = tokenExp - now;
 
       if (timeLeft <= REFRESH_THRESHOLD) {
         console.log("Token expiring soon - refreshing");
-        const newToken = await refresh(accessToken);
+        const { refreshToken } = useAuthStore.getState();
+        if (!refreshToken) {
+          console.warn("No refresh token available - logging out");
+          await logout();
+          return;
+        }
+        const newToken = await refresh(refreshToken);
         if (!newToken) {
           console.warn("Token refresh failed - logging out");
           await logout();
+        } else {
+          console.log("✅ Token refreshed successfully");
         }
       }
     } catch (err) {
@@ -52,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const start = async () => {
       if (!accessToken) return;
-      
+
       // Initial check but wait a bit to prevent immediate refresh
       const initialDelay = setTimeout(() => {
         checkAndRefreshToken();
@@ -78,4 +86,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
- 
+

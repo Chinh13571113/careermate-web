@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdminCheck } from '@/lib/auth-admin';
 import { Button } from '@/components/ui/button';
@@ -13,16 +13,18 @@ interface AdminAuthGuardProps {
 export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
     const { isAuthenticated, isAdmin } = useAdminCheck();
     const router = useRouter();
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
+        setIsHydrated(true);
         // Check authentication status when component mounts
         if (!isAuthenticated || !isAdmin) {
             console.log('Admin access denied:', { isAuthenticated, isAdmin });
         }
     }, [isAuthenticated, isAdmin]);
 
-    // Show loading state while checking authentication
-    if (typeof window === 'undefined') {
+    // Show loading state while hydrating
+    if (!isHydrated) {
         return (
             <div className="flex min-h-screen bg-gray-100 items-center justify-center">
                 <div className="text-center">

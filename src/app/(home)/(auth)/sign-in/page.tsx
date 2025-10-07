@@ -1,5 +1,6 @@
 import SignInForm from "@/modules/client/auth/ui/components/sign-in-form";
 import { Metadata } from "next";
+import AuthGuard from "@/components/auth/auth-guard";
 
 export const metadata: Metadata = {
   title: "Sign In - CareerMate",
@@ -8,7 +9,9 @@ export const metadata: Metadata = {
 
 const SignInPage = () => {
   return (
+
     <SignInForm />
+
   );
 }
 
