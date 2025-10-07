@@ -242,9 +242,23 @@ export function ClientHomePage() {
                 </p>
               </div>
 
+              <div className="bg-white rounded-lg p-8 text-center shadow-sm">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">📝</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-4">CV Analysis</h3>
+                <p className="text-gray-600">
+                  Get your CV analyzed by AI to highlight strengths and suggest improvements.
+                </p>
+              </div>
+            </div>
+            
             <FeedbackButton />
-        </div>
-    );
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 }
 
 export default ClientHomePage;
