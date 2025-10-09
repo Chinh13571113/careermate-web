@@ -5,6 +5,7 @@ import { AuthProvider } from "@/store/auth-provider";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import AuthGuard from "@/components/auth/auth-guard";
+import HomeBg from "@/components/home-bg";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,10 +30,11 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
+        suppressHydrationWarning        
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <AuthProvider>
-          {children}
+          <HomeBg>{children}</HomeBg>
 
           <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
           <Analytics />
