@@ -3,22 +3,32 @@
 import { useEffect, useState } from "react";
 import { ClientHeader, ClientFooter } from "@/modules/client/components";
 import CVSidebar from "@/components/layout/CVSidebar";
+import { useLayout } from "@/contexts/LayoutContext";
 
 const CVManagementPage = () => {
-  // đo chiều cao header để canh sticky
-  const [headerH, setHeaderH] = useState(0);
+  // Sử dụng context thay vì useEffect
+  const { headerHeight } = useLayout();
+
+  // Backup solution nếu context chưa hoạt động
+  const [headerH, setHeaderH] = useState(headerHeight || 0);
+
+  // Chỉ sử dụng localStorage ở client-side
   useEffect(() => {
-    const el = document.querySelector("header");
-    if (!el) return;
-    const update = () => setHeaderH(el.getBoundingClientRect().height);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+    // Kiểm tra nếu đang ở client-side
+    if (typeof window !== "undefined") {
+      const savedHeight = localStorage.getItem("headerHeight");
+      if (savedHeight && !headerHeight) {
+        setHeaderH(parseInt(savedHeight));
+      } else if (headerHeight) {
+        setHeaderH(headerHeight);
+      }
+    }
+  }, [headerHeight]);
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState<string>("Please upload your CV first");
+  const [fileName, setFileName] = useState<string>(
+    "Please upload your CV first"
+  );
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [uploadDate, setUploadDate] = useState<string>("No uploads yet");
   const [showPdfPreview, setShowPdfPreview] = useState<boolean>(false);
@@ -57,27 +67,32 @@ const CVManagementPage = () => {
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
         {/* GRID 3 cột: sidebar | content | analyzer */}
         <div
-          className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)_22rem] gap-6 items-start"
+          className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)_22rem] gap-6 items-start transition-all duration-300"
           style={{
             ["--sticky-offset" as any]: `${headerH}px`, // cao header
             ["--content-pad" as any]: "24px", // vì main có py-6 = 24px
           }}
         >
           {/* Sidebar trái: sticky + ẩn mobile */}
-          <aside className="hidden lg:block sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start">
+          <aside className="hidden lg:block sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start transition-all duration-300">
             <CVSidebar activePage="cv-management" />
           </aside>
 
           {/* CỘT GIỮA: 1 cột chứa 4 card */}
-          <section className="space-y-6 min-w-0 lg:mt-[var(--sticky-offset)]">
+          <section className="space-y-6 min-w-0 lg:mt-[var(--sticky-offset)] transition-all duration-300">
             {/* Manage CVs */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h1 className="text-xl font-semibold text-gray-900 mb-2">Manage CVs</h1>
+              <h1 className="text-xl font-semibold text-gray-900 mb-2">
+                Manage CVs
+              </h1>
               <p className="text-sm text-gray-600 mb-6">
-                Upload your CV below to use it throughout your application process
+                Upload your CV below to use it throughout your application
+                process
               </p>
 
-              <h2 className="text-sm font-medium text-gray-700 mb-3">Your CV</h2>
+              <h2 className="text-sm font-medium text-gray-700 mb-3">
+                Your CV
+              </h2>
               <div className="border border-gray-200 rounded-lg p-3 mb-4 flex items-center">
                 <div className="bg-gray-100 rounded-md p-1 mr-3">
                   <svg
@@ -99,7 +114,9 @@ const CVManagementPage = () => {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">{fileName}</p>
-                  <p className="text-xs text-gray-500">Last uploaded: {uploadDate}</p>
+                  <p className="text-xs text-gray-500">
+                    Last uploaded: {uploadDate}
+                  </p>
                 </div>
                 <button
                   onClick={handlePreviewCV}
@@ -139,14 +156,17 @@ const CVManagementPage = () => {
               />
 
               <p className="text-xs text-gray-500 mt-3">
-                Please upload a .doc, .docx, or .pdf file, maximum 3MB and no password protection
+                Please upload a .doc, .docx, or .pdf file, maximum 3MB and no
+                password protection
               </p>
             </div>
 
             {/* Personal Information */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-gray-900">Personal Information</h2>
+                <h2 className="text-lg font-medium text-gray-900">
+                  Personal Information
+                </h2>
                 <button className="text-gray-500 hover:text-gray-600">
                   <svg
                     className="w-5 h-5"
@@ -166,16 +186,26 @@ const CVManagementPage = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Full name</label>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    Full name
+                  </label>
                   <p className="text-sm font-medium">{personalInfo.fullName}</p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Phone number</label>
-                  <p className="text-sm font-medium">{personalInfo.phoneNumber}</p>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    Phone number
+                  </label>
+                  <p className="text-sm font-medium">
+                    {personalInfo.phoneNumber}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Preferred work location</label>
-                  <p className="text-sm font-medium">{personalInfo.prefergrayLocation}</p>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    Preferred work location
+                  </label>
+                  <p className="text-sm font-medium">
+                    {personalInfo.prefergrayLocation}
+                  </p>
                 </div>
               </div>
             </div>
@@ -183,7 +213,9 @@ const CVManagementPage = () => {
             {/* General Information */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-gray-900">General Information</h2>
+                <h2 className="text-lg font-medium text-gray-900">
+                  General Information
+                </h2>
                 <button className="text-gray-500 hover:text-gray-600">
                   <svg
                     className="w-5 h-5"
@@ -203,16 +235,28 @@ const CVManagementPage = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Total years of experience</label>
-                  <p className="text-sm text-gray-500 italic">Add your information</p>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    Total years of experience
+                  </label>
+                  <p className="text-sm text-gray-500 italic">
+                    Add your information
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Current job level</label>
-                  <p className="text-sm text-gray-500 italic">Add your information</p>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    Current job level
+                  </label>
+                  <p className="text-sm text-gray-500 italic">
+                    Add your information
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Expected working model</label>
-                  <p className="text-sm text-gray-500 italic">Add your information</p>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    Expected working model
+                  </label>
+                  <p className="text-sm text-gray-500 italic">
+                    Add your information
+                  </p>
                 </div>
               </div>
             </div>
@@ -220,7 +264,9 @@ const CVManagementPage = () => {
             {/* Cover Letter */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-gray-900">Cover Letter</h2>
+                <h2 className="text-lg font-medium text-gray-900">
+                  Cover Letter
+                </h2>
                 <button className="text-gray-500 hover:text-gray-600">
                   <svg
                     className="w-5 h-5"
@@ -272,7 +318,9 @@ const CVManagementPage = () => {
           <aside className="hidden lg:block sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start">
             <div className="bg-gradient-to-r from-[#3a4660] to-gray-400 rounded-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-white">CV Analysis</h2>
+                <h2 className="text-xl font-semibold text-white">
+                  CV Analysis
+                </h2>
                 <div className="flex items-center justify-center w-8 h-8 rounded-md bg-white/10">
                   <svg
                     className="w-5 h-5 text-white"
@@ -299,7 +347,9 @@ const CVManagementPage = () => {
               </div>
 
               <div className="text-white flex items-center justify-center min-h-[260px]">
-                <p className="text-white/80 text-sm">Use the Generate button to analyze your CV</p>
+                <p className="text-white/80 text-sm">
+                  Use the Generate button to analyze your CV
+                </p>
               </div>
             </div>
           </aside>
@@ -316,16 +366,35 @@ const CVManagementPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
             <div className="flex items-center justify-between border-b p-4">
-              <h3 className="text-lg font-medium text-gray-900">CV Preview: {fileName}</h3>
-              <button onClick={handleClosePreview} className="text-gray-400 hover:text-gray-500 focus:outline-none">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <h3 className="text-lg font-medium text-gray-900">
+                CV Preview: {fileName}
+              </h3>
+              <button
+                onClick={handleClosePreview}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <div className="flex-1 overflow-auto">
               {fileUrl ? (
-                <iframe src={fileUrl} className="w-full h-full border-0" title="CV Preview" />
+                <iframe
+                  src={fileUrl}
+                  className="w-full h-full border-0"
+                  title="CV Preview"
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <p className="text-gray-500">No file available for preview</p>
@@ -333,7 +402,10 @@ const CVManagementPage = () => {
               )}
             </div>
             <div className="border-t p-4 flex justify-end">
-              <button onClick={handleClosePreview} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded">
+              <button
+                onClick={handleClosePreview}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
+              >
                 Close
               </button>
             </div>

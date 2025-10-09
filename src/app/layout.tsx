@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import AuthGuard from "@/components/auth/auth-guard";
 import HomeBg from "@/components/home-bg";
+import { LayoutProvider } from "@/contexts/LayoutContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,16 +29,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" className="scroll-smooth">
       <body
-        suppressHydrationWarning        
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <AuthProvider>
-          <HomeBg>{children}</HomeBg>
+          <LayoutProvider>
+            <HomeBg>{children}</HomeBg>
 
-          <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
-          <Analytics />
+            <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
+            <Analytics />
+          </LayoutProvider>
         </AuthProvider>
       </body>
     </html>
