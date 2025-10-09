@@ -6,7 +6,7 @@ import CVSidebar from "@/components/layout/CVSidebar";
 import Link from "next/link";
 import { useLayout } from "@/contexts/LayoutContext";
 
-type TabType = "pending" | "accepted" | "expigray";
+type TabType = "pending" | "accepted" | "expired";
 
 const JobInvitationPage = () => {
   // Sử dụng context thay vì useEffect
@@ -95,14 +95,14 @@ const JobInvitationPage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("expigray")}
+                  onClick={() => setActiveTab("expired")}
                   className={`pb-3 px-1 mr-8 relative ${
-                    activeTab === "expigray"
+                    activeTab === "expired"
                       ? "text-gray-500 font-medium border-b-2 border-gray-500"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Expigray
+                  Expired
                   <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full">
                     0
                   </span>
@@ -182,7 +182,7 @@ const JobInvitationPage = () => {
                   </div>
                 )}
 
-                {activeTab === "expigray" && (
+                {activeTab === "expired" && (
                   <div className="flex flex-col items-center justify-center py-16">
                     <div className="bg-gray-200 p-4 rounded-lg mb-4">
                       <svg
@@ -201,7 +201,7 @@ const JobInvitationPage = () => {
                       </svg>
                     </div>
                     <p className="text-gray-500">
-                      You have 0 Expigray Invitations
+                      You have 0 Expired Invitations
                     </p>
                   </div>
                 )}
