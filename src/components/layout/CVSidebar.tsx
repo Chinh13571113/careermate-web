@@ -41,7 +41,7 @@ const CVSidebar: React.FC<CVSidebarProps> = ({ activePage }) => {
           <rect x="3" y="14" width="7" height="7" />
         </svg>
       ),
-      enabled: false, // <- đổi thành true nếu đã có trang
+      enabled: true, // <- đổi thành true nếu đã có trang
     },
     {
       href: "/cv-management",
@@ -80,7 +80,7 @@ const CVSidebar: React.FC<CVSidebarProps> = ({ activePage }) => {
           <circle cx="12" cy="7" r="4" />
         </svg>
       ),
-      enabled: false,
+      enabled: true,
     },
     {
       href: "/my-jobs",
