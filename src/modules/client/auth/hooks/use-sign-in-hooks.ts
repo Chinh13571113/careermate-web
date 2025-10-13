@@ -41,7 +41,7 @@ const useSignInHook = () => {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const result = await login(data.email, data.password);
+      await login(data.email, data.password);
       toast.success("Login successful!");
       form.reset(); // Clear form after successful login
 

@@ -14,14 +14,47 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
     const { isAuthenticated, isAdmin } = useAdminCheck();
     const router = useRouter();
     const [isHydrated, setIsHydrated] = useState(false);
+    
+    // Import dynamically to avoid SSR issues
+    useEffect(() => {
+        const initAuth = async () => {
+            try {
+                // Safely import and initialize
+                const apiModule = await import('@/lib/api').catch(e => {
+                    console.debug("Could not import api module:", e?.message);
+                    return { initializeAuth: () => Promise.resolve(false) };
+                });
+                
+                const { initializeAuth } = apiModule;
+                let success = false;
+                
+                try {
+                    success = await initializeAuth();
+                    console.debug(`Auth initialization ${success ? 'successful' : 'failed'}`);
+                } catch (initError: any) {
+                    // Just log the error without throwing
+                    console.debug("Auth initialization error:", initError?.message || "Unknown error");
+                }
+                
+                // Always proceed with rendering after a short delay
+                setTimeout(() => {
+                    setIsHydrated(true);
+                }, 100);
+            } catch (error) {
+                console.debug("Error in auth initialization process");
+                setIsHydrated(true);
+            }
+        };
+        
+        initAuth();
+    }, []);
 
     useEffect(() => {
-        setIsHydrated(true);
-        // Check authentication status when component mounts
-        if (!isAuthenticated || !isAdmin) {
+        // Check authentication status when component mounts or changes
+        if (isHydrated && (!isAuthenticated || !isAdmin)) {
             console.log('Admin access denied:', { isAuthenticated, isAdmin });
         }
-    }, [isAuthenticated, isAdmin]);
+    }, [isAuthenticated, isAdmin, isHydrated]);
 
     // Show loading state while hydrating
     if (!isHydrated) {

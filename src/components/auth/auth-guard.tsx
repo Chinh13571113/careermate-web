@@ -19,6 +19,34 @@ export default function AuthGuard({
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
   const isLoading = useAuthStore(state => state.isLoading)
   const router = useRouter()
+  
+  // Initialize auth state from localStorage
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // Safely import and initialize
+        const apiModule = await import('@/lib/api').catch(e => {
+          console.debug("Could not import api module:", e?.message);
+          return { initializeAuth: () => Promise.resolve(false) };
+        });
+        
+        const { initializeAuth } = apiModule;
+        let success = false;
+        
+        try {
+          success = await initializeAuth();
+          console.debug(`Auth initialization ${success ? 'successful' : 'failed'}`);
+        } catch (initError: any) {
+          // Just log the error without throwing
+          console.debug("Auth initialization error:", initError?.message || "Unknown error");
+        }
+      } catch (error) {
+        console.debug("Error in auth initialization process");
+      }
+    };
+    
+    initAuth();
+  }, []);
 
   useEffect(() => {
     if (isLoading) return; // Don't redirect while loading
