@@ -13,8 +13,20 @@ const api = axios.create({
 });
 
 // Initialize auth from localStorage (to be called in client components)
+// Add throttling to prevent spam calls
+let isInitializing = false;
+let lastInitResult: boolean | null = null;
+
 export const initializeAuth = async () => {
   if (typeof window === 'undefined') return false;
+  
+  // Prevent multiple concurrent initializations
+  if (isInitializing) {
+    console.debug("Auth initialization already in progress, skipping");
+    return lastInitResult || false;
+  }
+  
+  isInitializing = true;
   
   // Attempt to load tokens from localStorage
   const ACCESS_TOKEN_KEY = "access_token";
@@ -31,20 +43,24 @@ export const initializeAuth = async () => {
     
     console.debug(`Token time remaining at initialization: ${timeRemaining}ms`);
     
-    // Always restore the token from localStorage first
+    // Check if token is still valid before setting authenticated state
+    const isTokenValid = expiresAt > Date.now();
+    
+    // Always restore the token from localStorage first, but only set authenticated if valid
     const { getState, setState } = useAuthStore;
     setState({
       ...getState(),
-      accessToken,
-      tokenExpiresAt: expiresAt,
-      isAuthenticated: true
+      accessToken: isTokenValid ? accessToken : null,
+      tokenExpiresAt: isTokenValid ? expiresAt : null,
+      isAuthenticated: isTokenValid
     });
     
     // If token is not expired or close to expiry
-    if (expiresAt > Date.now()) {
-      // For very short-lived tokens, immediately try to refresh if less than 3 seconds remaining
-      if (timeRemaining < 3000) {
-        console.debug("Token close to expiry during initialization, refreshing immediately");
+    if (isTokenValid && expiresAt > Date.now()) {
+      // For very short-lived tokens, only refresh if less than 2 seconds remaining
+      // Reduce aggressive refreshing to avoid unnecessary calls
+      if (timeRemaining < 2000) {
+        console.debug("Token very close to expiry during initialization, refreshing immediately");
         try {
           const { refresh } = useAuthStore.getState();
           await refresh();
@@ -58,34 +74,28 @@ export const initializeAuth = async () => {
           }
           
           console.debug("Failed to refresh token during initialization:", err?.message || "Unknown error");
+          lastInitResult = false;
+          isInitializing = false;
           return false;
         }
       }
       
+      console.debug("Token is still valid, no refresh needed");
+      lastInitResult = true;
+      isInitializing = false;
       return true;
-    } else {
-      console.debug("Token expired, attempting immediate refresh");
-      // Token already expired, try to refresh immediately
-      try {
-        const { refresh } = useAuthStore.getState();
-        await refresh();
-        return true;
-      } catch (err: any) {
-        // Don't immediately invalidate on network errors
-        const isNetworkError = !err.response;
-        if (isNetworkError) {
-          console.debug("Network error during expired token refresh - server might be starting");
-          // Even though refresh failed due to network error, keep the user logged in with expired token
-          // This gives the server time to start up and subsequent requests might succeed
-          return true;
-        }
-        
-        console.debug("Failed to refresh expired token:", err?.message || "Unknown error");
-        return false;
-      }
+    } else if (!isTokenValid) {
+      console.debug("Token expired, but not attempting refresh during initialization to avoid conflicts");
+      // Don't attempt refresh during initialization to avoid multiple refresh calls
+      // Let the AuthProvider handle this instead
+      lastInitResult = false;
+      isInitializing = false;
+      return false;
     }
   }
   
+  lastInitResult = false;
+  isInitializing = false;
   return false;
 };
 
@@ -104,9 +114,9 @@ function onTokenRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
-// Token refresh threshold in ms (2 seconds before expiry)
-// Reduced from 5s to 2s since token lifetime is only 8s
-const TOKEN_REFRESH_THRESHOLD = 2000;
+// Token refresh threshold in ms (3 seconds before expiry)
+// For extremely short token lifetime (8s), we need to be more aggressive
+const TOKEN_REFRESH_THRESHOLD = 3000;
 
 // Check if token needs refresh
 const shouldRefreshToken = () => {
@@ -120,8 +130,62 @@ const shouldRefreshToken = () => {
   return timeRemaining <= TOKEN_REFRESH_THRESHOLD;
 };
 
+// Safely handle token refresh with fallback
+const safeRefreshToken = async () => {
+  try {
+    // Use our specialized Next.js API route for token refresh
+    const refreshAxios = axios.create({
+      timeout: 5000,
+      headers: { "Content-Type": "application/json" },
+      withCredentials: true,
+    });
+    
+    console.debug("Attempting token refresh through specialized Next.js API endpoint");
+    // Use our dedicated token refresh endpoint that handles redirects properly
+    const response = await refreshAxios.post('/api/auth/token-refresh');
+    
+    if (response.data?.result?.accessToken) {
+      const { accessToken, expiresIn } = response.data.result;
+      // For extremely short-lived tokens (8s), add a small buffer
+      const bufferTime = expiresIn <= 10 ? 500 : 0;
+      const expiresAt = Date.now() + (expiresIn * 1000) - bufferTime;
+      
+      console.debug(`Token refresh successful via proxy. Expires in ${expiresIn}s`);
+      
+      // Update auth store manually
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("token_expires_at", expiresAt.toString());
+      
+      useAuthStore.setState({
+        accessToken,
+        refreshToken: null, // Not storing refresh token in state
+        tokenExpiresAt: expiresAt,
+        isAuthenticated: true
+      });
+      
+      return accessToken;
+    } else {
+      console.debug("Invalid response format from refresh endpoint");
+      return null;
+    }
+  } catch (error: any) {
+    console.debug("Token refresh failed:", 
+      error.response ? `Status ${error.response.status}` : error.message || "Unknown error");
+    return null;
+  }
+};
+
 // Add request interceptor
 api.interceptors.request.use(async (config) => {
+  // Block any requests to Google OAuth that might happen due to redirects
+  if (config.url?.includes('accounts.google.com') || 
+      config.url?.includes('oauth2') || 
+      config.url?.includes('google.com')) {
+    console.error("Blocking request to OAuth URL:", config.url);
+    // Cancel the request
+    return Promise.reject(new Error("OAuth requests are not allowed in this context"));
+  }
+  
   // Don't intercept auth requests to prevent infinite loops
   if (config.url?.includes('/api/auth/token') || config.url?.includes('/api/auth/refresh')) {
     return config;
@@ -141,7 +205,7 @@ api.interceptors.request.use(async (config) => {
     console.debug("Pre-emptively refreshing token before request");
     isRefreshing = true;
     try {
-      const newToken = await refresh();
+      const newToken = await safeRefreshToken(); // Use our new safe refresh function
       if (newToken) {
         console.debug("Pre-emptive token refresh successful");
         onTokenRefreshed(newToken);
@@ -227,8 +291,8 @@ api.interceptors.response.use(
         isRefreshing = true;
         console.debug("Starting token refresh after 401");
         
-        // Call refresh without passing a token - will use the HTTP-only cookie
-        const newToken = await refresh();
+        // Use the safe refresh function that handles CORS issues
+        const newToken = await safeRefreshToken();
 
         if (newToken) {
           console.debug("Token refresh successful, retrying request");

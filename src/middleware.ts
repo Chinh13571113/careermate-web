@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { safeLog, DEBUG } from './lib/debug-config'
 
 // Simple JWT decode function for middleware
 function decodeJWT(token: string) {
@@ -19,27 +20,55 @@ function decodeJWT(token: string) {
 function isAdmin(token: string): boolean {
   try {
     const decoded = decodeJWT(token);
-    const roles = decoded?.scope ? [decoded.scope] : decoded?.roles || [];
+    // ⚠️ SECURITY: Never log decoded token - contains email/sub
+    // OLD: console.log('🔍 [MIDDLEWARE] Checking admin role for token payload:', decoded);
+    
+    // Check scope field (can be string like "ROLE_ADMIN" or array)
+    let roles = [];
+    if (decoded?.scope) {
+      if (typeof decoded.scope === 'string') {
+        roles = decoded.scope.split(' ');
+      } else {
+        roles = [decoded.scope];
+      }
+    } else {
+      roles = decoded?.roles || [];
+    }
+    
+    safeLog.middleware('🔍 [MIDDLEWARE] Extracted roles:', { roles }); // Safe - no sensitive data
     const adminRoles = ['ROLE_ADMIN', 'ADMIN'];
-    return adminRoles.some(role => roles.includes(role));
+    const hasAdminRole = adminRoles.some(role => roles.includes(role));
+    
+    return hasAdminRole;
   } catch (error) {
+    safeLog.error('🔍 [MIDDLEWARE] Error in isAdmin check:', error);
     return false;
   }
 }
 
 export function middleware(request: NextRequest) {
-  // Get the token from cookies
-  const token = request.cookies.get('token')?.value;
+  // Get the refresh token from cookies (HTTP-only cookie)
+  // Note: We can't access localStorage in middleware, so we'll use refresh token to check authentication
+  const refreshToken = request.cookies.get('refreshToken')?.value;
+  
+  // ⚠️ SECURITY: Never log cookie values - they contain tokens
+  // OLD: Debug: Log all cookies
+  if (DEBUG.MIDDLEWARE) {
+    safeLog.middleware('🔍 [MIDDLEWARE] Cookies check:', { 
+      hasCookies: request.cookies.size > 0,
+      hasRefreshToken: !!refreshToken 
+    });
+  }
 
   // Handle auth pages (sign-in, sign-up)
-  if (token) {
+  if (refreshToken) {
     try {
-      const decoded = decodeJWT(token);
+      const decoded = decodeJWT(refreshToken);
 
-      // Check if token is valid and not expired
+      // Check if refresh token is valid and not expired
       const now = Math.floor(Date.now() / 1000);
       if (decoded && decoded.exp && decoded.exp > now) {
-        // Token is valid and not expired
+        // Refresh token is valid, user should be authenticated
         if (
           request.nextUrl.pathname.startsWith('/sign-in') ||
           request.nextUrl.pathname.startsWith('/sign-up')
@@ -49,36 +78,53 @@ export function middleware(request: NextRequest) {
       }
     } catch (error) {
       // Invalid token, allow access to auth pages
-      console.log('Invalid token in middleware:', error);
+      safeLog.error('Invalid refresh token in middleware:', error);
     }
   }
 
-  // Handle admin routes
+  // Handle admin routes - Let client-side handle admin checks for now
+  // The middleware will only check if user is authenticated
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!token) {
-      // No token, redirect to sign-in
+    safeLog.middleware('🔍 [MIDDLEWARE] Admin route accessed:', { 
+      path: request.nextUrl.pathname 
+    });
+    
+    if (!refreshToken) {
+      if (DEBUG.MIDDLEWARE) {
+        safeLog.middleware('🔍 [MIDDLEWARE] No refresh token found, redirecting to sign-in', {});
+      }
       return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     try {
-      const decoded = decodeJWT(token);
+      const decoded = decodeJWT(refreshToken);
+      // ⚠️ SECURITY: Never log decoded token - contains email in 'sub' field
+      // OLD: console.log('🔍 [MIDDLEWARE] Decoded refresh token:', decoded);
 
-      // Check if token is valid and not expired
+      // Check if refresh token is valid and not expired
       const now = Math.floor(Date.now() / 1000);
       if (!decoded || !decoded.exp || decoded.exp <= now) {
-        // Token is invalid or expired, redirect to sign-in
+        if (DEBUG.MIDDLEWARE) {
+          safeLog.middleware('🔍 [MIDDLEWARE] Refresh token invalid or expired', {});
+        }
         return NextResponse.redirect(new URL('/sign-in', request.url));
       }
 
-      // Check if user is admin
-      if (!isAdmin(token)) {
-        // Not an admin, redirect to home with error
-        const url = new URL('/', request.url);
-        url.searchParams.set('error', 'admin_access_denied');
-        return NextResponse.redirect(url);
+      // Check if user is admin based on refresh token
+      const adminCheck = isAdmin(refreshToken);
+      
+      if (!adminCheck) {
+        if (DEBUG.MIDDLEWARE) {
+          safeLog.middleware('🔍 [MIDDLEWARE] User is not admin, redirecting to home', {});
+        }
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+
+      if (DEBUG.MIDDLEWARE) {
+        safeLog.middleware('🔍 [MIDDLEWARE] Admin access granted', {});
       }
     } catch (error) {
-      // Invalid token, redirect to sign-in
+      safeLog.error('🔍 [MIDDLEWARE] Error validating refresh token:', error);
       return NextResponse.redirect(new URL('/sign-in', request.url));
     }
   }

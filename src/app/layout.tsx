@@ -7,6 +7,9 @@ import { Analytics } from "@vercel/analytics/react";
 import AuthGuard from "@/components/auth/auth-guard";
 import HomeBg from "@/components/home-bg";
 import { LayoutProvider } from "@/contexts/LayoutContext";
+import { AuthCleanup } from "@/components/auth/AuthCleanup";
+import { PostLoginRedirect } from "@/components/auth/PostLoginRedirect";
+import { SecurityCleanup } from "@/components/auth/SecurityCleanup";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +39,14 @@ export default function RootLayout({
       >
         <AuthProvider>
           <LayoutProvider>
+            {/* Security cleanup on app load */}
+            <SecurityCleanup />
+
+            {/* Temporarily disabled PostLoginRedirect to debug infinite loop */}
+            {/* <PostLoginRedirect> */}
+            {/* <AuthCleanup /> */}
             <HomeBg>{children}</HomeBg>
+            {/* </PostLoginRedirect> */}
 
             <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
             <Analytics />

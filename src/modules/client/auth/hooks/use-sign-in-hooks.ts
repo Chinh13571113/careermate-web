@@ -6,6 +6,7 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT, ADMIN_ROLES } from "@/lib/auth-admin";
+import { safeLog, DEBUG } from "@/lib/debug-config";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -34,32 +35,89 @@ const useSignInHook = () => {
       const roles = decoded?.scope ? [decoded.scope] : decoded?.roles || [];
       return ADMIN_ROLES.some(role => roles.includes(role));
     } catch (error) {
-      console.error('Error checking admin role:', error);
+      safeLog.error('Error checking admin role:', error);
       return false;
     }
   };
 
   const onSubmit = async (data: FormValues) => {
+    // ⚠️ SECURITY: Never log email in production
+    if (DEBUG.LOGIN) {
+      safeLog.authState("🔵 [SIGNIN] Starting login", { hasEmail: !!data.email });
+    }
+    
     try {
-      await login(data.email, data.password);
-      toast.success("Login successful!");
-      form.reset(); // Clear form after successful login
+      const result = await login(data.email, data.password);
+      
+      if (result.success) {
+        if (DEBUG.LOGIN) {
+          safeLog.authState("🔵 [SIGNIN] Login successful", { 
+            isAdmin: result.isAdmin 
+          });
+        }
+        
+        toast.success("Login successful!");
+        form.reset(); // Clear form after successful login
 
-      // Get the token from the auth store after login
-      const { accessToken } = useAuthStore.getState();
+        // Wait a bit to ensure the store is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Get the updated auth state from the store after login
+        const { accessToken, user, role, isAuthenticated } = useAuthStore.getState();
+        
+        if (DEBUG.LOGIN) {
+          safeLog.authState("🔵 [SIGNIN] Updated store state", {
+            hasToken: !!accessToken,
+            isAuth: isAuthenticated,
+            hasUser: !!user,
+            role
+          });
+        }
+        
+        if (accessToken) {
+          // ⚠️ SECURITY: Never log token or decoded payload
+          // OLD: console.log("🔵 [SIGNIN] Token payload:", tokenPayload);
+          
+          // Check admin status with the new token
+          const isAdmin = checkIsAdmin(accessToken);
+          
+          if (DEBUG.LOGIN) {
+            safeLog.authState("🔵 [SIGNIN] Admin check", { 
+              isAdmin,
+              roleFromStore: role 
+            });
+          }
 
-      // Check admin status with the new token
-      const isAdmin = accessToken ? checkIsAdmin(accessToken) : false;
-
-      // Redirect based on user role
-      if (isAdmin) {
-        route.replace("/admin");
+          // Use multiple redirect methods for reliability
+          // Wait longer to ensure state is fully updated
+          setTimeout(() => {
+            if (isAdmin || result.isAdmin || role?.includes('ROLE_ADMIN')) {
+              if (DEBUG.LOGIN) {
+                safeLog.authState("🟢 [SIGNIN] Admin user detected, redirecting to /admin", {});
+              }
+              
+              // Use window.location for more reliable navigation
+              window.location.href = '/admin';
+            } else {
+              if (DEBUG.LOGIN) {
+                safeLog.authState("🟡 [SIGNIN] Regular user, redirecting to home", {});
+              }
+              window.location.href = '/';
+            }
+          }, 500); // Increased delay to ensure state sync
+        } else {
+          safeLog.error("🔴 [SIGNIN] No access token found after login", {});
+          route.push("/");
+        }
       } else {
-        route.replace("/");
+        if (DEBUG.LOGIN) {
+          safeLog.authState("🔴 [SIGNIN] Login failed", {});
+        }
+        toast.error('Invalid credentials');
       }
     } catch (err: any) {
+      safeLog.error("🔴 [SIGNIN] Login error:", err);
       toast.error(err);
-      console.error("Login error", err);
     }
   };
 

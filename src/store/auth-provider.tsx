@@ -3,50 +3,80 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/store/use-auth-store";
 
-// For very short token lifetimes (e.g. 8s), check more frequently
-const REFRESH_INTERVAL = 3 * 1000; // 3 seconds
-const REFRESH_THRESHOLD = 4 * 1000; // Refresh if less than 4 seconds left
+// Significantly increase intervals to prevent infinite loops
+const REFRESH_INTERVAL = 60 * 1000; // 60 seconds
+const REFRESH_THRESHOLD = 30 * 1000; // Refresh if less than 30 seconds left
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { accessToken, introspect, refresh, logout, getTokenExpiration } = useAuthStore();
+  const { accessToken, introspect, refresh, logout, getTokenExpiration } =
+    useAuthStore();
   const lastCheckRef = useRef<number>(0);
   const isRefreshingRef = useRef(false);
-  
-  // Add a useEffect to validate the token on initial load
+
+  // Re-enable with stronger throttling
   useEffect(() => {
     const validateToken = async () => {
-      const token = useAuthStore.getState().accessToken;
-      if (!token) return;
-      
+      const { accessToken, tokenExpiresAt } = useAuthStore.getState();
+      if (!accessToken) return;
+
+      // First check if token is expired based on stored expiration time
+      if (tokenExpiresAt) {
+        const timeRemaining = tokenExpiresAt - Date.now();
+        if (timeRemaining > 120000) {
+          // If more than 2 minutes remaining, skip validation
+          console.debug(
+            "Token has plenty of time remaining, skipping validation"
+          );
+          return;
+        }
+        if (timeRemaining <= 0) {
+          // If expired, try refresh directly
+          console.debug(
+            "Token expired based on stored time, attempting refresh..."
+          );
+          try {
+            await refresh();
+          } catch (refreshError) {
+            console.debug("Refresh attempt failed on startup");
+          }
+          return;
+        }
+      }
+
+      // Only validate with server if token is close to expiry
       try {
-        // Check token validity - if invalid, try to refresh
-        const { valid } = await introspect(token);
+        console.debug("Validating token with server...");
+        const { valid } = await introspect(accessToken);
         if (!valid) {
-          console.debug("Stored token is invalid, attempting refresh...");
+          console.debug("Server reports token invalid, attempting refresh...");
           await refresh();
         }
       } catch (error: any) {
         // Handle network errors gracefully - don't treat as critical
         const isNetworkError = !error.response;
         if (isNetworkError) {
-          console.debug("Network error during token validation - this is not critical if server is still starting up");
-          // Don't logout on network errors during initial validation - 
-          // the server might still be starting up or temporarily unavailable
-        } else {
-          console.debug("Error validating token on startup:", error?.message || "Unknown error");
-          // For non-network errors, try a refresh anyway
+          console.debug(
+            "Network error during token validation - skipping validation"
+          );
+          // Don't do anything on network errors during initial validation
+        } else if (error.response?.status === 401) {
+          console.debug("Token validation returned 401, attempting refresh...");
           try {
             await refresh();
           } catch (refreshError) {
-            // Silently handle refresh errors on startup
             console.debug("Refresh attempt after validation error also failed");
           }
         }
       }
     };
-    
-    validateToken();
-  }, [introspect, refresh]);
+
+    // Add a much larger delay to prevent conflicts with guards
+    const timer = setTimeout(() => {
+      validateToken();
+    }, 15000); // 15 second delay to avoid conflicts
+
+    return () => clearTimeout(timer);
+  }, []); // Remove dependencies to prevent multiple calls
 
   const checkAndRefreshToken = useCallback(async () => {
     // Prevent concurrent refreshes
@@ -72,28 +102,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (timeLeft <= REFRESH_THRESHOLD) {
         console.debug("Token expiring soon - refreshing");
         try {
-          // Use HTTP-only cookie for refresh
-          const newToken = await refresh();
-          if (!newToken) {
-            console.debug("Token refresh failed - logging out");
-            await logout();
-          } else {
-            console.debug("✅ Token refreshed successfully");
+          // Import axios directly to avoid circular imports
+          const axios = (await import("axios")).default;
+
+          // Create a dedicated axios instance using our specialized Next.js endpoint
+          const refreshAxios = axios.create({
+            timeout: 5000,
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+          });
+
+          // Attempt refresh using our specialized Next.js endpoint
+          try {
+            // Use our dedicated token refresh endpoint that handles redirects properly
+            const response = await refreshAxios.post("/api/auth/token-refresh");
+
+            if (response.data?.result?.accessToken) {
+              const { accessToken, expiresIn } = response.data.result;
+              const expiresAt = Date.now() + expiresIn * 1000;
+
+              // Update auth store manually
+              localStorage.setItem("access_token", accessToken);
+              localStorage.setItem("token_expires_at", expiresAt.toString());
+
+              useAuthStore.setState({
+                accessToken,
+                tokenExpiresAt: expiresAt,
+                isAuthenticated: true,
+              });
+
+              console.debug(
+                "✅ Token refreshed successfully via Next.js proxy"
+              );
+            } else {
+              // If proxy refresh failed, try through store method
+              const newToken = await refresh();
+              if (!newToken) {
+                console.debug("Token refresh failed - logging out");
+                await logout();
+              } else {
+                console.debug(
+                  "✅ Token refreshed successfully via store method"
+                );
+              }
+            }
+          } catch (directError) {
+            console.debug("Direct refresh failed, trying store method");
+            // Fall back to store refresh method
+            const newToken = await refresh();
+            if (!newToken) {
+              console.debug("Token refresh failed - logging out");
+              await logout();
+            } else {
+              console.debug("✅ Token refreshed successfully via store method");
+            }
           }
         } catch (refreshError: any) {
           // Handle network errors differently
           const isNetworkError = !refreshError.response;
           if (isNetworkError) {
-            console.debug("Network error during scheduled token refresh - will try again later");
+            console.debug(
+              "Network error during scheduled token refresh - will try again later"
+            );
             // Don't logout on network errors, just try again next interval
           } else {
-            console.debug("Token refresh error:", refreshError?.message || "Unknown error");
+            console.debug(
+              "Token refresh error:",
+              refreshError?.message || "Unknown error"
+            );
             await logout();
           }
         }
       }
     } catch (err: any) {
-      console.debug("Token refresh check failed:", err?.message || "Unknown error");
+      console.debug(
+        "Token refresh check failed:",
+        err?.message || "Unknown error"
+      );
       // Only logout for non-network errors
       if (err.response) {
         await logout();
@@ -127,11 +212,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const cleanup = start();
     return () => {
-      cleanup.then(cleanup => cleanup?.());
+      cleanup.then((cleanup) => cleanup?.());
     };
   }, [accessToken, checkAndRefreshToken]);
 
   return <>{children}</>;
 }
-
-

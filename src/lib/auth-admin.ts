@@ -7,15 +7,48 @@ export const useAdminCheck = () => {
 
     const isAdmin = () => {
         if (!accessToken || !isAuthenticated) {
+            console.log('🔍 Admin check failed: No token or not authenticated');
+            console.log('🔍 accessToken:', !!accessToken);
+            console.log('🔍 isAuthenticated:', isAuthenticated);
             return false;
         }
 
         try {
             const decoded = decodeJWT(accessToken);
-            const roles = decoded?.scope ? [decoded.scope] : decoded?.roles || [];
-            return ADMIN_ROLES.some(role => roles.includes(role));
+            console.log('🔍 Decoded token for admin check:', decoded);
+            
+            // Check scope field first (which contains roles like "ROLE_ADMIN" or "ROLE_ADMIN PERMISSION1 PERMISSION2")
+            if (decoded?.scope) {
+                console.log('🔍 Token scope (raw):', decoded.scope);
+                
+                // Handle both single role and space-separated roles
+                const scopeParts = typeof decoded.scope === 'string' 
+                    ? decoded.scope.split(' ') 
+                    : [decoded.scope];
+                    
+                console.log('🔍 Token scope parts:', scopeParts);
+                
+                const hasAdminRole = ADMIN_ROLES.some(role => scopeParts.includes(role));
+                console.log('🔍 Has admin role from scope:', hasAdminRole);
+                
+                if (hasAdminRole) return true;
+            }
+            
+            // Check direct scope match (in case scope is just "ROLE_ADMIN")
+            if (decoded?.scope && ADMIN_ROLES.includes(decoded.scope)) {
+                console.log('🔍 Direct scope match for admin:', decoded.scope);
+                return true;
+            }
+            
+            // Fallback to roles field
+            const roles = decoded?.roles || [];
+            console.log('🔍 Token roles field:', roles);
+            const hasAdminFromRoles = ADMIN_ROLES.some(role => roles.includes(role));
+            console.log('🔍 Has admin role from roles field:', hasAdminFromRoles);
+            
+            return hasAdminFromRoles;
         } catch (error) {
-            console.error('Error checking admin role:', error);
+            console.error('🔍 Error checking admin role:', error);
             return false;
         }
     };
