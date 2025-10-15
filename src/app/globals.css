@@ -28,6 +28,13 @@
   display: flex !important;
 }
 
+.text-destructive {
+  color: #dc2626 !important;
+}
+.border-destructive {
+  border-color: #dc2626 !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
