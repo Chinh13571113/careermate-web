@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import api from "@/lib/api";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const passwordSchema = z
   .string()
@@ -31,11 +32,9 @@ export const signUpFormSchema = z.object({
       message: "Email must end with @gmail.com",
     }),
   password: passwordSchema,
-  terms: z
-    .boolean()
-    .refine((v) => v === true, {
-      message: "You must accept the Terms and Conditions",
-    }),
+  terms: z.boolean().refine((v) => v === true, {
+    message: "You must accept the Terms and Conditions",
+  }),
 });
 
 export type SignUpFormValues = z.infer<typeof signUpFormSchema>;
@@ -46,7 +45,7 @@ const useSignUpHook = () => {
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpFormSchema),
-    mode: "onChange",
+    mode: "onSubmit",
     reValidateMode: "onChange",
     defaultValues: {
       username: "",
@@ -94,6 +93,15 @@ const useSignUpHook = () => {
       toast.error(message);
     }
   };
+  useEffect(() => {
+    const firstError = Object.keys(form.formState.errors)[0];
+    if (firstError) {
+      const field = document.querySelector(
+        `[name="${firstError}"]`
+      ) as HTMLElement;
+      field?.focus();
+    }
+  }, [form.formState.errors]);
 
   return {
     form,

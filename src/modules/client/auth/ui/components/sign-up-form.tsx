@@ -202,7 +202,7 @@ export default function SignUpForm() {
                   {/* Submit */}
                   <Button
                     type="submit"
-                    disabled={isSubmitting || !termsAccepted || !isValid}
+                    disabled={isSubmitting}
                     className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300"
                   >
                     {isSubmitting ? "Signing up..." : "Sign up"}
