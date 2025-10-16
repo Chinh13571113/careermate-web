@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT, ADMIN_ROLES } from "@/lib/auth-admin";
 import { safeLog, DEBUG } from "@/lib/debug-config";
+import { getDefaultRedirectPath, isRecruiter } from "@/lib/role-utils";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -88,22 +89,21 @@ const useSignInHook = () => {
             });
           }
 
+          // Determine redirect path based on role
+          const redirectPath = getDefaultRedirectPath(role);
+
           // Use multiple redirect methods for reliability
           // Wait longer to ensure state is fully updated
           setTimeout(() => {
-            if (isAdmin || result.isAdmin || role?.includes('ROLE_ADMIN')) {
-              if (DEBUG.LOGIN) {
-                safeLog.authState("🟢 [SIGNIN] Admin user detected, redirecting to /admin", {});
-              }
-              
-              // Use window.location for more reliable navigation
-              window.location.href = '/admin';
-            } else {
-              if (DEBUG.LOGIN) {
-                safeLog.authState("🟡 [SIGNIN] Regular user, redirecting to home", {});
-              }
-              window.location.href = '/';
+            if (DEBUG.LOGIN) {
+              safeLog.authState("🟢 [SIGNIN] Redirecting after login", { 
+                role,
+                redirectPath
+              });
             }
+            
+            // Use window.location for more reliable navigation
+            window.location.href = redirectPath;
           }, 500); // Increased delay to ensure state sync
         } else {
           safeLog.error("🔴 [SIGNIN] No access token found after login", {});

@@ -40,37 +40,37 @@ export default function RecruiterHomePage() {
               </Link>
               <nav className="hidden md:flex space-x-6">
                 <Link
-                  href="/recruiter/recruiter-feature/dashboard"
+                  href="/recruiter/dashboard"
                   className="text-gray-600 hover:text-[#436a9d]"
                 >
                   Dashboard
                 </Link>
                 <Link
-                  href="/recruiter/recruiter-feature/profile?tab=account"
+                  href="/recruiter/profile?tab=account"
                   className="text-gray-600 hover:text-[#436a9d]"
                 >
                   Account
                 </Link>
                 <Link
-                  href="/recruiter/recruiter-feature/candidates/applications"
+                  href="/recruiter/candidates/applications"
                   className="text-gray-600 hover:text-[#436a9d]"
                 >
                   Candidates
                 </Link>
                 <Link
-                  href="/recruiter/recruiter-feature/services"
+                  href="/recruiter/services"
                   className="text-gray-600 hover:text-[#436a9d]"
                 >
                   Services
                 </Link>
                 <Link
-                  href="/recruiter/recruiter-feature/blog"
+                  href="/recruiter/blog"
                   className="text-gray-600 hover:text-[#436a9d]"
                 >
                   Blog
                 </Link>
                 <Link
-                  href="/recruiter/recruiter-feature/support"
+                  href="/recruiter/support"
                   className="text-gray-600 hover:text-[#436a9d]"
                 >
                   Support
@@ -79,7 +79,7 @@ export default function RecruiterHomePage() {
             </div>
             <div className="flex items-center space-x-4">
               <Link
-                href="/recruiter/recruiter-feature/dashboard"
+                href="/recruiter/dashboard"
                 className="bg-[#24497b] text-white px-4 py-2 rounded-lg hover:bg-[#436a9d] transition-colors"
               >
                 Đăng tuyển & Quản lý
@@ -178,7 +178,7 @@ export default function RecruiterHomePage() {
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <Link
-              href="/recruiter/recruiter-feature/services/search"
+              href="/recruiter/services/search"
               className="block relative hover:scale-105 transition-transform duration-300"
             >
               {/* 3D illustration placeholder */}
@@ -261,7 +261,7 @@ export default function RecruiterHomePage() {
             </div>
 
             <Link
-              href="/recruiter/recruiter-feature/services/premium"
+              href="/recruiter/services/premium"
               className="block relative hover:scale-105 transition-transform duration-300"
             >
               <div className="relative hover:rotate-6 transition-transform duration-300 w-full max-w-[500px] mx-auto">
@@ -290,7 +290,7 @@ export default function RecruiterHomePage() {
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <Link
-              href="/recruiter/recruiter-feature/jobs/create"
+              href="/recruiter/jobs/create"
               className="block relative hover:scale-105 transition-transform duration-300"
             >
               <div className="relative">
@@ -386,7 +386,7 @@ export default function RecruiterHomePage() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="grid grid-cols-2 gap-8 p-8">
                     {/* Users */}
-                    <Link href="/recruiter/recruiter-feature/profile/account">
+                    <Link href="/recruiter/profile/account">
                       <div
                         className="w-20 h-20 bg-[#c9dffc] rounded-full flex items-center justify-center 
                             shadow-md hover:scale-110 transition-transform duration-300"
@@ -395,7 +395,7 @@ export default function RecruiterHomePage() {
                       </div>
                     </Link>
                     {/* Target */}
-                    <Link href="/recruiter/recruiter-feature/support/contact">
+                    <Link href="recruiter/support/contact">
                       <div
                         className="w-20 h-20 bg-[#bed8f9] rounded-full flex items-center justify-center 
                             shadow-md hover:scale-110 transition-transform duration-300"
@@ -404,7 +404,7 @@ export default function RecruiterHomePage() {
                       </div>
                     </Link>
                     {/* TrendingUp */}
-                    <Link href="/recruiter/recruiter-feature/dashboard">
+                    <Link href="/recruiter/dashboard">
                       <div
                         className="w-20 h-20 bg-[#b5ceef] rounded-full flex items-center justify-center 
                             shadow-md hover:scale-110 transition-transform duration-300"
@@ -413,7 +413,7 @@ export default function RecruiterHomePage() {
                       </div>
                     </Link>
                     {/* Star */}
-                    <Link href="/recruiter/recruiter-feature/services/premium">
+                    <Link href="/recruiter/services/premium">
                       <div
                         className="w-20 h-20 bg-[#b2cef4] rounded-full flex items-center justify-center 
                             shadow-md hover:scale-110 transition-transform duration-300"

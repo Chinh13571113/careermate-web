@@ -1,4 +1,4 @@
-import { RecruiterSidebar } from "@/modules/recruiter/components";
+import { RecruiterSidebar } from "@/modules/recruiter";
 import RecruiterAuthGuard from "@/components/auth/RecruiterAuthGuard";
 
 // Recruiter navigation items
@@ -43,7 +43,7 @@ export default function RecruiterLayout({
   return (
     <RecruiterAuthGuard>
       <div className="flex min-h-screen bg-gray-100">
-        <RecruiterSidebar navItems={recruiterNavItems} />
+        <RecruiterSidebar />
         <main className="flex-1">{children}</main>
       </div>
     </RecruiterAuthGuard>
