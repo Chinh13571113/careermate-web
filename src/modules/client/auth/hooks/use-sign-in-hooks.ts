@@ -50,18 +50,19 @@ const useSignInHook = () => {
     try {
       const result = await login(data.email, data.password);
       
+      if (DEBUG.LOGIN) {
+        safeLog.authState("🔵 [SIGNIN] Login result received", { 
+          success: result.success,
+          isAdmin: result.isAdmin 
+        });
+      }
+      
       if (result.success) {
-        if (DEBUG.LOGIN) {
-          safeLog.authState("🔵 [SIGNIN] Login successful", { 
-            isAdmin: result.isAdmin 
-          });
-        }
-        
         toast.success("Login successful!");
         form.reset(); // Clear form after successful login
 
         // Wait a bit to ensure the store is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 150));
         
         // Get the updated auth state from the store after login
         const { accessToken, user, role, isAuthenticated } = useAuthStore.getState();
@@ -71,7 +72,8 @@ const useSignInHook = () => {
             hasToken: !!accessToken,
             isAuth: isAuthenticated,
             hasUser: !!user,
-            role
+            role,
+            tokenLength: accessToken?.length || 0
           });
         }
         
@@ -106,7 +108,9 @@ const useSignInHook = () => {
             window.location.href = redirectPath;
           }, 500); // Increased delay to ensure state sync
         } else {
-          safeLog.error("🔴 [SIGNIN] No access token found after login", {});
+          const error = new Error("No access token found after login");
+          safeLog.error("🔴 [SIGNIN] No access token found after login", error);
+          toast.error("Login failed - no token received");
           route.push("/");
         }
       } else {
@@ -117,7 +121,9 @@ const useSignInHook = () => {
       }
     } catch (err: any) {
       safeLog.error("🔴 [SIGNIN] Login error:", err);
-      toast.error(err);
+      // Extract the actual error message for the toast
+      const errorMessage = err?.message || err?.response?.data?.message || 'Login failed';
+      toast.error(errorMessage);
     }
   };
 
