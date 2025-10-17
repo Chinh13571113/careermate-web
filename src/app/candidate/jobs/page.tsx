@@ -193,7 +193,7 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8 mt-16">{/* Added margin-top for fixed header */}
+      <div className="container mx-auto px-4 py-8">{/* Added margin-top for fixed header */}
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-gray-900 via-white-900 to-indigo-900 rounded-lg text-white p-8 mb-8">
           <div className="max-w-3xl">

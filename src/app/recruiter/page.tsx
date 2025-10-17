@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { ProfileDropdown } from "@/components/profile/ProfileDropdown";
+import { useAuthStore } from "@/store/use-auth-store";
 import {
   Users,
   Target,
@@ -15,8 +17,74 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// Animated Counter Component
+interface AnimatedCounterProps {
+  end: number;
+  duration?: number;
+  suffix?: string;
+}
+
+function AnimatedCounter({
+  end,
+  duration = 2000,
+  suffix = "",
+}: AnimatedCounterProps) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isVisible) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) observer.observe(ref.current);
+
+    return () => observer.disconnect();
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    let startTime: number | undefined;
+    const startCount = 0;
+    const endCount = end;
+
+    const updateCount = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentCount = Math.floor(
+        startCount + (endCount - startCount) * easeOutQuart
+      );
+
+      setCount(currentCount);
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCount);
+      }
+    };
+
+    requestAnimationFrame(updateCount);
+  }, [isVisible, end, duration]);
+
+  return (
+    <span ref={ref} className="text-4xl md:text-5xl font-bold text-gray-600">
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
 export default function RecruiterHomePage() {
   const [email, setEmail] = useState("");
+  const { user } = useAuthStore();
 
   const handleConsultation = () => {
     // Handle consultation request
@@ -29,61 +97,78 @@ export default function RecruiterHomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div>
       {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50">
+      <header className="bg-[#1b1b20f5] sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <Link href="/" className="text-2xl font-bold text-[#436a9d]">
-                CareerMate
-              </Link>
-              <nav className="hidden md:flex space-x-6">
-                <Link
-                  href="/recruiter/recruiter-feature/dashboard"
-                  className="text-gray-600 hover:text-[#436a9d]"
-                >
-                  Dashboard
+              {/* Logo */}
+              <div className="flex items-center">
+                <Link href="/" className="flex items-center space-x-2">
+                  <img
+                    src="/images/general/newlogo.png"
+                    alt="Logo"
+                    className="h-14 w-auto"
+                  />
+                  <span className="text-xl font-bold text-[#ffffff]">
+                    Recruiter
+                  </span>
                 </Link>
-                <Link
-                  href="/recruiter/recruiter-feature/profile?tab=account"
-                  className="text-gray-600 hover:text-[#436a9d]"
-                >
-                  Account
-                </Link>
-                <Link
-                  href="/recruiter/recruiter-feature/candidates/applications"
-                  className="text-gray-600 hover:text-[#436a9d]"
-                >
-                  Candidates
-                </Link>
-                <Link
-                  href="/recruiter/recruiter-feature/services"
-                  className="text-gray-600 hover:text-[#436a9d]"
-                >
-                  Services
-                </Link>
-                <Link
-                  href="/recruiter/recruiter-feature/blog"
-                  className="text-gray-600 hover:text-[#436a9d]"
-                >
-                  Blog
-                </Link>
-                <Link
-                  href="/recruiter/recruiter-feature/support"
-                  className="text-gray-600 hover:text-[#436a9d]"
-                >
-                  Support
-                </Link>
-              </nav>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-8">
               <Link
                 href="/recruiter/recruiter-feature/dashboard"
-                className="bg-[#24497b] text-white px-4 py-2 rounded-lg hover:bg-[#436a9d] transition-colors"
+                className="text-[#ffffff] hover:text-[#c8c8c8]"
               >
-                Đăng tuyển & Quản lý
+                Dashboard
               </Link>
+              <Link
+                href="/recruiter/recruiter-feature/profile?tab=account"
+                className="text-[#ffffff] hover:text-[#c8c8c8]"
+              >
+                Account
+              </Link>
+              <Link
+                href="/recruiter/recruiter-feature/candidates/applications"
+                className="text-[#ffffff] hover:text-[#c8c8c8]"
+              >
+                Candidates
+              </Link>
+              <Link
+                href="/recruiter/recruiter-feature/services"
+                className="text-[#ffffff] hover:text-[#c8c8c8]"
+              >
+                Services
+              </Link>
+              <Link
+                href="/recruiter/recruiter-feature/blog"
+                className="text-[#ffffff] hover:text-[#c8c8c8]"
+              >
+                Blog
+              </Link>
+              <Link
+                href="/recruiter/recruiter-feature/support"
+                className="text-[#ffffff] hover:text-[#c8c8c8]"
+              >
+                Support
+              </Link>
+            </nav>
+
+            {/* Bên phải header */}
+            <div className="flex items-center space-x-4">
+              <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                For Recruiter
+              </span>
+
+              <ProfileDropdown
+                userName={user?.name || user?.email || "Recruiter"}
+                userEmail={user?.email}
+                userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
+              />
             </div>
           </div>
         </div>
@@ -96,11 +181,11 @@ export default function RecruiterHomePage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
-                  Đăng tin tuyển dụng,
+                  Post job openings,
                   <br />
-                  tìm kiếm ứng viên{" "}
+                  find candidates{" "}
                   <span className="cta-highlighted text-[#6da9e9]">
-                    hiệu quả
+                    effectively.
                   </span>
                 </h1>
               </div>
@@ -168,6 +253,70 @@ export default function RecruiterHomePage() {
               <div className="absolute -top-4 -left-4 w-20 h-20 bg-[#6697d8] rounded-full opacity-50"></div>
               <div className="absolute top-16 -right-8 w-12 h-12 bg-[#063067] rounded-full opacity-40"></div>
               <div className="absolute -bottom-4 right-8 w-16 h-16 bg-[#6697d8] rounded-full opacity-60"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* Stats Section */}
+      <section className="py-16 bg-gradient-to-r from-[#e8f1fe] to-[#ccdff9]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div className="group">
+              <div className="mb-2">
+                <AnimatedCounter end={1000} suffix="+" duration={2500} />
+              </div>
+              <div className="text-gray-600 text-lg font-sans">Users</div>
+            </div>
+            <div className="group">
+              <div className="mb-2">
+                <AnimatedCounter end={900} suffix="+" duration={2000} />
+              </div>
+              <div className="text-gray-600 text-lg font-sans">Employers</div>
+            </div>
+            <div className="group">
+              <div className="mb-2">
+                <AnimatedCounter end={8100} suffix="+" duration={3000} />
+              </div>
+              <div className="text-gray-600 text-lg font-sans">
+                Applications/year
+              </div>
+            </div>
+            <div className="group">
+              <div className="mb-2">
+                <AnimatedCounter end={95} suffix="%" duration={1500} />
+              </div>
+              <div className="text-gray-600 text-lg font-sans">
+                Satisfaction Rate
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-[#e8f1fe] to-[#ccdff9]">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+              Start hiring the best talent today!
+            </h2>
+            <p className="text-xl text-gray-600">
+              Join thousands of businesses that trust CareerMate
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleConsultation}
+                className="bg-white text-[#5099f8] border border-[#4691f3] px-8 py-4 rounded-lg font-medium hover:bg-[#b9d2f3] transition-colors"
+              >
+                Free Consultation
+              </button>
+              <Link
+                href="/user-confirmpage"
+                className="bg-[#5196f1] text-white px-8 py-4 rounded-lg font-medium hover:bg-[#87bafd] transition-colors inline-flex items-center gap-2"
+              >
+                <PlusCircle className="h-5 w-5" />
+                Start Posting Jobs
+              </Link>
             </div>
           </div>
         </div>
@@ -429,59 +578,6 @@ export default function RecruiterHomePage() {
                 <div className="absolute bottom-8 left-5 w-10 h-10 bg-[#3573c5] rounded-full opacity-40 blur-sm"></div>
                 <div className="absolute top-1/3 left-4 w-8 h-8 bg-[#6697d8] rounded-full opacity-30 blur-sm"></div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-gradient-to-r from-[#e8f1fe] to-[#ccdff9]">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center text-[#2a4669]">
-            <div className="space-y-2">
-              <div className="text-3xl lg:text-4xl font-bold">6.3M+</div>
-              <div className="text-[#2a4669]">Người dùng</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl lg:text-4xl font-bold">190K+</div>
-              <div className="text-[#2a4669]">Nhà tuyển dụng</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl lg:text-4xl font-bold">1M+</div>
-              <div className="text-[#2a4669]">Lượt ứng tuyển/năm</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl lg:text-4xl font-bold">99%</div>
-              <div className="text-[#2a4669]">Độ hài lòng</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-[#e8f1fe] to-[#ccdff9]">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
-              Bắt đầu tuyển dụng hiệu quả ngay hôm nay
-            </h2>
-            <p className="text-xl text-gray-600">
-              Tham gia cùng hàng nghìn doanh nghiệp đã tin tưởng CareerMate
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={handleConsultation}
-                className="bg-white text-[#5099f8] border border-[#4691f3] px-8 py-4 rounded-lg font-medium hover:bg-[#b9d2f3] transition-colors"
-              >
-                Tư vấn miễn phí
-              </button>
-              <Link
-                href="/user-confirmpage"
-                className="bg-[#5196f1] text-white px-8 py-4 rounded-lg font-medium hover:bg-[#87bafd] transition-colors inline-flex items-center gap-2"
-              >
-                <PlusCircle className="h-5 w-5" />
-                Đăng tin tuyển dụng
-              </Link>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 // Components
 export { RecruiterSidebar } from './components/RecruiterSidebar';
-export { RecruiterHeader } from '../client/components/RecruiterHeader';
-export { RecruiterFooter } from '../client/components/RecruiterFooter';
+export { RecruiterHeader } from './components/RecruiterHeader';
+export { RecruiterFooter } from './components/RecruiterFooter';
 export { RecruiterLayoutWrapper } from './components/RecruiterLayoutWrapper';
 export { FloatingMenuToggle } from './components/FloatingMenuToggle';
 export { RecruiterAccountForm } from './components/RecruiterAccountForm';
