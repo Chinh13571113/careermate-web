@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { memo } from "react";
 import { PiHandWavingLight } from "react-icons/pi";
 import { candidateMenuItems } from "@/lib/candidate-menu-item";
 
@@ -19,7 +19,7 @@ interface CVSidebarProps {
   activePage?: string;
 }
 
-const CVSidebar: React.FC<CVSidebarProps> = ({ activePage }) => {
+const CVSidebar: React.FC<CVSidebarProps> = memo(({ activePage }) => {
   const pathname = usePathname();
 
   const items: Item[] = candidateMenuItems;
@@ -78,6 +78,8 @@ const CVSidebar: React.FC<CVSidebarProps> = ({ activePage }) => {
       </nav>
     </aside>
   );
-};
+});
+
+CVSidebar.displayName = "CVSidebar";
 
 export default CVSidebar;
