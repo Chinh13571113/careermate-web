@@ -301,7 +301,7 @@ export default function ITviecProfile() {
               <div className="relative mb-6 mr-10">
                 <div className="bg-white border border-gray-300 shadow-sm rounded-2xl px-4 py-3 text-gray-700 text-sm leading-relaxed">
                   Complete profile to{" "}
-                  <span className="text-red-500 font-semibold">70%</span> to
+                  <span className="text-gray-500 font-semibold">70%</span> to
                   generate CV template for IT professionals.
                 </div>
                 {/* Đuôi bong bóng */}
@@ -345,14 +345,14 @@ export default function ITviecProfile() {
                   <div className="pl-4 space-y-2 text-sm text-gray-600">
                     <p>• Add Skills</p>
                     <p>• Add Languages</p>
-                    <p>• Add Projects</p>
+                    <p>• Add Projects</p>np
                     <p>• Add Certificates</p>
                   </div>
                 )}
               </div>
 
               {/* Preview & Download Button */}
-              <button className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+              <button className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
                 Preview & Download CV
               </button>
             </div>
