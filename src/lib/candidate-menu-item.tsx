@@ -52,9 +52,9 @@ export const candidateMenuItems: MenuItem[] = [
     ),
   },
   {
-    href: "/profile",
+    href: "/cm-profile",
     label: "CM Profile",
-    key: "profile",
+    key: "cm-profile",
     icon: (
       <svg
         className="w-5 h-5"
