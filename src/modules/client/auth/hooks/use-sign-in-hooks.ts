@@ -34,9 +34,9 @@ const useSignInHook = () => {
     try {
       const decoded = decodeJWT(token);
       const roles = decoded?.scope ? [decoded.scope] : decoded?.roles || [];
-      return ADMIN_ROLES.some(role => roles.includes(role));
+      return ADMIN_ROLES.some((role) => roles.includes(role));
     } catch (error) {
-      safeLog.error('Error checking admin role:', error);
+      safeLog.error("Error checking admin role:", error);
       return false;
     }
   };
@@ -44,48 +44,53 @@ const useSignInHook = () => {
   const onSubmit = async (data: FormValues) => {
     // ⚠️ SECURITY: Never log email in production
     if (DEBUG.LOGIN) {
-      safeLog.authState("🔵 [SIGNIN] Starting login", { hasEmail: !!data.email });
+      safeLog.authState("🔵 [SIGNIN] Starting login", {
+        hasEmail: !!data.email,
+      });
     }
-    
+
     try {
       const result = await login(data.email, data.password);
-      
+
+      if (DEBUG.LOGIN) {
+        safeLog.authState("🔵 [SIGNIN] Login result received", {
+          success: result.success,
+          isAdmin: result.isAdmin,
+        });
+      }
+
       if (result.success) {
-        if (DEBUG.LOGIN) {
-          safeLog.authState("🔵 [SIGNIN] Login successful", { 
-            isAdmin: result.isAdmin 
-          });
-        }
-        
         toast.success("Login successful!");
         form.reset(); // Clear form after successful login
 
         // Wait a bit to ensure the store is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
         // Get the updated auth state from the store after login
-        const { accessToken, user, role, isAuthenticated } = useAuthStore.getState();
-        
+        const { accessToken, user, role, isAuthenticated } =
+          useAuthStore.getState();
+
         if (DEBUG.LOGIN) {
           safeLog.authState("🔵 [SIGNIN] Updated store state", {
             hasToken: !!accessToken,
             isAuth: isAuthenticated,
             hasUser: !!user,
-            role
+            role,
+            tokenLength: accessToken?.length || 0,
           });
         }
-        
+
         if (accessToken) {
           // ⚠️ SECURITY: Never log token or decoded payload
           // OLD: console.log("🔵 [SIGNIN] Token payload:", tokenPayload);
-          
+
           // Check admin status with the new token
           const isAdmin = checkIsAdmin(accessToken);
-          
+
           if (DEBUG.LOGIN) {
-            safeLog.authState("🔵 [SIGNIN] Admin check", { 
+            safeLog.authState("🔵 [SIGNIN] Admin check", {
               isAdmin,
-              roleFromStore: role 
+              roleFromStore: role,
             });
           }
 
@@ -96,28 +101,33 @@ const useSignInHook = () => {
           // Wait longer to ensure state is fully updated
           setTimeout(() => {
             if (DEBUG.LOGIN) {
-              safeLog.authState("🟢 [SIGNIN] Redirecting after login", { 
+              safeLog.authState("🟢 [SIGNIN] Redirecting after login", {
                 role,
-                redirectPath
+                redirectPath,
               });
             }
-            
+
             // Use window.location for more reliable navigation
             window.location.href = redirectPath;
           }, 500); // Increased delay to ensure state sync
         } else {
-          safeLog.error("🔴 [SIGNIN] No access token found after login", {});
+          const error = new Error("No access token found after login");
+          safeLog.error("🔴 [SIGNIN] No access token found after login", error);
+          toast.error("Login failed - no token received");
           route.push("/");
         }
       } else {
         if (DEBUG.LOGIN) {
           safeLog.authState("🔴 [SIGNIN] Login failed", {});
         }
-        toast.error('Invalid credentials');
+        toast.error("Invalid credentials");
       }
     } catch (err: any) {
       safeLog.error("🔴 [SIGNIN] Login error:", err);
-      toast.error(err);
+      // Extract the actual error message for the toast
+      const errorMessage =
+        err?.message || err?.response?.data?.message || "Login failed";
+      toast.error(errorMessage);
     }
   };
 
