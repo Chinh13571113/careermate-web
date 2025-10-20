@@ -73,7 +73,7 @@ export function CandidateHomePage() {
         }
       `}</style>
 
-      <main className="mt-16">
+      
         {/* Added margin-top equal to header height */}
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-gray-900 via-white-900 to-indigo-900 text-white py-20 pb-32">
@@ -256,7 +256,7 @@ export function CandidateHomePage() {
             <FeedbackButton />
           </div>
         </section>
-      </main>
+      
     </div>
   );
 }
