@@ -78,6 +78,35 @@ export default function SignUpForm() {
                     />
                   </div>
 
+                  {/* Date of birth */}
+                  <div className="mb-6">
+                    <FormField
+                      control={form.control}
+                      name="dob"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-dark mb-2 block text-sm dark:text-white">
+                            Date of Birth <span className="text-destructive">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="date"
+                              id="dob"
+                              max={new Date().toISOString().split('T')[0]}
+                              className={cn(
+                                "border-stroke rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base text-body-color dark:text-body-color-dark dark:shadow-two dark:border-transparent dark:bg-[#2C303B] focus:border-primary dark:focus:border-primary transition-all duration-300",
+                                form.formState.errors.dob &&
+                                  "border-destructive focus:border-destructive text-destructive"
+                              )}
+                            />
+                          </FormControl>
+                          <FormMessage className="mt-1 text-sm text-destructive" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   {/* Email */}
                   <div className="mb-6">
                     <FormField
@@ -154,6 +183,8 @@ export default function SignUpForm() {
                       )}
                     />
                   </div>
+
+                  
 
                   {/* Terms */}
                   <div className="mb-6">
