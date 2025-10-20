@@ -25,6 +25,13 @@ export const signUpFormSchema = z.object({
   username: z
     .string()
     .min(3, { message: "Username must be at least 3 characters" }),
+  dob: z
+    .string()
+    .min(1, { message: "Date of birth is required" })
+    .refine((value) => {
+      const date = new Date(value);
+      return !isNaN(date.getTime());
+    }, { message: "Invalid date format" }),
   email: z
     .string()
     .email({ message: "Invalid email address" })
@@ -49,6 +56,7 @@ const useSignUpHook = () => {
     reValidateMode: "onChange",
     defaultValues: {
       username: "",
+      dob: "",
       email: "",
       password: "",
       terms: false,
@@ -71,8 +79,15 @@ const useSignUpHook = () => {
 
       if (response.status >= 200 && response.status < 300) {
         toast.success("Account created successfully!");
+        
+        // Store DoB in localStorage to create profile after first login
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pending_profile_dob", values.dob);
+        }
+        
         form.reset({
           username: "",
+          dob: "",
           email: "",
           password: "",
           terms: false,
