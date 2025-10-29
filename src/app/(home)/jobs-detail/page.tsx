@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ClientHeader, ClientFooter } from "@/modules/client/components";
 import JobCard from "../../../components/JobCard";
+import { RiMoneyDollarCircleLine } from 'react-icons/ri';
 
 interface JobListing {
   id: number;
@@ -37,7 +39,7 @@ const jobs: JobListing[] = [
     jobType: "Full time",
     experience: "5+ years",
     expertise: "Core Banking & Support",
-    skills: ["DevOps Engineer", "At office", "Hồ Chí Minh"],
+    skills: ["Java", "DevOps", "Linux", "Cloud", "SQL", "Oracle"],
     isHot: true,
     salaryRange: "45–70M VND gross",
     benefitSummary: [
@@ -203,6 +205,7 @@ const jobs: JobListing[] = [
 ];
 
 export default function JobsDetailPage() {
+  const router = useRouter();
   const [selectedJobId, setSelectedJobId] = useState<number>(jobs[0]?.id || 1);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
@@ -210,6 +213,10 @@ export default function JobsDetailPage() {
 
   const handleJobSelect = (jobId: number) => {
     setSelectedJobId(jobId);
+  };
+
+  const handleApplyNow = () => {
+    router.push(`/candidate/jobs/${selectedJobId}/apply`);
   };
 
   return (
@@ -321,7 +328,9 @@ export default function JobsDetailPage() {
                 </div>
 
                 <div className="flex gap-3 mb-4">
-                  <button className="flex-1 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white px-6 py-2 rounded-md font-medium hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors">
+                  <button 
+                    onClick={handleApplyNow}
+                    className="flex-1 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white px-6 py-2 rounded-md font-medium hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors">
                     Apply Now
                   </button>
                   <button
@@ -345,8 +354,8 @@ export default function JobsDetailPage() {
                   <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-800">
                       {selectedJob.salaryRange && (
-                        <li className="font-medium">
-                          💰 {selectedJob.salaryRange}
+                        <li className="font-medium flex items-center gap-1">
+                          <RiMoneyDollarCircleLine className="text-green-600" size={18} /> {selectedJob.salaryRange}
                         </li>
                       )}
                       {selectedJob.benefitSummary?.slice(0, 3).map((x, i) => (

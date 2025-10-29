@@ -37,6 +37,30 @@ export const initializeAuth = async () => {
   
   console.debug("Initializing auth from localStorage");
   
+  // ✅ FIX: If no access token, try to refresh from cookie first
+  if (!accessToken || !expiresAtStr) {
+    console.debug("No access token in localStorage, attempting to refresh from cookie");
+    try {
+      const newToken = await safeRefreshToken();
+      if (newToken) {
+        console.debug("Successfully refreshed token from cookie during initialization");
+        lastInitResult = true;
+        isInitializing = false;
+        return true;
+      } else {
+        console.debug("No refresh token cookie available");
+        lastInitResult = false;
+        isInitializing = false;
+        return false;
+      }
+    } catch (error: any) {
+      console.debug("Failed to refresh from cookie during initialization:", error?.message || "Unknown error");
+      lastInitResult = false;
+      isInitializing = false;
+      return false;
+    }
+  }
+  
   if (accessToken && expiresAtStr) {
     const expiresAt = parseInt(expiresAtStr, 10);
     const timeRemaining = expiresAt - Date.now();
@@ -192,6 +216,30 @@ api.interceptors.request.use(async (config) => {
   }
 
   const { accessToken, refresh, tokenExpiresAt } = useAuthStore.getState();
+
+  // ✅ FIX: If no access token but we're authenticated (refresh token cookie exists)
+  // Try to refresh the token before making the request
+  if (!accessToken && typeof window !== 'undefined') {
+    console.debug("No access token found, attempting to refresh from cookie");
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const newToken = await safeRefreshToken();
+        if (newToken) {
+          console.debug("Successfully refreshed token from cookie");
+          config.headers.Authorization = `Bearer ${newToken}`;
+          isRefreshing = false;
+          return config;
+        } else {
+          console.debug("Failed to refresh token from cookie, request will proceed without token");
+        }
+      } catch (error: any) {
+        console.debug("Error refreshing token from cookie:", error?.message || "Unknown error");
+      } finally {
+        isRefreshing = false;
+      }
+    }
+  }
 
   // Debug token expiration
   if (tokenExpiresAt) {

@@ -2,80 +2,84 @@
 
 import { useState, useEffect } from "react";
 import CVSidebar from "@/components/layout/CVSidebar";
-import { Edit2, Plus, Trash2, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useLayout } from "@/contexts/LayoutContext";
 import api from "@/lib/api";
+import {
+  ProfileHeaderCard,
+  AboutMeSection,
+  EducationSection,
+  WorkExperienceSection,
+  LanguageSection,
+  SkillsSection,
+  HighlightProjectsSection,
+  CertificatesSection,
+  AwardsSection,
+  ProfileStrengthSidebar,
+  AboutMeDialog,
+  PersonalDetailDialog,
+  EducationDialog,
+  WorkExperienceDialog,
+  LanguageDialog,
+  ProjectDialog,
+  AwardDialog,
+  CertificateDialog,
+  SkillsDialog,
+} from "./components";
+import {
+  addSkill,
+  type SkillData,
+} from "@/lib/resume-api";
 import toast from "react-hot-toast";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+  useEducation,
+  useWorkExperience,
+  useLanguages,
+  useProjects,
+  useAwards,
+  useCertificates,
+  useSkills,
+  useAboutMe
+} from "./hooks";
 
 export default function ITviecProfile() {
+  // Resume ID state - will be fetched from API
+  const [resumeId, setResumeId] = useState<number | null>(null);
+  const [isLoadingResume, setIsLoadingResume] = useState(true);
+
+  // Custom hooks for data management
+  const educationHook = useEducation(resumeId);
+  const workExpHook = useWorkExperience(resumeId);
+  const languagesHook = useLanguages(resumeId);
+  const projectsHook = useProjects(resumeId);
+  const awardsHook = useAwards(resumeId);
+  const certificatesHook = useCertificates(resumeId);
+  const skillsHook = useSkills(resumeId);
+  const aboutMeHook = useAboutMe(resumeId);
+
+  // UI state
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
-  const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
-  const [skillGroupName, setSkillGroupName] = useState("");
   const [skillType, setSkillType] = useState<string>("");
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [skillExperience, setSkillExperience] = useState<string>("");
-  // Working list inside the dialog (experience optional for soft skills)
   const [skills, setSkills] = useState<Array<{
     id: string;
     skill: string;
     experience?: string;
   }>>([]);
-  // Persisted data shown on the main page
-  const [coreSkillGroups, setCoreSkillGroups] = useState<
-    Array<{
-      id: string;
-      name: string;
-      items: Array<{ id: string; skill: string; experience: string }>
-    }>
-  >([]);
-  const [softSkillItems, setSoftSkillItems] = useState<
-    Array<{ id: string; skill: string }>
-  >([]);
   const { headerHeight } = useLayout();
   const [headerH, setHeaderH] = useState(headerHeight || 0);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [pendingSkillType, setPendingSkillType] = useState<string>("");
-  // Certificates state
-  const [isCertDialogOpen, setIsCertDialogOpen] = useState(false);
-  const [certName, setCertName] = useState("");
-  const [certOrg, setCertOrg] = useState("");
-  const [certMonth, setCertMonth] = useState<string>("");
-  const [certYear, setCertYear] = useState<string>("");
-  const [certUrl, setCertUrl] = useState("");
-  const [certDesc, setCertDesc] = useState("");
-  const [certificates, setCertificates] = useState<Array<{
-    id: string;
-    name: string;
-    org: string;
-    month: string;
-    year: string;
-    url?: string;
-    desc?: string;
-  }>>([]);
-  const [isCertSaving, setIsCertSaving] = useState(false);
+
+  // Personal Detail modal state
+  const [isPersonalDetailOpen, setIsPersonalDetailOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileTitle, setProfileTitle] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileDob, setProfileDob] = useState("");
+  const [profileGender, setProfileGender] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
+  const [profileLink, setProfileLink] = useState("");
+  const [profileImage, setProfileImage] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -93,10 +97,10 @@ export default function ITviecProfile() {
     const initializeProfileAndResume = async () => {
       try {
         // Check if there's a pending DoB from sign-up
-        const pendingDob = typeof window !== "undefined" 
-          ? localStorage.getItem("pending_profile_dob") 
+        const pendingDob = typeof window !== "undefined"
+          ? localStorage.getItem("pending_profile_dob")
           : null;
-        
+
         if (pendingDob) {
           // Create candidate profile with DoB from sign-up
           try {
@@ -121,7 +125,7 @@ export default function ITviecProfile() {
             console.log("Profile creation skipped:", profileError?.response?.data?.message || profileError?.message);
           }
         }
-        
+
         // Create resume (blank)
         try {
           const resumePayload = {
@@ -136,8 +140,205 @@ export default function ITviecProfile() {
         console.log("Initialization error:", error?.message);
       }
     };
-    
+
     initializeProfileAndResume();
+  }, []);
+
+  // Fetch resume data to get resumeId and all related data
+  useEffect(() => {
+    const fetchResumeData = async () => {
+      setIsLoadingResume(true);
+      try {
+        const response = await api.get("/api/resume");
+
+        if (response.data?.result && response.data.result.length > 0) {
+          const resume = response.data.result[0]; // Get first resume
+          console.log("📋 Resume data:", resume);
+          console.log("🆔 Resume ID:", resume.resumeId, "Type:", typeof resume.resumeId);
+          setResumeId(resume.resumeId);
+
+          // Load About Me
+          if (resume.aboutMe) {
+            aboutMeHook.setAboutMeText(resume.aboutMe);
+          }
+
+          // Load Awards
+          if (resume.awards && resume.awards.length > 0) {
+            const transformedAwards = resume.awards.map((award: any) => {
+              const date = new Date(award.getDate);
+              return {
+                id: award.awardId.toString(),
+                name: award.name,
+                organization: award.organization,
+                month: String(date.getMonth() + 1).padStart(2, '0'),
+                year: String(date.getFullYear()),
+                description: award.description
+              };
+            });
+            awardsHook.setAwards(transformedAwards);
+          }
+
+          // Load Education
+          if (resume.educations && resume.educations.length > 0) {
+            const transformedEducations = resume.educations.map((edu: any) => {
+              const startDate = new Date(edu.startDate);
+              const endDate = edu.endDate ? new Date(edu.endDate) : null;
+              return {
+                id: edu.educationId.toString(),
+                school: edu.school,
+                degree: edu.degree,
+                major: edu.major,
+                startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
+                startYear: String(startDate.getFullYear()),
+                endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+                endYear: endDate ? String(endDate.getFullYear()) : ''
+              };
+            });
+            educationHook.setEducations(transformedEducations);
+          }
+
+          // Load Highlight Projects
+          if (resume.highlightProjects && resume.highlightProjects.length > 0) {
+            const transformedProjects = resume.highlightProjects.map((project: any) => {
+              const startDate = new Date(project.startDate);
+              const endDate = project.endDate ? new Date(project.endDate) : null;
+              return {
+                id: project.highlightProjectId.toString(),
+                name: project.name,
+                startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
+                startYear: String(startDate.getFullYear()),
+                endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+                endYear: endDate ? String(endDate.getFullYear()) : '',
+                description: project.description,
+                url: project.projectUrl,
+                working: !project.endDate
+              };
+            });
+            projectsHook.setProjects(transformedProjects);
+          }
+
+          // Load Work Experience
+          if (resume.workExperiences && resume.workExperiences.length > 0) {
+            const transformedWorkExp = resume.workExperiences.map((exp: any) => {
+              const startDate = new Date(exp.startDate);
+              const endDate = exp.endDate ? new Date(exp.endDate) : null;
+              return {
+                id: exp.workExperienceId.toString(),
+                jobTitle: exp.jobTitle,
+                company: exp.company,
+                startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
+                startYear: String(startDate.getFullYear()),
+                endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+                endYear: endDate ? String(endDate.getFullYear()) : '',
+                description: exp.description,
+                project: exp.project,
+                working: !exp.endDate
+              };
+            });
+            workExpHook.setWorkExperiences(transformedWorkExp);
+          }
+
+          // Load Foreign Languages
+          if (resume.foreignLanguages && resume.foreignLanguages.length > 0) {
+            const transformedLanguages = resume.foreignLanguages.map((lang: any) => ({
+              id: lang.foreignLanguageId.toString(),
+              language: lang.language,
+              level: lang.level
+            }));
+            languagesHook.setLanguages(transformedLanguages);
+          }
+
+          // Load Certificates
+          if (resume.certificates && resume.certificates.length > 0) {
+            const transformedCerts = resume.certificates.map((cert: any) => {
+              const date = new Date(cert.getDate);
+              return {
+                id: cert.certificateId.toString(),
+                name: cert.name,
+                org: cert.organization,
+                month: String(date.getMonth() + 1).padStart(2, '0'),
+                year: String(date.getFullYear()),
+                url: cert.certificateUrl,
+                desc: cert.description
+              };
+            });
+            certificatesHook.setCertificates(transformedCerts);
+          }
+
+          // Load Skills
+          if (resume.skills && resume.skills.length > 0) {
+            const coreSkills = resume.skills.filter((skill: any) => skill.skillType === "core");
+            const softSkills = resume.skills.filter((skill: any) => skill.skillType === "soft");
+
+            // Transform core skills
+            if (coreSkills.length > 0) {
+              const coreSkillItems = coreSkills.map((skill: any) => ({
+                id: skill.skillId.toString(),
+                skill: skill.skillName,
+                experience: skill.yearOfExperience ? String(skill.yearOfExperience) : ''
+              }));
+
+              skillsHook.setCoreSkillGroups([{
+                id: 'core-group-1',
+                name: 'Core Skills',
+                items: coreSkillItems
+              }]);
+            }
+
+            // Transform soft skills
+            if (softSkills.length > 0) {
+              const softSkillItems = softSkills.map((skill: any) => ({
+                id: skill.skillId.toString(),
+                skill: skill.skillName
+              }));
+
+              skillsHook.setSoftSkillGroups([{
+                id: 'soft-group-1',
+                name: 'Soft Skills',
+                items: softSkillItems
+              }]);
+            }
+          }
+
+          console.log("Resume data loaded successfully, resumeId:", resume.resumeId);
+        }
+      } catch (error) {
+        console.error("Error fetching resume data:", error);
+        toast.error("Failed to load resume data");
+      } finally {
+        setIsLoadingResume(false);
+      }
+    };
+
+    fetchResumeData();
+  }, []);
+
+  // Fetch personal details (candidate profile)
+  useEffect(() => {
+    const fetchPersonalDetails = async () => {
+      try {
+        const response = await api.get("/api/candidates/profiles/me");
+        if (response.data?.result) {
+          const profile = response.data.result;
+          console.log("👤 Personal details loaded:", profile);
+
+          // Set personal detail states
+          setProfileName(profile.username || "");
+          setProfileTitle(profile.title || "");
+          setProfilePhone(profile.phone || "");
+          setProfileDob(profile.dob || "");
+          setProfileGender(profile.gender || "");
+          setProfileAddress(profile.address || "");
+          setProfileLink(profile.link || "");
+          setProfileImage(profile.image || "");
+        }
+      } catch (error) {
+        console.error("Error fetching personal details:", error);
+        // Don't show error toast on initial load if profile doesn't exist
+      }
+    };
+
+    fetchPersonalDetails();
   }, []);
 
   const toggleSection = (section: string) => {
@@ -167,45 +368,143 @@ export default function ITviecProfile() {
     setSkills(skills.filter(skill => skill.id !== id));
   };
 
-  const handleSaveSkills = () => {
-    if (skillType === "core") {
-      // Save as a new core group
-      const groupId = Date.now().toString();
-      const items = skills
-        .filter((s) => s.skill && s.experience)
-        .map((s) => ({ id: s.id, skill: s.skill, experience: s.experience! }));
-      if (skillGroupName && items.length > 0) {
-        setCoreSkillGroups((prev) => [
-          ...prev,
-          { id: groupId, name: skillGroupName, items },
-        ]);
-      }
-    } else if (skillType === "soft") {
-      // Append to soft skills list
-      const items = skills.filter((s) => s.skill).map((s) => ({ id: s.id, skill: s.skill }));
-      if (items.length > 0) {
-        setSoftSkillItems((prev) => [...prev, ...items]);
-      }
+  const handleSaveSkills = async () => {
+    if (!resumeId) {
+      toast.error("Resume ID not found. Please refresh the page.");
+      return;
     }
 
-    // Close and reset form
-    setIsSkillDialogOpen(false);
-    setSkillGroupName("");
-    setSkillType("");
-    setSkills([]);
-    setSelectedSkill("");
-    setSkillExperience("");
+    if (skills.length === 0) {
+      toast.error("Please add at least one skill");
+      return;
+    }
+
+    try {
+      // Call API for each skill
+      const apiCalls = skills.map(skill => {
+        const data: SkillData = {
+          resumeId,
+          skillType: skillType, // "core" or "soft"
+          skillName: skill.skill,
+          ...(skillType === "core" && skill.experience ? { yearOfExperience: parseInt(skill.experience) } : {})
+        };
+        return addSkill(data);
+      });
+
+      const results = await Promise.all(apiCalls);
+
+      if (skillType === "core") {
+        // Save core skills
+        const items = skills
+          .filter((s) => s.skill && s.experience)
+          .map((s, index) => ({
+            id: results[index]?.skillId?.toString() || s.id,
+            skill: s.skill,
+            experience: s.experience!
+          }));
+
+        if (items.length > 0) {
+          // Group all core skills together without separate group names
+          skillsHook.setCoreSkillGroups((prev) => {
+            if (prev.length > 0) {
+              // Add to existing core skills group
+              const updated = [...prev];
+              updated[0].items = [...updated[0].items, ...items];
+              return updated;
+            } else {
+              // Create first core skills group
+              return [{
+                id: Date.now().toString(),
+                name: "Core Skills",
+                items
+              }];
+            }
+          });
+        }
+      } else if (skillType === "soft") {
+        // Append to soft skills list
+        const items = skills.filter((s) => s.skill).map((s, index) => ({
+          id: results[index]?.skillId?.toString() || s.id,
+          skill: s.skill
+        }));
+
+        if (items.length > 0) {
+          skillsHook.setSoftSkillGroups((prev) => {
+            if (prev.length > 0) {
+              // Add to existing soft skills
+              const updated = [...prev];
+              updated[0].items = [...updated[0].items, ...items];
+              return updated;
+            } else {
+              return [{
+                id: Date.now().toString(),
+                name: "Soft Skills",
+                items
+              }];
+            }
+          });
+        }
+      }
+
+      toast.success(`${skills.length} skill(s) added successfully!`);
+
+      // Close and reset form
+      skillsHook.setIsSkillDialogOpen(false);
+      setSkillType("");
+      setSkills([]);
+      setSelectedSkill("");
+      setSkillExperience("");
+    } catch (error) {
+      console.error("Error adding skills:", error);
+      toast.error("Failed to add skills. Please try again.");
+    }
   };
 
   const handleCancelSkills = () => {
-    setIsSkillDialogOpen(false);
+    skillsHook.setIsSkillDialogOpen(false);
     // Reset form
-    setSkillGroupName("");
     setSkillType("");
     setSkills([]);
     setSelectedSkill("");
     setSkillExperience("");
   };
+
+  // Personal Detail handlers
+  const handleSavePersonalDetail = async () => {
+    if (!profileAddress) {
+      toast.error("Address is required");
+      return;
+    }
+
+    try {
+      // Update username via /api/users/account
+      if (profileName) {
+        await api.put("/api/users/account", {
+          username: profileName
+        });
+      }
+
+      // Update profile via /api/candidates/profiles
+      const profileData = {
+        dob: profileDob || undefined,
+        title: profileTitle || undefined,
+        phone: profilePhone || undefined,
+        address: profileAddress,
+        image: profileImage || undefined,
+        gender: profileGender || undefined,
+        link: profileLink || undefined
+      };
+
+      await api.put("/api/candidates/profiles", profileData);
+
+      toast.success("Personal details updated successfully!");
+      setIsPersonalDetailOpen(false);
+    } catch (error) {
+      console.error("Error updating personal details:", error);
+      toast.error("Failed to update personal details. Please try again.");
+    }
+  };
+
 
   const profileCompletion = 20; // 20% completed
 
@@ -227,661 +526,213 @@ export default function ITviecProfile() {
           {/* Main Content */}
           <section className="space-y-6 min-w-0 lg:mt-[var(--sticky-offset)] transition-all duration-300">
             {/* Profile Header */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                    <span className="text-2xl font-semibold text-gray-600">
-                      LA
-                    </span>
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-                      Lê Quang Anh
-                    </h1>
-                    <button className="text-sm text-gray-500 hover:text-gray-700 flex items-center space-x-1">
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>Update your title</span>
-                    </button>
-                  </div>
-                </div>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Edit2 className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Contact Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-gray-400 text-base">✉️</span>
-                  <span className="text-gray-700">
-                    anhlqde180272@fpt.edu.vn
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-gray-400 text-base">📱</span>
-                  <span className="text-gray-400">Your phone number</span>
-                </div>
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-gray-400 text-base">📅</span>
-                  <span className="text-gray-400">Your date of birth</span>
-                </div>
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-gray-400 text-base">⚧</span>
-                  <span className="text-gray-400">Your gender</span>
-                </div>
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-gray-400 text-base">📍</span>
-                  <span className="text-gray-400">Your current address</span>
-                </div>
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-gray-400 text-base">🔗</span>
-                  <span className="text-gray-400">Your personal link</span>
-                </div>
-              </div>
-            </div>
+            <ProfileHeaderCard
+              profileName={profileName}
+              profileTitle={profileTitle}
+              profileImage={profileImage}
+              profilePhone={profilePhone}
+              profileDob={profileDob}
+              profileGender={profileGender}
+              profileAddress={profileAddress}
+              profileLink={profileLink}
+              email="anhlqde180272@fpt.edu.vn"
+              onEditPersonalDetails={() => setIsPersonalDetailOpen(true)}
+            />
 
             {/* About Me */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  About Me
-                </h2>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-sm italic">
-                Introduce your strengths and years of experience
-              </p>
-            </div>
+            <AboutMeSection
+              aboutMeText={aboutMeHook.aboutMeText}
+              onEdit={() => aboutMeHook.setIsAboutMeOpen(true)}
+            />
 
             {/* Education */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Education
-                </h2>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-base mb-1">
-                      FPT University
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Bachelor - Kỹ thuật phần mềm
-                    </p>
-                    <p className="text-sm text-gray-500">10/2022 - NOW</p>
-                  </div>
-                  <div className="flex space-x-1">
-                    <button className="text-gray-500 hover:text-gray-600 p-1.5">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button className="text-gray-500 hover:text-gray-600 p-1.5">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <EducationSection
+              educations={educationHook.educations}
+              onAdd={() => educationHook.openEducationDialog()}
+              onEdit={(edu) => educationHook.openEducationDialog(edu)}
+              onRemove={educationHook.removeEducation}
+            />
 
             {/* Work Experience */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Work Experience
-                </h2>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-sm italic">
-                Highlight detailed information about your job history
-              </p>
-            </div>
-
-            {/* Skills */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Skills</h2>
-                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="text-gray-600 hover:text-gray-700 p-2"
-                      onClick={() => setPopoverOpen(true)}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <div className="font-semibold text-gray-700 mb-2">Add group:</div>
-                    <button
-                      className="flex items-center w-full py-2 px-3 rounded hover:bg-gray-100 text-left text-gray-900 gap-2"
-                      onClick={() => {
-                        setSkillType("core");
-                        setPopoverOpen(false);
-                        setIsSkillDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="w-4 h-4 text-red-500" />
-                      Core skills
-                    </button>
-                    <button
-                      className="flex items-center w-full py-2 px-3 rounded hover:bg-gray-100 text-left text-gray-900 gap-2"
-                      onClick={() => {
-                        setSkillType("soft");
-                        setPopoverOpen(false);
-                        setIsSkillDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="w-4 h-4 text-red-500" />
-                      Soft skills
-                    </button>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <p className="text-gray-400 text-sm italic">
-                Showcase your skills and proficiencies
-              </p>
-              {/* Hiển thị dữ liệu đã lưu */}
-              {(coreSkillGroups.length > 0 || softSkillItems.length > 0) && (
-                <div className="mt-4 space-y-4">
-                  {coreSkillGroups.map((group) => (
-                    <div key={group.id} className="space-y-2">
-                      <div className="font-semibold text-gray-900">{group.name}</div>
-                      <div className="flex flex-wrap gap-2">
-                        {group.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="inline-flex items-center rounded-full border bg-white px-3 py-1 text-sm font-medium text-gray-900 shadow-sm gap-2"
-                            style={{ borderColor: '#e5e7eb' }}
-                          >
-                            <span>{item.skill}</span>
-                            {item.experience && (
-                              <span className="text-gray-500">({item.experience})</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  {softSkillItems.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="font-semibold text-gray-900">Soft Skills</div>
-                      <div className="flex flex-wrap gap-2">
-                        {softSkillItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="inline-flex items-center rounded-full border bg-white px-3 py-1 text-sm font-medium text-gray-900 shadow-sm gap-2"
-                            style={{ borderColor: '#e5e7eb' }}
-                          >
-                            <span>{item.skill}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <WorkExperienceSection
+              workExperiences={workExpHook.workExperiences}
+              onAdd={() => workExpHook.openWorkExpDialog()}
+              onEdit={(exp) => workExpHook.openWorkExpDialog(exp)}
+              onRemove={workExpHook.removeWorkExp}
+            />
 
             {/* Foreign Language */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Foreign Language
-                </h2>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-sm italic">
-                Provide your language skills and proficiencies
-              </p>
-            </div>
+            <LanguageSection
+              languages={languagesHook.languages}
+              onAdd={() => languagesHook.openLanguageDialog()}
+              onEdit={(lang) => {
+                // Language edit uses same dialog as add
+                languagesHook.openLanguageDialog();
+              }}
+              onRemove={languagesHook.removeLanguage}
+            />
+
+            {/* Skills */}
+            <SkillsSection
+              coreSkillGroups={skillsHook.coreSkillGroups}
+              softSkillItems={skillsHook.softSkillGroups[0]?.items || []}
+              onAddCoreSkills={() => {
+                setSkillType("core");
+                skillsHook.setIsSkillDialogOpen(true);
+              }}
+              onAddSoftSkills={() => {
+                setSkillType("soft");
+                skillsHook.setIsSkillDialogOpen(true);
+              }}
+              popoverOpen={popoverOpen}
+              setPopoverOpen={setPopoverOpen}
+            />
 
             {/* Highlight Project */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Highlight Project
-                </h2>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-base mb-1">
-                      FB
-                    </h3>
-                    <p className="text-sm text-gray-500">03/2022 - NOW</p>
-                  </div>
-                  <div className="flex space-x-1">
-                    <button className="text-gray-500 hover:text-gray-600 p-1.5">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button className="text-gray-500 hover:text-gray-600 p-1.5">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HighlightProjectsSection
+              projects={projectsHook.projects}
+              onAdd={() => projectsHook.openProjectDialog()}
+              onEdit={(project) => projectsHook.openProjectDialog(project)}
+              onRemove={projectsHook.removeProject}
+            />
 
             {/* Certificates */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Certificates
-                </h2>
-                <button
-                  className="text-gray-600 hover:text-gray-700 p-2"
-                  onClick={() => setIsCertDialogOpen(true)}
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-sm italic">
-                Provides evidence of your specific expertise and skills
-              </p>
-              {certificates.length > 0 && (
-                <ul className="mt-4 space-y-2">
-                  {certificates.map((c) => (
-                    <li key={c.id} className="border rounded-lg p-3">
-                      <div className="font-medium text-gray-900">{c.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {c.org} • {c.month}/{c.year}
-                      </div>
-                      {c.url && (
-                        <a href={c.url} target="_blank" className="text-sm text-blue-600">{c.url}</a>
-                      )}
-                      {c.desc && (
-                        <p className="text-sm text-gray-700 mt-1">{c.desc}</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <CertificatesSection
+              certificates={certificatesHook.certificates}
+              onAdd={() => certificatesHook.openCertDialog()}
+              onEdit={(cert) => certificatesHook.openCertDialog(cert)}
+              onRemove={certificatesHook.removeCertificate}
+            />
 
             {/* Awards */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Awards</h2>
-                <button className="text-gray-600 hover:text-gray-700 p-2">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-sm italic">
-                Highlight your awards or recognitions
-              </p>
-            </div>
+            <AwardsSection
+              awards={awardsHook.awards}
+              onAdd={() => awardsHook.openAwardsDialog()}
+              onEdit={(award) => awardsHook.openAwardsDialog(award)}
+              onRemove={awardsHook.removeAward}
+            />
           </section>
 
           {/* Right Sidebar - Profile Strength */}
-          <aside className="hidden xl:block space-y-6 sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start transition-all duration-300">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-5">
-                Profile Strength
-              </h3>
-              {/* Progress Circle */}
-              <div className="flex justify-center mb-6">
-                <div className="relative w-36 h-36">
-                  <svg className="w-36 h-36 transform -rotate-90">
-                    <circle
-                      cx="72"
-                      cy="72"
-                      r="64"
-                      stroke="#fee2e2"
-                      strokeWidth="14"
-                      fill="none"
-                    />
-                    <circle
-                      cx="72"
-                      cy="72"
-                      r="64"
-                      stroke="#ef4444"
-                      strokeWidth="14"
-                      fill="none"
-                      strokeDasharray={`${64 * 2 * Math.PI * 0.2} ${
-                        64 * 2 * Math.PI
-                      }`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-gray-900">
-                        {profileCompletion}%
-                      </div>
-                      <div className="text-sm text-gray-500">completed</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Chat bubble for complete profile */}
-              <div className="relative mb-6 mr-10">
-                <div className="bg-white border border-gray-300 shadow-sm rounded-2xl px-4 py-3 text-gray-700 text-sm leading-relaxed">
-                  Complete profile to{" "}
-                  <span className="text-gray-500 font-semibold">70%</span> to
-                  generate CV template for IT professionals.
-                </div>
-                {/* Đuôi bong bóng */}
-                <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-300 rotate-45"></div>
-                {/* Icon robot */}
-                <div className="absolute -right-10 top-1/2 -translate-y-1/2">
-                  <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center text-xl">
-                    🤖
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Items */}
-              <div className="space-y-2 mb-6">
-                <button className="w-full text-left flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  <Plus className="w-4 h-4" />
-                  <span>Add About me</span>
-                </button>
-                <button className="w-full text-left flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  <Plus className="w-4 h-4" />
-                  <span>Add Contact Information</span>
-                </button>
-                <button className="w-full text-left flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  <Plus className="w-4 h-4" />
-                  <span>Add Work Experience</span>
-                </button>
-
-                <button
-                  onClick={() => toggleSection("more")}
-                  className="w-full flex items-center justify-between text-sm text-gray-600 hover:text-gray-800 font-medium pt-2"
-                >
-                  <span>Add more information</span>
-                  {expandedSections.includes("more") ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
-
-                {expandedSections.includes("more") && (
-                  <div className="pl-4 space-y-2 text-sm text-gray-600">
-                    <p>• Add Skills</p>
-                    <p>• Add Languages</p>
-                    <p>• Add Projects</p>np
-                    <p>• Add Certificates</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Preview & Download Button */}
-              <button className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                Preview & Download CV
-              </button>
-            </div>
-          </aside>
+          <ProfileStrengthSidebar
+            profileCompletion={profileCompletion}
+            expandedSections={expandedSections}
+            onToggleSection={toggleSection}
+          />
         </div>
       </main>
 
-      {/* Skills Dialog */}
-      <Dialog open={isSkillDialogOpen} onOpenChange={setIsSkillDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              {skillType === "core" && "Core Skills"}
-              {skillType === "soft" && "Soft Skills"}
-            </DialogTitle>
-          </DialogHeader>
+      {/* Skills Dialog Component */}
+      <SkillsDialog
+        open={skillsHook.isSkillDialogOpen}
+        onOpenChange={skillsHook.setIsSkillDialogOpen}
+        skillType={skillType as 'core' | 'soft' | ''}
+        skills={skills}
+        selectedSkill={selectedSkill}
+        skillExperience={skillExperience}
+        onSelectedSkillChange={setSelectedSkill}
+        onSkillExperienceChange={setSkillExperience}
+        onAddSkill={handleAddSkill}
+        onRemoveSkill={handleRemoveSkill}
+        onSave={handleSaveSkills}
+        onCancel={handleCancelSkills}
+      />
 
-          <div className="space-y-6 py-4">
-            {/* Tip */}
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start space-x-2">
-              <span className="text-orange-600 text-lg">💡</span>
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">Tips:</span> Organize your core skills into groups helps recruiters quickly understand your professional capabilities.
-              </p>
-            </div>
+      {/* Certificate Dialog Component */}
+      <CertificateDialog
+        open={certificatesHook.isCertDialogOpen}
+        onOpenChange={certificatesHook.setIsCertDialogOpen}
+        editingCertificate={certificatesHook.editingCert}
+        onEditingCertificateChange={certificatesHook.setEditingCert}
+        onSave={certificatesHook.saveCertificate}
+      />
 
-            {/* Skill Type */}
-            <div className="space-y-2">
-              <Label htmlFor="skillType" className="text-sm font-medium text-gray-700">
-                Skill Type <span className="text-red-500">*</span>
-              </Label>
-              <Select value={skillType} onValueChange={setSkillType}>
-                <SelectTrigger id="skillType" className="w-full">
-                  <SelectValue placeholder="Select skill type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="core">Core Skills</SelectItem>
-                  <SelectItem value="soft">Soft Skills</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* About Me Modal */}
+      <AboutMeDialog
+        open={aboutMeHook.isAboutMeOpen}
+        onOpenChange={aboutMeHook.setIsAboutMeOpen}
+        value={aboutMeHook.aboutMeText}
+        onChange={aboutMeHook.handleAboutMeChange}
+        onSave={aboutMeHook.saveAboutMe}
+        maxLength={2500}
+      />
 
-            {/* Group Name (only for core skills) */}
-            {skillType === "core" && (
-              <div className="space-y-2">
-                <Label htmlFor="groupName" className="text-sm font-medium text-gray-700">
-                  Group name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="groupName"
-                  type="text"
-                  placeholder="e.g., Core Skills, Programming Languages"
-                  value={skillGroupName}
-                  onChange={(e) => setSkillGroupName(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-            )}
+      {/* Personal Detail Modal */}
+      <PersonalDetailDialog
+        open={isPersonalDetailOpen}
+        onOpenChange={setIsPersonalDetailOpen}
+        profileName={profileName}
+        profileTitle={profileTitle}
+        profilePhone={profilePhone}
+        profileDob={profileDob}
+        profileGender={profileGender}
+        profileAddress={profileAddress}
+        profileLink={profileLink}
+        profileImage={profileImage}
+        onProfileNameChange={setProfileName}
+        onProfileTitleChange={setProfileTitle}
+        onProfilePhoneChange={setProfilePhone}
+        onProfileDobChange={setProfileDob}
+        onProfileGenderChange={setProfileGender}
+        onProfileAddressChange={setProfileAddress}
+        onProfileLinkChange={setProfileLink}
+        onProfileImageChange={setProfileImage}
+        onSave={handleSavePersonalDetail}
+      />
 
-            {/* List Skills */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">
-                List skills ({skills.length}/20)
-              </Label>
-              
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Enter skill"
-                  value={selectedSkill}
-                  onChange={e => setSelectedSkill(e.target.value)}
-                  className="flex-1"
-                />
-                {skillType === "core" && (
-                  <Select value={skillExperience} onValueChange={setSkillExperience}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select experience" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1 year">1 year</SelectItem>
-                      <SelectItem value="2 years">2 years</SelectItem>
-                      <SelectItem value="3 years">3 years</SelectItem>
-                      <SelectItem value="5 years">5 years</SelectItem>
-                      <SelectItem value="10 years">10 years</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                <Button
-                  onClick={handleAddSkill}
-                  disabled={
-                    !selectedSkill || (skillType === "core" && !skillExperience)
-                  }
-                  className="bg-red-500 hover:bg-red-600 text-white px-4"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
+      {/* Education Modal */}
+      <EducationDialog
+        open={educationHook.isEducationOpen}
+        onOpenChange={educationHook.setIsEducationOpen}
+        editingEducation={educationHook.editingEducation}
+        onEditingEducationChange={educationHook.setEditingEducation}
+        onSave={educationHook.saveEducation}
+      />
 
-              {/* Skills List dạng chip */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {skills.map(skill => (
-                  <div
-                    key={skill.id}
-                    className="inline-flex items-center rounded-full border bg-white px-3 py-1 text-sm font-medium text-gray-900 shadow-sm gap-2"
-                    style={{ borderColor: '#e5e7eb' }}
-                  >
-                    <span>{skill.skill}</span>
-                    {skill.experience && (
-                      <span className="text-gray-500">({skill.experience})</span>
-                    )}
-                    <button
-                      className="ml-1 text-gray-400 hover:text-red-500"
-                      onClick={() => handleRemoveSkill(skill.id)}
-                      type="button"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* Work Experience Dialog Component */}
+      <WorkExperienceDialog
+        open={workExpHook.isWorkExpOpen}
+        onOpenChange={workExpHook.setIsWorkExpOpen}
+        editingWorkExp={workExpHook.editingWorkExp}
+        onEditingWorkExpChange={workExpHook.setEditingWorkExp}
+        onSave={workExpHook.saveWorkExp}
+      />
 
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={handleCancelSkills}
-              className="px-6"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveSkills}
-              disabled={
-                !skillType ||
-                skills.length === 0 ||
-                (skillType === "core" && !skillGroupName)
-              }
-              className="bg-gray-700 hover:bg-gray-800 text-white px-6"
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Language Dialog Component */}
+      <LanguageDialog
+        open={languagesHook.isLanguageOpen}
+        onOpenChange={languagesHook.setIsLanguageOpen}
+        languages={languagesHook.languages}
+        onLanguagesChange={languagesHook.setLanguages}
+        onSave={languagesHook.saveLanguages}
+      />
 
-      {/* Certificates Dialog */}
-      <Dialog open={isCertDialogOpen} onOpenChange={setIsCertDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Certificates</DialogTitle>
-          </DialogHeader>
+      {/* Award Dialog Component */}
+      <AwardDialog
+        open={awardsHook.isAwardsOpen}
+        onOpenChange={awardsHook.setIsAwardsOpen}
+        editingAward={awardsHook.editingAward}
+        onEditingAwardChange={awardsHook.setEditingAward}
+        onSave={awardsHook.saveAward}
+      />
 
-          <div className="space-y-5 py-2">
-            <div className="space-y-2">
-              <Label>Certificate Name <span className="text-red-500">*</span></Label>
-              <Input value={certName} onChange={(e) => setCertName(e.target.value)} placeholder="e.g., AWS Certified Solutions Architect" />
-            </div>
-            <div className="space-y-2">
-              <Label>Organization <span className="text-red-500">*</span></Label>
-              <Input value={certOrg} onChange={(e) => setCertOrg(e.target.value)} placeholder="e.g., Amazon Web Services" />
-            </div>
-            <div className="space-y-2">
-              <Label>Issue date <span className="text-red-500">*</span></Label>
-              <div className="flex gap-2">
-                <Select value={certMonth} onValueChange={setCertMonth}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      "01","02","03","04","05","06","07","08","09","10","11","12",
-                    ].map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={certYear} onValueChange={setCertYear}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 31 }).map((_, idx) => {
-                      const y = String(2025 - idx);
-                      return <SelectItem key={y} value={y}>{y}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Certificate URL</Label>
-              <Input value={certUrl} onChange={(e) => setCertUrl(e.target.value)} placeholder="https://..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea value={certDesc} onChange={(e) => setCertDesc(e.target.value)} rows={5} placeholder="Optional description..." />
-            </div>
-          </div>
+      {/* Project Dialog Component */}
+      <ProjectDialog
+        open={projectsHook.isProjectOpen}
+        onOpenChange={projectsHook.setIsProjectOpen}
+        editingProject={projectsHook.editingProject}
+        onEditingProjectChange={projectsHook.setEditingProject}
+        onSave={projectsHook.saveProject}
+      />
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsCertDialogOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-gray-700 hover:bg-gray-800 text-white"
-              disabled={!certName || !certOrg || !certMonth || !certYear || isCertSaving}
-              onClick={async () => {
-                try {
-                  setIsCertSaving(true);
-                  const day = "01"; // Using first day of the month by default
-                  const payload = {
-                    name: certName.trim(),
-                    organization: certOrg.trim(),
-                    getDate: `${certYear}-${certMonth}-${day}`,
-                    certificateUrl: certUrl.trim() || undefined,
-                    description: certDesc.trim() || undefined,
-                  };
-
-                  const res = await api.post("/api/certificate", payload);
-
-                  // Try to extract from common shapes
-                  const result = res?.data?.result || res?.data || payload;
-
-                  // Update UI list
-                  setCertificates((prev) => [
-                    ...prev,
-                    {
-                      id: (result?.id?.toString?.() || Date.now().toString()),
-                      name: result?.name || payload.name,
-                      org: result?.organization || payload.organization,
-                      month: certMonth,
-                      year: certYear,
-                      url: result?.certificateUrl || payload.certificateUrl,
-                      desc: result?.description || payload.description,
-                    },
-                  ]);
-
-                  toast.success("Certificate added successfully");
-
-                  // Reset form and close
-                  setIsCertDialogOpen(false);
-                  setCertName("");
-                  setCertOrg("");
-                  setCertMonth("");
-                  setCertYear("");
-                  setCertUrl("");
-                  setCertDesc("");
-                } catch (err: any) {
-                  const msg = err?.response?.data?.message || err?.message || "Failed to add certificate";
-                  toast.error(msg);
-                } finally {
-                  setIsCertSaving(false);
-                }
-              }}
-            >
-              {isCertSaving ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Certificate Dialog Component */}
+      <CertificateDialog
+        open={certificatesHook.isCertDialogOpen}
+        onOpenChange={certificatesHook.setIsCertDialogOpen}
+        editingCertificate={certificatesHook.editingCert}
+        onEditingCertificateChange={certificatesHook.setEditingCert}
+        onSave={certificatesHook.saveCertificate}
+      />
     </div>
   );
 }

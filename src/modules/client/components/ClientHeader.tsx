@@ -9,7 +9,7 @@ import { decodeJWT } from "@/lib/auth-admin";
 import toast from "react-hot-toast";
 import CandidateMenuList from "@/components/layout/CandidateMenuList";
 
-export default function ClientHeader() {
+export function ClientHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -287,3 +287,4 @@ export default function ClientHeader() {
     </header>
   );
 }
+export default ClientHeader;

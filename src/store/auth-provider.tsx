@@ -12,6 +12,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useAuthStore();
   const lastCheckRef = useRef<number>(0);
   const isRefreshingRef = useRef(false);
+  const hasAttemptedRefreshRef = useRef(false);
+
+  // ✅ FIX: Check if access token is missing but might have refresh token cookie
+  useEffect(() => {
+    const checkForMissingToken = async () => {
+      // If no access token in state but we haven't tried refreshing yet
+      if (!accessToken && !hasAttemptedRefreshRef.current) {
+        hasAttemptedRefreshRef.current = true;
+        console.debug("No access token in state, attempting refresh from cookie...");
+
+        try {
+          const newToken = await refresh();
+          if (newToken) {
+            console.debug("✅ Successfully restored session from refresh token cookie");
+          } else {
+            console.debug("No valid refresh token cookie found");
+          }
+        } catch (error) {
+          console.debug("Failed to refresh from cookie:", error);
+        }
+      }
+    };
+
+    checkForMissingToken();
+  }, [accessToken, refresh]);
 
   // Re-enable with stronger throttling
   useEffect(() => {
