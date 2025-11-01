@@ -47,7 +47,7 @@ export function useCertificates(resumeId: number | null) {
       };
 
       if (editingCert.id && editingCert.id !== '0') {
-        await updateCertificate(Number(editingCert.id), certData);
+        await updateCertificate(resumeId, Number(editingCert.id), certData);
         setCertificates(certificates.map(cert =>
           cert.id === editingCert.id ? editingCert : cert
         ));

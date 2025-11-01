@@ -43,10 +43,9 @@ export default function ProfileHeaderCard({
                         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
                             {profileName || 'Lê Quang Anh'}
                         </h1>
-                        <button className="text-sm text-gray-500 hover:text-gray-700 flex items-center space-x-1">
-                            <FiEdit className="w-3.5 h-3.5" />
-                            <span>{profileTitle || 'Update your title'}</span>
-                        </button>
+                        <p className="text-base font-semibold text-gray-900">
+                            {profileTitle || 'Backend Developer'}
+                        </p>
                     </div>
                 </div>
                 <button
@@ -62,8 +61,8 @@ export default function ProfileHeaderCard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center space-x-2.5">
                     <FaEnvelope className="text-gray-400 text-base" />
-                    <span className="text-gray-700">
-                        {email}
+                    <span className={email ? "text-gray-900 font-medium" : "text-gray-400"}>
+                        {email || "example@gmail.com"}
                     </span>
                 </div>
                 <div className="flex items-center space-x-2.5">

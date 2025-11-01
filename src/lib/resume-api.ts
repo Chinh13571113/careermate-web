@@ -42,19 +42,19 @@ export const getAwardsByResumeId = async (resumeId: number): Promise<any[]> => {
 
 /**
  * Update award
- * PUT /api/award/{id}
+ * PUT /api/award/{resumeId}/{awardId}
  */
-export const updateAward = async (id: number, awardData: Partial<AwardData>): Promise<AwardResponse> => {
-  const response = await api.put(`/api/award/${id}`, awardData);
+export const updateAward = async (resumeId: number, awardId: number, awardData: Partial<AwardData>): Promise<AwardResponse> => {
+  const response = await api.put(`/api/award/${resumeId}/${awardId}`, awardData);
   return response.data;
 };
 
 /**
  * Delete award
- * DELETE /api/award/{id}
+ * DELETE /api/award/{awardId}
  */
-export const deleteAward = async (id: number): Promise<void> => {
-  await api.delete(`/api/award/${id}`);
+export const deleteAward = async (awardId: number): Promise<void> => {
+  await api.delete(`/api/award/${awardId}`);
 };
 
 // ==================== RESUME/ABOUT ME API ====================
@@ -100,13 +100,13 @@ export const addEducation = async (data: EducationData): Promise<any> => {
   return response.data.result || response.data;
 };
 
-export const updateEducation = async (id: number, data: Partial<EducationData>): Promise<any> => {
-  const response = await api.put(`/api/education/${id}`, data);
+export const updateEducation = async (resumeId: number, educationId: number, data: Partial<EducationData>): Promise<any> => {
+  const response = await api.put(`/api/education/${resumeId}/${educationId}`, data);
   return response.data.result || response.data;
 };
 
-export const deleteEducation = async (id: number): Promise<void> => {
-  await api.delete(`/api/education/${id}`);
+export const deleteEducation = async (educationId: number): Promise<void> => {
+  await api.delete(`/api/education/${educationId}`);
 };
 
 // ==================== CERTIFICATE API ====================
@@ -135,13 +135,13 @@ export const addCertificate = async (data: CertificateData): Promise<any> => {
   return response.data.result || response.data;
 };
 
-export const updateCertificate = async (id: number, data: Partial<CertificateData>): Promise<any> => {
-  const response = await api.put(`/api/certificate/${id}`, data);
+export const updateCertificate = async (resumeId: number, certificateId: number, data: Partial<CertificateData>): Promise<any> => {
+  const response = await api.put(`/api/certificate/${resumeId}/${certificateId}`, data);
   return response.data.result || response.data;
 };
 
-export const deleteCertificate = async (id: number): Promise<void> => {
-  await api.delete(`/api/certificate/${id}`);
+export const deleteCertificate = async (certificateId: number): Promise<void> => {
+  await api.delete(`/api/certificate/${certificateId}`);
 };
 
 // ==================== HIGHLIGHT PROJECT API ====================
@@ -175,8 +175,8 @@ export const updateHighlightProject = async (resumeId: number, highlightProjectI
   return response.data.result || response.data;
 };
 
-export const deleteHighlightProject = async (id: number): Promise<void> => {
-  await api.delete(`/api/highlight-project/${id}`);
+export const deleteHighlightProject = async (highlightProjectId: number): Promise<void> => {
+  await api.delete(`/api/highlight-project/${highlightProjectId}`);
 };
 
 // ==================== WORK EXPERIENCE API ====================
@@ -212,8 +212,8 @@ export const updateWorkExperience = async (resumeId: number, workExpId: number, 
   return response.data.result || response.data;
 };
 
-export const deleteWorkExperience = async (id: number): Promise<void> => {
-  await api.delete(`/api/work-exp/${id}`);
+export const deleteWorkExperience = async (workExpId: number): Promise<void> => {
+  await api.delete(`/api/work-exp/${workExpId}`);
 };
 
 // ==================== FOREIGN LANGUAGE API ====================
@@ -236,8 +236,8 @@ export const addForeignLanguage = async (data: ForeignLanguageData): Promise<any
   return response.data.result || response.data;
 };
 
-export const deleteForeignLanguage = async (id: number): Promise<void> => {
-  await api.delete(`/api/foreign-language/${id}`);
+export const deleteForeignLanguage = async (foreignLanguageId: number): Promise<void> => {
+  await api.delete(`/api/foreign-language/${foreignLanguageId}`);
 };
 
 // ==================== SKILL API ====================
@@ -262,6 +262,6 @@ export const addSkill = async (data: SkillData): Promise<any> => {
   return response.data.result || response.data;
 };
 
-export const deleteSkill = async (id: number): Promise<void> => {
-  await api.delete(`/api/skill/${id}`);
+export const deleteSkill = async (skillId: number): Promise<void> => {
+  await api.delete(`/api/skill/${skillId}`);
 };

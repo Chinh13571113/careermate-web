@@ -25,10 +25,6 @@ import {
   CertificateDialog,
   SkillsDialog,
 } from "./components";
-import {
-  addSkill,
-  type SkillData,
-} from "@/lib/resume-api";
 import toast from "react-hot-toast";
 import {
   useEducation,
@@ -40,6 +36,23 @@ import {
   useSkills,
   useAboutMe
 } from "./hooks";
+
+// Helper function to decode JWT token
+function decodeJwt(token: string): { email?: string; sub?: string;[key: string]: any } | null {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
 
 export default function ITviecProfile() {
   // Resume ID state - will be fetched from API
@@ -80,6 +93,7 @@ export default function ITviecProfile() {
   const [profileAddress, setProfileAddress] = useState("");
   const [profileLink, setProfileLink] = useState("");
   const [profileImage, setProfileImage] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -91,6 +105,21 @@ export default function ITviecProfile() {
       }
     }
   }, [headerHeight]);
+
+  // Decode email from access token
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        const decoded = decodeJwt(token);
+        if (decoded) {
+          // Email can be in 'email' or 'sub' field depending on JWT structure
+          const email = decoded.email || decoded.sub || "";
+          setUserEmail(email);
+        }
+      }
+    }
+  }, []);
 
   // Auto-create profile and resume on page load
   useEffect(() => {
@@ -369,95 +398,18 @@ export default function ITviecProfile() {
   };
 
   const handleSaveSkills = async () => {
-    if (!resumeId) {
-      toast.error("Resume ID not found. Please refresh the page.");
+    if (skillType !== "core" && skillType !== "soft") {
+      toast.error("Please select a skill type");
       return;
     }
 
-    if (skills.length === 0) {
-      toast.error("Please add at least one skill");
-      return;
-    }
+    await skillsHook.saveSkills(skills, skillType);
 
-    try {
-      // Call API for each skill
-      const apiCalls = skills.map(skill => {
-        const data: SkillData = {
-          resumeId,
-          skillType: skillType, // "core" or "soft"
-          skillName: skill.skill,
-          ...(skillType === "core" && skill.experience ? { yearOfExperience: parseInt(skill.experience) } : {})
-        };
-        return addSkill(data);
-      });
-
-      const results = await Promise.all(apiCalls);
-
-      if (skillType === "core") {
-        // Save core skills
-        const items = skills
-          .filter((s) => s.skill && s.experience)
-          .map((s, index) => ({
-            id: results[index]?.skillId?.toString() || s.id,
-            skill: s.skill,
-            experience: s.experience!
-          }));
-
-        if (items.length > 0) {
-          // Group all core skills together without separate group names
-          skillsHook.setCoreSkillGroups((prev) => {
-            if (prev.length > 0) {
-              // Add to existing core skills group
-              const updated = [...prev];
-              updated[0].items = [...updated[0].items, ...items];
-              return updated;
-            } else {
-              // Create first core skills group
-              return [{
-                id: Date.now().toString(),
-                name: "Core Skills",
-                items
-              }];
-            }
-          });
-        }
-      } else if (skillType === "soft") {
-        // Append to soft skills list
-        const items = skills.filter((s) => s.skill).map((s, index) => ({
-          id: results[index]?.skillId?.toString() || s.id,
-          skill: s.skill
-        }));
-
-        if (items.length > 0) {
-          skillsHook.setSoftSkillGroups((prev) => {
-            if (prev.length > 0) {
-              // Add to existing soft skills
-              const updated = [...prev];
-              updated[0].items = [...updated[0].items, ...items];
-              return updated;
-            } else {
-              return [{
-                id: Date.now().toString(),
-                name: "Soft Skills",
-                items
-              }];
-            }
-          });
-        }
-      }
-
-      toast.success(`${skills.length} skill(s) added successfully!`);
-
-      // Close and reset form
-      skillsHook.setIsSkillDialogOpen(false);
-      setSkillType("");
-      setSkills([]);
-      setSelectedSkill("");
-      setSkillExperience("");
-    } catch (error) {
-      console.error("Error adding skills:", error);
-      toast.error("Failed to add skills. Please try again.");
-    }
+    // Reset form after successful save
+    setSkillType("");
+    setSkills([]);
+    setSelectedSkill("");
+    setSkillExperience("");
   };
 
   const handleCancelSkills = () => {
@@ -535,7 +487,7 @@ export default function ITviecProfile() {
               profileGender={profileGender}
               profileAddress={profileAddress}
               profileLink={profileLink}
-              email="anhlqde180272@fpt.edu.vn"
+              email={userEmail}
               onEditPersonalDetails={() => setIsPersonalDetailOpen(true)}
             />
 
@@ -575,7 +527,7 @@ export default function ITviecProfile() {
             {/* Skills */}
             <SkillsSection
               coreSkillGroups={skillsHook.coreSkillGroups}
-              softSkillItems={skillsHook.softSkillGroups[0]?.items || []}
+              softSkillItems={skillsHook.softSkillGroups.flatMap(group => group.items || [])}
               onAddCoreSkills={() => {
                 setSkillType("core");
                 skillsHook.setIsSkillDialogOpen(true);
@@ -703,7 +655,8 @@ export default function ITviecProfile() {
         open={languagesHook.isLanguageOpen}
         onOpenChange={languagesHook.setIsLanguageOpen}
         languages={languagesHook.languages}
-        onLanguagesChange={languagesHook.setLanguages}
+        onAddLanguage={languagesHook.addLanguage}
+        onRemoveLanguage={languagesHook.removeLanguage}
         onSave={languagesHook.saveLanguages}
       />
 
@@ -723,15 +676,6 @@ export default function ITviecProfile() {
         editingProject={projectsHook.editingProject}
         onEditingProjectChange={projectsHook.setEditingProject}
         onSave={projectsHook.saveProject}
-      />
-
-      {/* Certificate Dialog Component */}
-      <CertificateDialog
-        open={certificatesHook.isCertDialogOpen}
-        onOpenChange={certificatesHook.setIsCertDialogOpen}
-        editingCertificate={certificatesHook.editingCert}
-        onEditingCertificateChange={certificatesHook.setEditingCert}
-        onSave={certificatesHook.saveCertificate}
       />
     </div>
   );

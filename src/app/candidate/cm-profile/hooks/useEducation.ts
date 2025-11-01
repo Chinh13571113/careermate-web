@@ -50,7 +50,7 @@ export function useEducation(resumeId: number | null) {
       };
 
       if (editingEducation.id && editingEducation.id !== '0') {
-        await updateEducation(Number(editingEducation.id), educationData);
+        await updateEducation(resumeId, Number(editingEducation.id), educationData);
         setEducations(educations.map(edu =>
           edu.id === editingEducation.id ? editingEducation : edu
         ));

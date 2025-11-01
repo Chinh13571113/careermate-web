@@ -8,7 +8,8 @@ interface LanguageDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     languages: Language[];
-    onLanguagesChange: (languages: Language[]) => void;
+    onAddLanguage: (language: string, level: string) => Promise<void>;
+    onRemoveLanguage: (id: string) => Promise<void>;
     onSave: () => void;
 }
 
@@ -25,27 +26,29 @@ export default function LanguageDialog({
     open,
     onOpenChange,
     languages,
-    onLanguagesChange,
+    onAddLanguage,
+    onRemoveLanguage,
     onSave
 }: LanguageDialogProps) {
     const [newLanguage, setNewLanguage] = useState("");
     const [newLevel, setNewLevel] = useState("");
+    const [isAdding, setIsAdding] = useState(false);
 
-    const handleAddLanguage = () => {
-        if (newLanguage.trim() && newLevel) {
-            const newLang: Language = {
-                id: Date.now().toString(),
-                language: newLanguage.trim(),
-                level: newLevel
-            };
-            onLanguagesChange([...languages, newLang]);
-            setNewLanguage("");
-            setNewLevel("");
+    const handleAddLanguage = async () => {
+        if (newLanguage.trim() && newLevel && !isAdding) {
+            setIsAdding(true);
+            try {
+                await onAddLanguage(newLanguage.trim(), newLevel);
+                setNewLanguage("");
+                setNewLevel("");
+            } finally {
+                setIsAdding(false);
+            }
         }
     };
 
-    const handleRemoveLanguage = (id: string) => {
-        onLanguagesChange(languages.filter(lang => lang.id !== id));
+    const handleRemoveLanguage = async (id: string) => {
+        await onRemoveLanguage(id);
     };
 
     return (
@@ -95,10 +98,10 @@ export default function LanguageDialog({
                         <div className="pt-6">
                             <Button
                                 onClick={handleAddLanguage}
-                                disabled={!newLanguage.trim() || !newLevel}
+                                disabled={!newLanguage.trim() || !newLevel || isAdding}
                                 className="bg-red-500 hover:bg-red-600 text-white"
                             >
-                                Add
+                                {isAdding ? "Adding..." : "Add"}
                             </Button>
                         </div>
                     </div>

@@ -45,7 +45,7 @@ export function useAwards(resumeId: number | null) {
       };
 
       if (editingAward.id && editingAward.id !== '0') {
-        await updateAward(Number(editingAward.id), awardData);
+        await updateAward(resumeId, Number(editingAward.id), awardData);
         setAwards(awards.map(award =>
           award.id === editingAward.id ? editingAward : award
         ));
