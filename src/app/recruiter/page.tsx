@@ -16,6 +16,8 @@ import {
   PlusCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { useClientAuth } from "@/hooks/useClientAuth";
+import { decodeJWT } from "@/lib/auth-admin";
 
 // Animated Counter Component
 interface AnimatedCounterProps {
@@ -31,6 +33,7 @@ function AnimatedCounter({
 }: AnimatedCounterProps) {
   const [count, setCount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+
   const ref = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
@@ -84,7 +87,44 @@ function AnimatedCounter({
 
 export default function RecruiterHomePage() {
   const [email, setEmail] = useState("");
-  const { user } = useAuthStore();
+  const [username, setUsername] = useState("");
+
+  const [userInfo, setUserInfo] = useState<{
+    username: string;
+    email: string;
+  } | null>(null);
+
+  // Lấy trạng thái auth
+  const { mounted, isAuthenticated, accessToken, role } = useClientAuth();
+  const { logout, user } = useAuthStore();
+
+  // Decode token CHỈ sau khi có accessToken ở client
+  useEffect(() => {
+    if (!accessToken) {
+      setUserInfo(null);
+      return;
+    }
+    try {
+      const decoded = decodeJWT(accessToken);
+      setUserInfo({
+        email: decoded?.sub || decoded?.email || "User",
+        username: decoded?.name || decoded?.sub || "User",
+      });
+
+      // Update store user if not set
+      if (!user && decoded) {
+        useAuthStore.setState({
+          user: {
+            id: decoded?.sub,
+            email: decoded?.email || decoded?.sub,
+            username: decoded?.name || decoded?.email || decoded?.sub,
+          },
+        });
+      }
+    } catch {
+      setUserInfo(null);
+    }
+  }, [accessToken, user]);
 
   const handleConsultation = () => {
     // Handle consultation request
@@ -145,10 +185,10 @@ export default function RecruiterHomePage() {
                 Services
               </Link>
               <Link
-                href="/recruiter/recruiter-feature/blog"
+                href="/recruiter/recruiter-feature/jobs"
                 className="text-[#ffffff] hover:text-[#c8c8c8]"
               >
-                Blog
+                Upload Jobs
               </Link>
               <Link
                 href="/recruiter/recruiter-feature/support"
@@ -160,15 +200,35 @@ export default function RecruiterHomePage() {
 
             {/* Bên phải header */}
             <div className="flex items-center space-x-4">
-              <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
-                For Recruiter
-              </span>
+              {isAuthenticated && user ? (
+                <>
+                  <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                    For Recruiter abc
+                  </span>
 
-              <ProfileDropdown
-                userName={user?.name || user?.email || "Recruiter"}
-                userEmail={user?.email}
-                userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
-              />
+                  <ProfileDropdown
+                    userName={user?.username || "User"} // Changed to use user.username
+                    userEmail={user?.email || userInfo?.email}
+                    role={role || undefined}
+                    userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4vVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
+                  />
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/sign-in"
+                    className="px-4 py-2 text-white hover:text-gray-300 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/sign-up"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -10,7 +10,9 @@ import {
     Users,
     Settings,
     LogOut,
-    User
+    User,
+    Briefcase,
+    Clock
 } from 'lucide-react';
 import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT } from "@/lib/auth-admin";
@@ -32,6 +34,8 @@ const iconMap = {
     BookOpen,
     Users,
     Settings,
+    Briefcase,
+    Clock,
 };
 
 export function AdminSidebar({ navItems, className }: AdminSidebarProps) {

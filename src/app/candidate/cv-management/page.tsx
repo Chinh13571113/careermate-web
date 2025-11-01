@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ClientHeader, ClientFooter } from "@/modules/client/components";
 import CVSidebar from "@/components/layout/CVSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
 
@@ -62,8 +61,6 @@ const CVManagementPage = () => {
 
   return (
     <>
-      <ClientHeader />
-
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
         {/* GRID 3 cột: sidebar | content | analyzer */}
         <div
@@ -358,8 +355,6 @@ const CVManagementPage = () => {
         {/* Analyzer bản mobile (tùy chọn) */}
         {/* <div className="lg:hidden mt-6">...Analyzer content...</div> */}
       </main>
-
-      <ClientFooter />
 
       {/* PDF Preview Modal */}
       {showPdfPreview && (

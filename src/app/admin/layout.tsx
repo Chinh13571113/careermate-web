@@ -15,8 +15,18 @@ const adminNavItems = [
   },
   {
     title: "User Management",
-    url: "/admin/users",
+    url: "/admin/user-management",
     icon: "Users",
+  },
+  {
+    title: "Recruiter Management",
+    url: "/admin/recruiters",
+    icon: "Briefcase",
+  },
+  {
+    title: "Pending Approval",
+    url: "/admin/pending-approval",
+    icon: "Clock",
   },
   {
     title: "Settings",

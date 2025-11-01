@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ClientHeader, ClientFooter } from "@/modules/client/components";
+// import { ClientHeader, ClientFooter } from "@/modules/client/components"; // ❌ Xóa import vì layout đã có
 import JobCard from "../../../components/JobCard";
 
 interface JobListing {
@@ -214,8 +214,6 @@ export default function JobsDetailPage() {
 
   return (
     <>
-      <ClientHeader />
-
       <div className="min-h-screen bg-gray-50 py-8">
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -525,8 +523,6 @@ export default function JobsDetailPage() {
           </div>
         )}
       </div>
-
-      <ClientFooter />
     </>
   );
 }

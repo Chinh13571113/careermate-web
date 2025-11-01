@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { X } from "lucide-react";
 
 export default function UserTypeSelectionPage() {
   const router = useRouter();
@@ -10,17 +11,30 @@ export default function UserTypeSelectionPage() {
   const handleSelect = (type: string) => {
     setSelectedType(type);
     if (type === "recruiter") {
-      router.push("/user-confirmpage/recruiter");
+      router.push("/sign-up-recruiter");
     } else {
-      router.push("/user-confirmpage/candidate");
+      router.push("/sign-up-candidate");
     }
   };
 
+  const handleClose = () => {
+    router.push("/");
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#eaeef3]">
-      {/* Main */}
-      <main className="container mx-auto px-6 py-16">
-        <div className="mx-auto max-w-5xl bg-white rounded-3xl shadow-2xl p-14 text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {/* Modal Container */}
+      <div className="relative mx-auto max-w-5xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+        {/* Close Button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-6 right-6 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors group"
+        >
+          <X className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+        </button>
+
+        {/* Content */}
+        <div className="p-14 text-center max-h-[90vh] overflow-y-auto">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">Hello there,</h2>
           <p className="text-lg text-gray-600 mb-12">
             Please take a few seconds to confirm your information below! 👋
@@ -43,7 +57,7 @@ export default function UserTypeSelectionPage() {
               <div className="flex flex-col items-center">
                 <div className="w-64 h-64 rounded-full overflow-hidden mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <img
-                    src="img/employers.png"
+                    src="/img/employers.png"
                     alt="Recruiter"
                     className="w-full h-full object-cover"
                   />
@@ -62,7 +76,7 @@ export default function UserTypeSelectionPage() {
               <div className="flex flex-col items-center">
                 <div className="w-64 h-64 rounded-full overflow-hidden mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <img
-                    src="img/candidates.png"
+                    src="/img/candidates.png"
                     alt="Candidate"
                     className="w-full h-full object-cover"
                   />
@@ -74,7 +88,7 @@ export default function UserTypeSelectionPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

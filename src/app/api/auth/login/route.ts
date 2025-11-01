@@ -40,6 +40,36 @@ export async function POST(request: NextRequest) {
     // Check if response is valid
     const result = response.data.result || response.data;
     console.log("🧩 [LOGIN API] Response body:", response.data);
+    
+    // Check for rejected status
+    if (response.status === 403 && response.data?.message?.toLowerCase().includes("reject")) {
+      console.log("❌ [LOGIN API] Account rejected by admin");
+      return NextResponse.json(
+        {
+          message: response.data?.message || "Account has been rejected",
+          code: 403,
+          status: "rejected",
+          email: email,
+          reason: response.data?.reason || response.data?.result?.reason || "No reason provided",
+        },
+        { status: 403 }
+      );
+    }
+    
+    // Check for pending approval status
+    if (response.status === 403 || response.data?.code === 403) {
+      console.log("⏳ [LOGIN API] Account pending approval");
+      return NextResponse.json(
+        {
+          message: response.data?.message || "Account pending approval",
+          code: 403,
+          status: "pending",
+          email: email,
+        },
+        { status: 403 }
+      );
+    }
+    
     if (response.status === 200 && (result?.accessToken || result?.token)) {
       console.log("🟢 [LOGIN API] Login successful, preparing response");
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, Menu } from "lucide-react";
 import { ProfileDropdown } from "@/components/profile/ProfileDropdown";
 import { useAuthStore } from "@/store/use-auth-store";
+import { decodeJWT } from "@/lib/auth-admin";
 
 interface RecruiterHeaderProps {
   sidebarOpen?: boolean;
@@ -11,13 +12,45 @@ interface RecruiterHeaderProps {
 
 export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
   const { user } = useAuthStore();
-  const { isAuthenticated, accessToken, logout } = useAuthStore();
+  const { isAuthenticated, accessToken, logout, role } = useAuthStore();
   const [isOpen, setIsOpen] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("sidebar-open") === "true";
     }
     return sidebarOpen;
   });
+  const [userInfo, setUserInfo] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
+
+  // Decode token CHỈ sau khi có accessToken ở client
+    useEffect(() => {
+      if (!accessToken) {
+        setUserInfo(null);
+        return;
+      }
+      try {
+        const decoded = decodeJWT(accessToken);
+        setUserInfo({
+          email: decoded?.sub || decoded?.email || "User",
+          name: decoded?.name || decoded?.sub || "User",
+        });
+  
+        // Update store user if not set
+        if (!user && decoded) {
+          useAuthStore.setState({
+            user: {
+              id: decoded?.sub,
+              email: decoded?.email || decoded?.sub,
+              name: decoded?.name || decoded?.email || decoded?.sub,
+            },
+          });
+        }
+      } catch {
+        setUserInfo(null);
+      }
+    }, [accessToken, user]);
 
   useEffect(() => {
     const checkSidebarState = () => {
@@ -88,32 +121,40 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
           <h1 className="text-lg font-semibold">CareerMate</h1>
         </div>
         <div className="flex items-center gap-4">
-          <span className="hidden text-xs md:inline text-[#ffffff]">
-            For Recruiter
-          </span>
+          
 
-          {isAuthenticated && user ? (
-            <ProfileDropdown
-              userName={user?.name || user?.email || "Candidate"}
-              userEmail={user?.email}
-              userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
-            />
-          ) : (
-            <>
-              <Link
-                href="/sign-in"
-                className="text-gray-300 hover:text-white transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/sign-up"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                Sign Up
-              </Link>
-            </>
-          )}
+          {/* Bên phải header */}
+            <div className="flex items-center space-x-4">
+              {isAuthenticated && user ? (
+                <>
+                  <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                    For Recruiter abc
+                  </span>
+
+                  <ProfileDropdown
+                    userName={user?.email || userInfo?.email || "User"}
+                    userEmail={user?.email || userInfo?.email}
+                    role={role || undefined}
+                    userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
+                  />
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/sign-in"
+                    className="px-4 py-2 text-white hover:text-gray-300 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/sign-up"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
         </div>
       </div>
       <div className="border-b border-[#1f4171]"></div>

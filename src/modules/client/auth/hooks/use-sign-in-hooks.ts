@@ -124,6 +124,34 @@ const useSignInHook = () => {
       }
     } catch (err: any) {
       safeLog.error("🔴 [SIGNIN] Login error:", err);
+      
+      // Check if account is rejected
+      if (err?.isRejected) {
+        const email = err?.email || data.email;
+        const reason = err?.reason || "No reason provided";
+        console.log("❌ [SIGNIN] Account rejected by admin");
+        toast.error("Your account has been rejected");
+        
+        // Redirect to error page with rejected status
+        setTimeout(() => {
+          route.push(`/auth/oauth/error?status=rejected&email=${encodeURIComponent(email)}&reason=${encodeURIComponent(reason)}`);
+        }, 500);
+        return;
+      }
+      
+      // Check if account is pending approval
+      if (err?.isPending) {
+        const email = err?.email || data.email;
+        console.log("⏳ [SIGNIN] Account pending approval, redirecting to pending page");
+        toast("Your account is awaiting approval");
+        
+        // Redirect to pending approval page
+        setTimeout(() => {
+          route.push(`/auth/pending-approval?email=${encodeURIComponent(email)}`);
+        }, 500);
+        return;
+      }
+      
       // Extract the actual error message for the toast
       const errorMessage =
         err?.message || err?.response?.data?.message || "Login failed";

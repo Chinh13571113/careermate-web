@@ -21,7 +21,7 @@ const passwordSchema = z
     message: "Password must include at least one special character",
   });
 
-export const signUpFormSchema = z.object({
+export const signUpCandidateFormSchema = z.object({
   username: z
     .string()
     .min(3, { message: "Username must be at least 3 characters" }),
@@ -44,14 +44,14 @@ export const signUpFormSchema = z.object({
   }),
 });
 
-export type SignUpFormValues = z.infer<typeof signUpFormSchema>;
+export type SignUpCandidateFormValues = z.infer<typeof signUpCandidateFormSchema>;
 
-const useSignUpHook = () => {
+const useSignUpCandidateHook = () => {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  const form = useForm<SignUpFormValues>({
-    resolver: zodResolver(signUpFormSchema),
+  const form = useForm<SignUpCandidateFormValues>({
+    resolver: zodResolver(signUpCandidateFormSchema),
     mode: "onSubmit",
     reValidateMode: "onChange",
     defaultValues: {
@@ -67,22 +67,24 @@ const useSignUpHook = () => {
     setShowPassword((prev) => !prev);
   };
 
-  const onSubmit = async (values: SignUpFormValues) => {
+  const onSubmit = async (values: SignUpCandidateFormValues) => {
     try {
       const payload = {
         username: values.username,
         email: values.email,
         password: values.password,
+        role: "CANDIDATE", // Set role as candidate
       };
 
       const response = await api.post("/api/users", payload);
 
       if (response.status >= 200 && response.status < 300) {
-        toast.success("Account created successfully!");
+        toast.success("Candidate account created successfully!");
         
-        // Store DoB in localStorage to create profile after first login
+        // Store DoB and role in localStorage
         if (typeof window !== "undefined") {
           localStorage.setItem("pending_profile_dob", values.dob);
+          localStorage.setItem("pending_profile_role", "CANDIDATE");
         }
         
         form.reset({
@@ -108,6 +110,7 @@ const useSignUpHook = () => {
       toast.error(message);
     }
   };
+  
   useEffect(() => {
     const firstError = Object.keys(form.formState.errors)[0];
     if (firstError) {
@@ -126,4 +129,4 @@ const useSignUpHook = () => {
   };
 };
 
-export default useSignUpHook;
+export default useSignUpCandidateHook;
