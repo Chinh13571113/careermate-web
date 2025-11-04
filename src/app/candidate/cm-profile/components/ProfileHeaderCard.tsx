@@ -91,9 +91,18 @@ export default function ProfileHeaderCard({
                 </div>
                 <div className="flex items-center space-x-2.5">
                     <FaLink className="text-gray-400 text-base" />
-                    <span className={profileLink ? "text-gray-900 font-medium" : "text-gray-400"}>
-                        {profileLink || "Your personal link"}
-                    </span>
+                    {profileLink ? (
+                        <a
+                            href={profileLink.startsWith('http') ? profileLink : `https://${profileLink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 font-medium underline hover:underline-offset-2 transition-colors"
+                        >
+                            {profileLink}
+                        </a>
+                    ) : (
+                        <span className="text-gray-400">Your personal link</span>
+                    )}
                 </div>
             </div>
         </div>

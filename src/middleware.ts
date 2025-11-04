@@ -129,10 +129,53 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Handle candidate routes
+  if (request.nextUrl.pathname.startsWith('/candidate')) {
+    if (!refreshToken) {
+      return NextResponse.redirect(new URL('/sign-in?redirect=' + encodeURIComponent(request.nextUrl.pathname), request.url));
+    }
+
+    try {
+      const decoded = decodeJWT(refreshToken);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded || !decoded.exp || decoded.exp <= now) {
+        return NextResponse.redirect(new URL('/sign-in', request.url));
+      }
+    } catch (error) {
+      safeLog.error('Error validating candidate token:', error);
+      return NextResponse.redirect(new URL('/sign-in', request.url));
+    }
+  }
+
+  // Handle recruiter routes
+  if (request.nextUrl.pathname.startsWith('/recruiter')) {
+    if (!refreshToken) {
+      return NextResponse.redirect(new URL('/sign-in?redirect=' + encodeURIComponent(request.nextUrl.pathname), request.url));
+    }
+
+    try {
+      const decoded = decodeJWT(refreshToken);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded || !decoded.exp || decoded.exp <= now) {
+        return NextResponse.redirect(new URL('/sign-in', request.url));
+      }
+    } catch (error) {
+      safeLog.error('Error validating recruiter token:', error);
+      return NextResponse.redirect(new URL('/sign-in', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
 // Configure which paths the middleware runs on
 export const config = {
-  matcher: ['/sign-in', '/sign-up', '/admin/:path*']
+  matcher: [
+    '/sign-in',
+    '/sign-up', 
+    '/admin/:path*',
+    '/candidate/:path*',
+    '/recruiter/:path*',
+    '/recruiter2/:path*'
+  ]
 }

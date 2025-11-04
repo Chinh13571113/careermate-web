@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ClientHeader, ClientFooter } from "@/modules/client/components";
 import JobCard from "../../../components/JobCard";
@@ -7,6 +7,8 @@ import { RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { FiMapPin, FiSearch, FiX, FiStar } from 'react-icons/fi';
 import { IoFilterOutline } from 'react-icons/io5';
 import { AiFillStar } from 'react-icons/ai';
+import { fetchJobPostings, transformJobPosting, type JobPosting } from '@/lib/job-api';
+import { useAuthStore } from '@/store/use-auth-store';
 
 interface JobListing {
   id: number;
@@ -209,32 +211,88 @@ const jobs: JobListing[] = [
 
 export default function JobsDetailPage() {
   const router = useRouter();
-  const [selectedJobId, setSelectedJobId] = useState<number>(jobs[0]?.id || 1);
+  const { isAuthenticated } = useAuthStore();
+
+  const [jobs, setJobs] = useState<JobListing[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
+
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [searchLocation, setSearchLocation] = useState<string>("All Cities");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const jobsPerPage = 5;
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const jobsPerPage = 10;
+
+  // Fetch jobs from API
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        setLoading(true);
+        const response = await fetchJobPostings({
+          keyword: searchKeyword,
+          page: currentPage,
+          size: jobsPerPage,
+          sortBy: 'createAt',
+          sortDir: 'desc'
+        });
+
+        if (response.code === 200 && response.result.content) {
+          const transformedJobs = response.result.content.map(transformJobPosting);
+          setJobs(transformedJobs);
+          setTotalPages(response.result.totalPages);
+          setTotalElements(response.result.totalElements);
+
+          // Select first job if none selected
+          if (!selectedJobId && transformedJobs.length > 0) {
+            setSelectedJobId(transformedJobs[0].id);
+          }
+        }
+      } catch (err) {
+        setError('Failed to load job postings');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobs();
+  }, [currentPage, searchKeyword]);
 
   const selectedJob = jobs.find((job) => job.id === selectedJobId) || jobs[0];
-
-  // Pagination
-  const indexOfLastJob = currentPage * jobsPerPage;
-  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
-  const currentJobs = jobs.slice(indexOfFirstJob, indexOfLastJob);
-  const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
   const handleJobSelect = (jobId: number) => {
     setSelectedJobId(jobId);
   };
 
   const handleApplyNow = () => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     router.push(`/candidate/jobs/${selectedJobId}/apply`);
   };
 
+  const handleLoginRedirect = () => {
+    setShowLoginModal(false);
+    // Save the intended destination to localStorage
+    if (selectedJobId) {
+      localStorage.setItem('redirectAfterLogin', `/candidate/jobs/${selectedJobId}/apply`);
+    }
+    router.push('/sign-in');
+  };
+
   const handleSearch = () => {
-    console.log("Searching for:", searchKeyword, "in", searchLocation);
+    setCurrentPage(0); // Reset to first page on search
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const clearSearch = () => {
@@ -388,246 +446,292 @@ export default function JobsDetailPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">
                     Available Jobs{" "}
-                    <span className="text-blue-600">({jobs.length})</span>
+                    <span className="text-blue-600">({totalElements})</span>
                   </h2>
-                  <div className="space-y-4">
-                    {jobs.map((job) => (
-                      <div
-                        key={job.id}
-                        onClick={() => handleJobSelect(job.id)}
-                        className="cursor-pointer"
-                      >
-                        <JobCard
-                          id={job.id}
-                          title={job.title}
-                          company={job.company}
-                          location={job.location}
-                          postedAgo={job.postedAgo}
-                          workMode={job.workMode}
-                          skills={job.skills}
-                          isHot={job.isHot}
-                          isNegotiable={job.isNegotiable}
-                          companyType={job.companyType}
-                          isSelected={selectedJobId === job.id}
-                          salaryRange={job.salaryRange}
-                        />
-                      </div>
-                    ))}
-                  </div>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t border-gray-200">
+                  {loading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12">
+                      <p className="text-red-500 mb-4">{error}</p>
                       <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                       >
-                        Previous
+                        Retry
                       </button>
-
-                      <div className="flex gap-2">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`px-4 py-2 rounded-lg ${currentPage === page
-                              ? 'bg-red-500 text-white'
-                              : 'border border-gray-300 hover:bg-gray-50'
-                              }`}
+                    </div>
+                  ) : jobs.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500">No jobs found</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        {jobs.map((job) => (
+                          <div
+                            key={job.id}
+                            onClick={() => handleJobSelect(job.id)}
+                            className="cursor-pointer"
                           >
-                            {page}
-                          </button>
+                            <JobCard
+                              id={job.id}
+                              title={job.title}
+                              company={job.company}
+                              location={job.location}
+                              postedAgo={job.postedAgo}
+                              workMode={job.workMode}
+                              skills={job.skills}
+                              isHot={job.isHot}
+                              isNegotiable={job.isNegotiable}
+                              companyType={job.companyType}
+                              isSelected={selectedJobId === job.id}
+                              salaryRange={job.salaryRange}
+                            />
+                          </div>
                         ))}
                       </div>
 
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t border-gray-200">
+                          <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 0}
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Previous
+                          </button>
+
+                          <div className="flex gap-2">
+                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                              let page;
+                              if (totalPages <= 5) {
+                                page = i;
+                              } else if (currentPage < 3) {
+                                page = i;
+                              } else if (currentPage > totalPages - 3) {
+                                page = totalPages - 5 + i;
+                              } else {
+                                page = currentPage - 2 + i;
+                              }
+
+                              return (
+                                <button
+                                  key={page}
+                                  onClick={() => handlePageChange(page)}
+                                  className={`px-4 py-2 rounded-lg ${currentPage === page
+                                    ? 'bg-red-500 text-white'
+                                    : 'border border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                >
+                                  {page + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages - 1}
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </aside>
 
               <section className="lg:col-span-7">
-                <div className="sticky top-20 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  {/* Header with company and job title - Fixed */}
-                  <div className="p-6 border-b border-gray-200">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                            {selectedJob.company}
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            ✓ You will love it
-                          </span>
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                          {selectedJob.title}
-                        </h1>
-
-                        {/* NEW: chips ngay dưới tiêu đề */}
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {selectedJob.salaryRange && (
-                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              {selectedJob.salaryRange}
+                {selectedJob ? (
+                  <div className="sticky top-20 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Header with company and job title - Fixed */}
+                    <div className="p-6 border-b border-gray-200">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                              {selectedJob.company}
                             </span>
-                          )}
-                          <span className="px-3 py-1 rounded-full text-sm bg-sky-50 text-sky-700 border border-sky-200">
-                            {selectedJob.workMode}
-                          </span>
-                          <span className="px-3 py-1 rounded-full text-sm bg-violet-50 text-violet-700 border border-violet-200">
-                            {selectedJob.jobType}
-                          </span>
+                            <span className="text-sm text-gray-700">
+                              ✓ You will love it
+                            </span>
+                          </div>
+                          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                            {selectedJob.title}
+                          </h1>
+
+                          {/* NEW: chips ngay dưới tiêu đề */}
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {selectedJob.salaryRange && (
+                              <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {selectedJob.salaryRange}
+                              </span>
+                            )}
+                            <span className="px-3 py-1 rounded-full text-sm bg-sky-50 text-sky-700 border border-sky-200">
+                              {selectedJob.workMode}
+                            </span>
+                            <span className="px-3 py-1 rounded-full text-sm bg-violet-50 text-violet-700 border border-violet-200">
+                              {selectedJob.jobType}
+                            </span>
+                          </div>
+
+                          <p className="text-gray-600 text-sm mb-4 flex items-center gap-1">
+                            <svg
+                              className="w-4 h-4 text-blue-600"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                              <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            {selectedJob.location} ·{" "}
+                            <span className="text-blue-600">{selectedJob.jobType}</span>{" "}
+                            · {selectedJob.postedAgo}
+                          </p>
                         </div>
-
-                        <p className="text-gray-600 text-sm mb-4 flex items-center gap-1">
-                          <svg
-                            className="w-4 h-4 text-blue-600"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                          </svg>
-                          {selectedJob.location} ·{" "}
-                          <span className="text-blue-600">{selectedJob.jobType}</span>{" "}
-                          · {selectedJob.postedAgo}
-                        </p>
                       </div>
-                    </div>
 
-                    <div className="flex gap-3 mb-4">
-                      <button
-                        onClick={handleApplyNow}
-                        className="flex-1 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white px-6 py-2 rounded-md font-medium hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors">
-                        Apply Now
-                      </button>
-
-                      {/* Bookmark Button */}
-                      <div className="relative group">
+                      <div className="flex gap-3 mb-4">
                         <button
-                          onClick={() => setIsBookmarked(!isBookmarked)}
-                          className="p-3 border-2 border-gray-300 rounded-md hover:border-red-500 transition-colors"
-                        >
-                          {isBookmarked ? (
-                            <AiFillStar className="w-6 h-6 text-red-500" />
-                          ) : (
-                            <FiStar className="w-6 h-6 text-gray-600" />
-                          )}
+                          onClick={handleApplyNow}
+                          className="flex-1 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white px-6 py-2 rounded-md font-medium hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors">
+                          Apply Now
                         </button>
 
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
-                          <div className="bg-gray-800 text-white text-sm px-3 py-1.5 rounded whitespace-nowrap">
-                            {isBookmarked ? 'Saved' : 'Save this job'}
+                        {/* Bookmark Button */}
+                        <div className="relative group">
+                          <button
+                            onClick={() => setIsBookmarked(!isBookmarked)}
+                            className="p-3 border-2 border-gray-300 rounded-md hover:border-red-500 transition-colors"
+                          >
+                            {isBookmarked ? (
+                              <AiFillStar className="w-6 h-6 text-red-500" />
+                            ) : (
+                              <FiStar className="w-6 h-6 text-gray-600" />
+                            )}
+                          </button>
+
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+                            <div className="bg-gray-800 text-white text-sm px-3 py-1.5 rounded whitespace-nowrap">
+                              {isBookmarked ? 'Saved' : 'Save this job'}
+                            </div>
+                            <div className="w-3 h-3 bg-gray-800 transform rotate-45 absolute -bottom-1 right-4"></div>
                           </div>
-                          <div className="w-3 h-3 bg-gray-800 transform rotate-45 absolute -bottom-1 right-4"></div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Scrollable Content Area */}
-                  <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                    <div className="p-6">
-                      {/* NEW: meta bar tóm tắt compensation */}
-                      {(selectedJob.salaryRange || selectedJob.benefitSummary?.length) && (
-                        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                          <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-800">
-                            {selectedJob.salaryRange && (
-                              <li className="font-medium flex items-center gap-1">
-                                <RiMoneyDollarCircleLine className="text-green-600" size={18} /> {selectedJob.salaryRange}
-                              </li>
-                            )}
-                            {selectedJob.benefitSummary?.slice(0, 3).map((x, i) => (
-                              <li key={i}>• {x}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                    {/* Scrollable Content Area */}
+                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                      <div className="p-6">
+                        {/* NEW: meta bar tóm tắt compensation */}
+                        {(selectedJob.salaryRange || selectedJob.benefitSummary?.length) && (
+                          <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-800">
+                              {selectedJob.salaryRange && (
+                                <li className="font-medium flex items-center gap-1">
+                                  <RiMoneyDollarCircleLine className="text-green-600" size={18} /> {selectedJob.salaryRange}
+                                </li>
+                              )}
+                              {selectedJob.benefitSummary?.slice(0, 3).map((x, i) => (
+                                <li key={i}>• {x}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                      <div className="grid md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                          <h3 className="font-semibold text-gray-900 mb-3">Skills:</h3>
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Java</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">DevOps</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Linux</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Cloud</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">SQL</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Oracle</span>
+                        <div className="grid md:grid-cols-2 gap-6 mb-6">
+                          <div>
+                            <h3 className="font-semibold text-gray-900 mb-3">Skills:</h3>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Java</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">DevOps</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Linux</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Cloud</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">SQL</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Oracle</span>
+                            </div>
+
+                            <h3 className="font-semibold text-gray-700 mb-3">Job Expertise:</h3>
+                            <p className="text-sm text-gray-700 mb-4 ml-2">DevOps Engineer</p>
+
+                            <h3 className="font-semibold text-gray-700 mb-3">Job Domain:</h3>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Banking</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">IT Services and IT Consulting</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Software Products and Web Services</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Securities & Investment</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Financial Services</span>
+                            </div>
                           </div>
 
-                          <h3 className="font-semibold text-gray-700 mb-3">Job Expertise:</h3>
-                          <p className="text-sm text-gray-700 mb-4 ml-2">DevOps Engineer</p>
-
-                          <h3 className="font-semibold text-gray-700 mb-3">Job Domain:</h3>
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Banking</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">IT Services and IT Consulting</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Software Products and Web Services</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Securities & Investment</span>
-                            <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Financial Services</span>
+                          <div>
+                            <h3 className="font-semibold text-blue-900 mb-3">Top 3 reasons to join us</h3>
+                            <ul className="space-y-2 text-sm">
+                              {selectedJob.highlights.map((item, index) => (
+                                <li key={index} className="flex items-start gap-2">
+                                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                                  <span className="text-gray-700">{item}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         </div>
 
+                        {/* NEW: block Compensation & Benefits */}
+                        {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+                          <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-gray-900">Compensation & Benefits</h3>
+                            </div>
+                            <ul className="space-y-2 text-sm text-gray-700">
+                              {selectedJob.benefits.map((b, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></span>
+                                  <span>{b}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
                         <div>
-                          <h3 className="font-semibold text-blue-900 mb-3">Top 3 reasons to join us</h3>
-                          <ul className="space-y-2 text-sm">
-                            {selectedJob.highlights.map((item, index) => (
+                          <div className="flex items-center gap-2 mb-4">
+                            <h3 className="font-semibold text-gray-900">Job description</h3>
+                          </div>
+                          <ul className="space-y-3 text-sm text-gray-700">
+                            {selectedJob.description.map((item, index) => (
                               <li key={index} className="flex items-start gap-2">
                                 <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                                <span className="text-gray-700">{item}</span>
+                                <span>{item}</span>
                               </li>
                             ))}
                           </ul>
                         </div>
-                      </div>
-
-                      {/* NEW: block Compensation & Benefits */}
-                      {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                        <div className="mb-6">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-gray-900">Compensation & Benefits</h3>
-                          </div>
-                          <ul className="space-y-2 text-sm text-gray-700">
-                            {selectedJob.benefits.map((b, i) => (
-                              <li key={i} className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></span>
-                                <span>{b}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <h3 className="font-semibold text-gray-900">Job description</h3>
-                        </div>
-                        <ul className="space-y-3 text-sm text-gray-700">
-                          {selectedJob.description.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <div className="text-center py-20">
+                      <p className="text-gray-500 text-lg">
+                        {loading ? 'Loading job details...' : 'Select a job to view details'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </section>
             </div>
           </main>
@@ -730,7 +834,46 @@ export default function JobsDetailPage() {
         </div>
       </div>
 
-      <ClientFooter />
+      {/* Login Required Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+
+            {/* Modal content */}
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Login is required
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Do you want to login?
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLoginModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLoginRedirect}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors"
+                >
+                  Continue to login
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

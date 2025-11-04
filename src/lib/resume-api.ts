@@ -60,17 +60,64 @@ export const deleteAward = async (awardId: number): Promise<void> => {
 // ==================== RESUME/ABOUT ME API ====================
 
 export interface UpdateResumeData {
-  aboutMe: string;
+  aboutMe?: string;
 }
 
 /**
  * Update resume (About Me section)
  * PUT /api/resume/{resumeId}
+ * 
+ * Common field names that backends might expect:
+ * - aboutMe (our current choice)
+ * - description
+ * - about
+ * - summary
  */
 export const updateResume = async (resumeId: number, data: UpdateResumeData): Promise<any> => {
-  const response = await api.put(`/api/resume/${resumeId}`, data);
-  // Handle both direct response and wrapped response
-  return response.data.result || response.data;
+  console.log('📝 ===== UPDATE RESUME API =====');
+  console.log('Endpoint: PUT /api/resume/' + resumeId);
+  console.log('Request Data:', JSON.stringify(data, null, 2));
+  
+  try {
+    // Try PUT first (standard update method)
+    const response = await api.put(`/api/resume/${resumeId}`, data);
+    
+    console.log('✅ Update Resume Response:', response.data);
+    
+    // Handle both direct response and wrapped response
+    return response.data.result || response.data;
+  } catch (putError: any) {
+    // If PUT fails with 400/405, try PATCH
+    if (putError.response?.status === 400 || putError.response?.status === 405) {
+      console.log('⚠️  PUT failed, trying PATCH method...');
+      try {
+        const response = await api.put(`/api/resume/${resumeId}`, data);
+        console.log('✅ Update Resume Response (PATCH):', response.data);
+        return response.data.result || response.data;
+      } catch (patchError: any) {
+        console.error('❌ PATCH also failed:', patchError.response?.data);
+        throw patchError;
+      }
+    }
+    
+    console.error('❌ Update Resume Error:', putError);
+    console.error('Error Response:', putError.response?.data);
+    console.error('Error Status:', putError.response?.status);
+    console.error('Error Message:', putError.response?.data?.message || putError.message);
+    
+    // If 400 error, log additional debugging info
+    if (putError.response?.status === 400) {
+      console.error('🔍 400 Bad Request - Possible causes:');
+      console.error('   - Wrong endpoint (try /api/resume vs /api/resume)');
+      console.error('   - Wrong field name (try aboutMe vs description vs about)');
+      console.error('   - Missing required fields');
+      console.error('   - Invalid data format');
+      console.error('   - Resume ID not found:', resumeId);
+      console.error('   - Backend validation error:', putError.response?.data?.message);
+    }
+    
+    throw putError;
+  }
 };
 
 // ==================== EDUCATION API ====================

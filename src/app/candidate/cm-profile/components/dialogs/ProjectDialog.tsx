@@ -65,7 +65,7 @@ export default function ProjectDialog({
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                End Month/Year
+                                End Month/Year <span className="text-red-500">*</span>
                             </label>
                             <MonthYearPicker
                                 monthValue={editingProject?.endMonth || ''}
@@ -74,25 +74,6 @@ export default function ProjectDialog({
                                 onYearChange={(value: string) => handleFieldChange('endYear', value)}
                             />
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            id="currentlyWorking"
-                            checked={editingProject?.working || false}
-                            onChange={(e) => {
-                                handleFieldChange('working', e.target.checked);
-                                if (e.target.checked) {
-                                    handleFieldChange('endMonth', '');
-                                    handleFieldChange('endYear', '');
-                                }
-                            }}
-                            className="w-4 h-4 text-red-500 border-gray-300 rounded focus:ring-red-500"
-                        />
-                        <label htmlFor="currentlyWorking" className="text-sm text-gray-700">
-                            I am currently working on this project
-                        </label>
                     </div>
 
                     <div>

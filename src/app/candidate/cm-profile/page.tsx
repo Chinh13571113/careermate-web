@@ -125,43 +125,63 @@ export default function ITviecProfile() {
   useEffect(() => {
     const initializeProfileAndResume = async () => {
       try {
-        // Check if there's a pending DoB from sign-up
-        const pendingDob = typeof window !== "undefined"
-          ? localStorage.getItem("pending_profile_dob")
-          : null;
+        // ✅ STEP 1: Check if profile already exists
+        let profileExists = false;
+        try {
+          const profileCheck = await api.get("/api/candidates/profiles/current");
+          if (profileCheck.data?.result?.id) {
+            console.log("✅ Profile already exists, ID:", profileCheck.data.result.id);
+            profileExists = true;
+          }
+        } catch (checkError: any) {
+          console.log("Profile doesn't exist yet, will create if needed");
+        }
 
-        if (pendingDob) {
-          // Create candidate profile with DoB from sign-up
-          try {
-            const profilePayload = {
-              dob: pendingDob,
-              title: "",
-              phone: "",
-              address: "",
-              image: "",
-              gender: "",
-              link: ""
-            };
-            await api.post("/api/candidates/profiles", profilePayload);
-            console.log("Candidate profile created successfully with DoB:", pendingDob);
-            // Clear the pending DoB after successful creation
-            localStorage.removeItem("pending_profile_dob");
-          } catch (profileError: any) {
-            // If profile already exists (409/400), clear the flag
-            if (profileError?.response?.status === 409 || profileError?.response?.status === 400) {
+        // ✅ STEP 2: Create profile only if it doesn't exist
+        if (!profileExists) {
+          // Check if there's a pending DoB from sign-up
+          const pendingDob = typeof window !== "undefined"
+            ? localStorage.getItem("pending_profile_dob")
+            : null;
+
+          if (pendingDob) {
+            // Create candidate profile with DoB from sign-up
+            try {
+              const profilePayload = {
+                dob: pendingDob,
+                title: "",
+                phone: "",
+                address: "",
+                image: "",
+                gender: "",
+                link: ""
+              };
+              await api.post("/api/candidates/profiles", profilePayload);
+              console.log("✅ Candidate profile created successfully with DoB:", pendingDob);
+              // Clear the pending DoB after successful creation
               localStorage.removeItem("pending_profile_dob");
+            } catch (profileError: any) {
+              // If profile already exists (409/400), clear the flag
+              if (profileError?.response?.status === 409 || profileError?.response?.status === 400) {
+                localStorage.removeItem("pending_profile_dob");
+              }
+              console.log("Profile creation skipped:", profileError?.response?.data?.message || profileError?.message);
             }
-            console.log("Profile creation skipped:", profileError?.response?.data?.message || profileError?.message);
+          }
+        } else {
+          // Profile exists, clear pending DoB flag if any
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("pending_profile_dob");
           }
         }
 
-        // Create resume (blank)
+        // ✅ STEP 3: Create resume (blank) only if no resume exists
         try {
           const resumePayload = {
             aboutMe: ""
           };
-          await api.post("/api/resumes", resumePayload);
-          console.log("Resume created successfully");
+          await api.post("/api/resume", resumePayload);
+          console.log("✅ Resume created successfully");
         } catch (resumeError: any) {
           console.log("Resume creation skipped:", resumeError?.response?.data?.message || resumeError?.message);
         }
@@ -346,13 +366,17 @@ export default function ITviecProfile() {
   useEffect(() => {
     const fetchPersonalDetails = async () => {
       try {
-        const response = await api.get("/api/candidates/profiles/me");
+        // ✅ Use /api/candidates/profiles/current
+        const response = await api.get("/api/candidates/profiles/current");
+
+        console.log("📝 Profile API Response:", response.data);
+
         if (response.data?.result) {
           const profile = response.data.result;
           console.log("👤 Personal details loaded:", profile);
 
-          // Set personal detail states
-          setProfileName(profile.username || "");
+          // ✅ Use fullName from API (not username)
+          setProfileName(profile.fullName || "");
           setProfileTitle(profile.title || "");
           setProfilePhone(profile.phone || "");
           setProfileDob(profile.dob || "");
@@ -429,17 +453,12 @@ export default function ITviecProfile() {
     }
 
     try {
-      // Update username via /api/users/account
-      if (profileName) {
-        await api.put("/api/users/account", {
-          username: profileName
-        });
-      }
-
-      // Update profile via /api/candidates/profiles
+      // ✅ Update profile via /api/candidates/profiles
+      // Payload structure: { dob, title, fullName, phone, address, image, gender, link }
       const profileData = {
         dob: profileDob || undefined,
         title: profileTitle || undefined,
+        fullName: profileName || undefined,  // ✅ Use fullName (not username)
         phone: profilePhone || undefined,
         address: profileAddress,
         image: profileImage || undefined,
@@ -447,12 +466,15 @@ export default function ITviecProfile() {
         link: profileLink || undefined
       };
 
+      console.log("💾 Saving profile data:", profileData);
+
       await api.put("/api/candidates/profiles", profileData);
 
       toast.success("Personal details updated successfully!");
       setIsPersonalDetailOpen(false);
-    } catch (error) {
-      console.error("Error updating personal details:", error);
+    } catch (error: any) {
+      console.error("❌ Error updating personal details:", error);
+      console.error("Error response:", error?.response?.data);
       toast.error("Failed to update personal details. Please try again.");
     }
   };

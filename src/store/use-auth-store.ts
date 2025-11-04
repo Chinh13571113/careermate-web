@@ -82,6 +82,7 @@ interface AuthState {
   tokenExpiresAt: number | null;
   user: any | null;
   role: string | null;
+  candidateId: number | null; // ✅ Add candidateId from profile API
 
   // Actions
   setLoading: (v: boolean) => void;
@@ -93,6 +94,8 @@ interface AuthState {
     user?: any | null;
   }) => void;
   clearAuth: () => void;
+  setCandidateId: (candidateId: number | null) => void; // ✅ Add setter for candidateId
+  fetchCandidateProfile: () => Promise<void>; // ✅ Add method to fetch profile
 
   // API
   login: (
@@ -219,6 +222,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   tokenExpiresAt: initial.tokenExpiresAt,
   user: initial.user,
   role: initial.role,
+  candidateId: null, // ✅ Initialize candidateId
 
   // -------- Actions cơ bản để hook gọi --------
   setLoading: (v) => set({ isLoading: v }),
@@ -300,7 +304,57 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: false,
       role: null,
       user: null,
+      candidateId: null, // ✅ Clear candidateId on logout
     });
+  },
+
+  // ✅ Set candidateId
+  setCandidateId: (candidateId) => {
+    set({ candidateId });
+  },
+
+  // ✅ Fetch user profile from API to get real userId
+  fetchCandidateProfile: async () => {
+    try {
+      const { isAuthenticated } = get();
+      
+      // Only fetch if user is authenticated
+      if (!isAuthenticated) {
+        console.log('⚠️  Not authenticated, skipping user profile fetch');
+        return;
+      }
+
+      console.log('📝 Fetching user profile from /api/users/current...');
+      
+      // Import dynamically to avoid circular dependency
+      const { fetchCurrentUser } = await import('@/lib/candidate-profile-api');
+      const userProfile = await fetchCurrentUser();
+      
+      console.log('✅ User profile fetched:', userProfile);
+      
+      // Update store with userId as candidateId
+      // userProfile.id is the real user ID (number) we need!
+      set({ candidateId: userProfile.id });
+      
+      // Also update user object with profile data
+      set((state) => ({
+        user: {
+          ...state.user,
+          userId: userProfile.id, // Real user ID (number)
+          candidateId: userProfile.id, // Same as userId for candidates
+          username: userProfile.username,
+          email: userProfile.email,
+          status: userProfile.status,
+          roles: userProfile.roles,
+        }
+      }));
+      
+      console.log('✅ Store updated with userId:', userProfile.id);
+      
+    } catch (error) {
+      console.error('❌ Error fetching user profile:', error);
+      // Don't throw - let the app continue even if profile fetch fails
+    }
   },
 
   // -------- API methods --------
@@ -381,6 +435,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         tokenLength: currentState.accessToken?.length || 0,
         isAuth: currentState.isAuthenticated,
         role: currentState.role,
+      });
+
+      // ✅ Fetch user profile to get real userId
+      console.log('📝 Fetching user profile to get userId...');
+      // Fire and forget - don't block login flow
+      get().fetchCandidateProfile().catch((err) => {
+        console.error('⚠️  Failed to fetch user profile after login:', err);
       });
 
       set({ isLoading: false });

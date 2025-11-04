@@ -23,16 +23,25 @@ export function useAboutMe(resumeId: number | null) {
     }
 
     try {
+      console.log('🔍 ===== SAVING ABOUT ME =====');
+      console.log('Resume ID:', resumeId);
+      console.log('About Me Text:', aboutMeText);
+      console.log('Text Length:', aboutMeText.length);
+
       const data: UpdateResumeData = {
         aboutMe: aboutMeText
       };
 
+      console.log('Request Data:', JSON.stringify(data, null, 2));
+
       await updateResume(resumeId, data);
       toast.success("About Me updated successfully!");
       setIsAboutMeOpen(false);
-    } catch (error) {
-      console.error("Error updating About Me:", error);
-      toast.error("Failed to update About Me. Please try again.");
+    } catch (error: any) {
+      console.error("❌ Error updating About Me:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      toast.error(error.response?.data?.message || "Failed to update About Me. Please try again.");
     }
   };
 

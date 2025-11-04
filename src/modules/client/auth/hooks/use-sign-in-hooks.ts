@@ -94,8 +94,16 @@ const useSignInHook = () => {
             });
           }
 
-          // Determine redirect path based on role
-          const redirectPath = getDefaultRedirectPath(role);
+          // Check if there's a saved redirect path (e.g., from Apply Now)
+          const savedRedirect = localStorage.getItem('redirectAfterLogin');
+          
+          // Determine redirect path based on saved redirect or role
+          const redirectPath = savedRedirect || getDefaultRedirectPath(role);
+          
+          // Clear the saved redirect
+          if (savedRedirect) {
+            localStorage.removeItem('redirectAfterLogin');
+          }
 
           // Use multiple redirect methods for reliability
           // Wait longer to ensure state is fully updated
@@ -104,6 +112,7 @@ const useSignInHook = () => {
               safeLog.authState("🟢 [SIGNIN] Redirecting after login", {
                 role,
                 redirectPath,
+                wasFromApply: !!savedRedirect,
               });
             }
 
