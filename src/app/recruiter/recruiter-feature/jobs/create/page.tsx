@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PlusCircle,
   Calendar,
@@ -9,30 +9,144 @@ import {
   X,
   Eye,
   Trash2,
+  MapPin,
+  Briefcase,
+  DollarSign,
+  Clock,
+  Users,
+  Package,
+  Tag,
+  Plus,
 } from "lucide-react";
+import { createJobPost, CreateJobPostRequest, getSkills, Skill, getRecruiterJobPostings, RecruiterJobPosting } from "@/lib/recruiter-api";
+import toast from "react-hot-toast";
 
 export default function CreateJobPage() {
   const [isOpen, setIsOpen] = useState(false);
-  const [viewJob, setViewJob] = useState<any | null>(null);
-  const [jobs, setJobs] = useState<
-    {
-      id: string;
-      title: string;
-      jobType: string;
-      description: string;
-      expiryDate: string;
-      isBoosted: boolean;
-    }[]
-  >([]);
+  const [viewJob, setViewJob] = useState<RecruiterJobPosting | null>(null);
+  const [jobs, setJobs] = useState<RecruiterJobPosting[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  
+  // Skills state
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
+  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
+  
+  // State for adding new skill
+  const [selectedSkillId, setSelectedSkillId] = useState("");
+  const [newSkillMustHave, setNewSkillMustHave] = useState(true);
+  
   const [formData, setFormData] = useState({
     title: "",
-    jobType: "",
     description: "",
-    expiryDate: "",
-    isBoosted: false,
+    address: "",
+    expirationDate: "",
+    yearsOfExperience: "",
+    workModel: "",
+    salaryRange: "",
+    reason: "",
+    jobPackage: "",
+    // Skills management
+    jdSkill: "",
+    mustToHave: true,
+    skills: [] as Array<{ id: number; mustToHave: boolean; name?: string }>,
   });
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
+
+  // Fetch skills on component mount
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        setIsLoadingSkills(true);
+        const response = await getSkills();
+        console.log('📋 Skills response:', response);
+        
+        if (response.code === 200 && response.result) {
+          setAvailableSkills(response.result);
+          toast.success(`Loaded ${response.result.length} skills`);
+        } else {
+          toast.error(response.message || "Failed to load skills");
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch skills:", error);
+        toast.error(error.message || "Failed to load skills");
+      } finally {
+        setIsLoadingSkills(false);
+      }
+    };
+    
+    fetchSkills();
+  }, []);
+
+  // Fetch recruiter's job postings on component mount
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setIsLoadingJobs(true);
+        const response = await getRecruiterJobPostings();
+        console.log('📋 Job postings response:', response);
+        
+        if (response.code === 0 && response.result) {
+          setJobs(response.result);
+          toast.success(`Loaded ${response.result.length} job postings`);
+        } else if (response.code === 200 && response.result) {
+          setJobs(response.result);
+        } else {
+          toast.error(response.message || "Failed to load job postings");
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch job postings:", error);
+        toast.error(error.message || "Failed to load job postings");
+      } finally {
+        setIsLoadingJobs(false);
+      }
+    };
+    
+    fetchJobs();
+  }, []);
+
+  // Load template from sessionStorage if available
+  useEffect(() => {
+    const templateData = sessionStorage.getItem('jobTemplate');
+    if (templateData) {
+      try {
+        const template = JSON.parse(templateData);
+        console.log('📋 Loading template:', template);
+        
+        // Auto-fill form with template data
+        setFormData(prev => ({
+          ...prev,
+          title: template.title || '',
+          description: template.description || '',
+          address: template.address || '',
+          yearsOfExperience: template.yearsOfExperience?.toString() || '',
+          workModel: template.workModel || '',
+          salaryRange: template.salaryRange || '',
+          reason: template.reason || '',
+          jobPackage: template.jobPackage || '',
+          expirationDate: template.expirationDate || '',
+          skills: template.skills || [],
+        }));
+        
+        // Open the form modal
+        setIsOpen(true);
+        
+        // Clear sessionStorage
+        sessionStorage.removeItem('jobTemplate');
+        
+        // Show success toast
+        toast.success('Template loaded successfully! ✨', {
+          icon: '📋',
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Failed to parse template:', error);
+        toast.error('Failed to load template');
+      }
+    }
+  }, []);
 
   // Handle input change
   const handleChange = (
@@ -40,10 +154,51 @@ export default function CreateJobPage() {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  // Add skill to list
+  const handleAddSkill = () => {
+    if (!selectedSkillId || selectedSkillId === "") {
+      toast.error("Please select a skill");
+      return;
+    }
+
+    const skillIdNum = parseInt(selectedSkillId);
+    if (isNaN(skillIdNum)) {
+      toast.error("Invalid skill selection");
+      return;
+    }
+    
+    // Check if skill already exists
+    if (formData.skills.some(s => s.id === skillIdNum)) {
+      toast.error("Skill already added");
+      return;
+    }
+    
+    // Find skill name
+    const skillName = availableSkills.find(s => s.id === skillIdNum)?.name || `Skill #${skillIdNum}`;
+    
+    setFormData(prev => ({
+      ...prev,
+      skills: [...prev.skills, { id: skillIdNum, mustToHave: newSkillMustHave, name: skillName }],
+    }));
+    
+    // Reset selection
+    setSelectedSkillId("");
+  };
+
+  // Remove skill from list
+  const handleRemoveSkill = (skillId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s.id !== skillId),
     }));
   };
 
@@ -51,15 +206,19 @@ export default function CreateJobPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.title.trim()) newErrors.title = "Job title is required.";
-    if (!formData.jobType) newErrors.jobType = "Please select a job type.";
-    if (!formData.description.trim())
-      newErrors.description = "Job description is required.";
-    if (!formData.expiryDate) newErrors.expiryDate = "Please choose an expiry date.";
+    if (!formData.description.trim()) newErrors.description = "Job description is required.";
+    if (!formData.address.trim()) newErrors.address = "Address is required.";
+    if (!formData.expirationDate) newErrors.expirationDate = "Please choose an expiration date.";
+    if (!formData.yearsOfExperience) newErrors.yearsOfExperience = "Years of experience is required.";
+    if (!formData.workModel.trim()) newErrors.workModel = "Work model is required.";
+    if (!formData.salaryRange.trim()) newErrors.salaryRange = "Salary range is required.";
+    if (!formData.jobPackage.trim()) newErrors.jobPackage = "Job package is required.";
+    if (formData.skills.length === 0) newErrors.skills = "Please add at least one skill.";
     return newErrors;
   };
 
   // Submit form
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -67,23 +226,58 @@ export default function CreateJobPage() {
       return;
     }
 
-    const newJob = {
-      id: `JOB-${jobs.length + 1}`,
-      ...formData,
-    };
+    try {
+      setIsSubmitting(true);
+      
+      const jobPostData: CreateJobPostRequest = {
+        title: formData.title,
+        description: formData.description,
+        address: formData.address,
+        expirationDate: formData.expirationDate,
+        jdSkills: formData.skills,
+        yearsOfExperience: parseInt(formData.yearsOfExperience),
+        workModel: formData.workModel,
+        salaryRange: formData.salaryRange,
+        reason: formData.reason || "",
+        jobPackage: formData.jobPackage,
+      };
 
-    setJobs((prev) => [...prev, newJob]);
-    setIsOpen(false);
+      const response = await createJobPost(jobPostData);
+      
+      if (response.code === 200 || response.code === 201 || response.code === 0) {
+        toast.success("Job post created successfully!");
+        
+        // Refresh job list from server instead of adding locally
+        const jobsResponse = await getRecruiterJobPostings();
+        if (jobsResponse.code === 0 || jobsResponse.code === 200) {
+          setJobs(jobsResponse.result);
+        }
+        
+        setIsOpen(false);
 
-    // Reset form
-    setFormData({
-      title: "",
-      jobType: "",
-      description: "",
-      expiryDate: "",
-      isBoosted: false,
-    });
-    setErrors({});
+        // Reset form
+        setFormData({
+          title: "",
+          description: "",
+          address: "",
+          expirationDate: "",
+          yearsOfExperience: "",
+          workModel: "",
+          salaryRange: "",
+          reason: "",
+          jobPackage: "",
+          jdSkill: "",
+          mustToHave: true,
+          skills: [],
+        });
+        setSelectedSkillId("");
+        setErrors({});
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create job post");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Cancel form
@@ -125,22 +319,32 @@ export default function CreateJobPage() {
       </header>
 
       {/* Danh sách Job */}
-      {jobs.length > 0 ? (
+      {isLoadingJobs ? (
+        <div className="rounded-lg border bg-white p-6 shadow-sm text-center">
+          <p className="text-gray-600">Loading job postings...</p>
+        </div>
+      ) : jobs.length > 0 ? (
         <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Job Title
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Type
+                  Work Model
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Expiry Date
+                  Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Boosted
+                  Expiration Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Package
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Actions
@@ -153,23 +357,37 @@ export default function CreateJobPage() {
                   key={job.id}
                   className="hover:bg-gray-50 transition duration-150"
                 >
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    #{job.id}
+                  </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
                     {job.title}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
-                    {job.jobType}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {job.expiryDate}
+                    {job.workModel}
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    {job.isBoosted ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                        ⚡ Boosted
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">No</span>
-                    )}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      job.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                      job.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                      job.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                      job.status === 'EXPIRED' ? 'bg-gray-100 text-gray-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {job.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    {new Date(job.expirationDate).toLocaleDateString('vi-VN')}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      job.jobPackage === 'PREMIUM' ? 'bg-purple-100 text-purple-800' :
+                      job.jobPackage === 'STANDARD' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {job.jobPackage}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right space-x-3">
                     <button
@@ -217,7 +435,7 @@ export default function CreateJobPage() {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5 max-h-[70vh] overflow-y-auto">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Job Title <span className="text-red-500">*</span>
@@ -239,29 +457,6 @@ export default function CreateJobPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="jobType"
-                value={formData.jobType}
-                onChange={handleChange}
-                className={`w-full p-2 border rounded-md ${
-                  errors.jobType ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <option value="">Select job type...</option>
-                <option value="Full-Time">Full-Time</option>
-                <option value="Part-Time">Part-Time</option>
-                <option value="Internship">Internship</option>
-                <option value="Freelance">Freelance</option>
-              </select>
-              {errors.jobType && (
-                <p className="text-sm text-red-600 mt-1">{errors.jobType}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -272,7 +467,7 @@ export default function CreateJobPage() {
                 className={`w-full p-2 border rounded-md ${
                   errors.description ? "border-red-500" : "border-gray-300"
                 }`}
-                placeholder="Describe the job..."
+                placeholder="Describe the job responsibilities and requirements..."
               />
               {errors.description && (
                 <p className="text-sm text-red-600 mt-1">
@@ -282,38 +477,206 @@ export default function CreateJobPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                <Calendar className="w-4 h-4 mr-1 text-gray-500" /> Expiry Date
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                <MapPin className="w-4 h-4 mr-1 text-gray-500" /> Address
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <input
-                type="date"
-                name="expiryDate"
-                value={formData.expiryDate}
+                type="text"
+                name="address"
+                value={formData.address}
                 onChange={handleChange}
                 className={`w-full p-2 border rounded-md ${
-                  errors.expiryDate ? "border-red-500" : "border-gray-300"
+                  errors.address ? "border-red-500" : "border-gray-300"
                 }`}
+                placeholder="e.g. Ho Chi Minh City, Vietnam"
               />
-              {errors.expiryDate && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.expiryDate}
-                </p>
+              {errors.address && (
+                <p className="text-sm text-red-600 mt-1">{errors.address}</p>
               )}
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                name="isBoosted"
-                checked={formData.isBoosted}
-                onChange={handleChange}
-                className="h-4 w-4 text-sky-600 border-gray-300 rounded"
-              />
-              <label className="text-sm text-gray-700 flex items-center">
-                <Rocket className="w-4 h-4 mr-1 text-amber-500" />
-                Boost this job post
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <Clock className="w-4 h-4 mr-1 text-gray-500" /> Years of Experience
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="yearsOfExperience"
+                  value={formData.yearsOfExperience}
+                  onChange={handleChange}
+                  min="0"
+                  className={`w-full p-2 border rounded-md ${
+                    errors.yearsOfExperience ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="e.g. 2"
+                />
+                {errors.yearsOfExperience && (
+                  <p className="text-sm text-red-600 mt-1">{errors.yearsOfExperience}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <Briefcase className="w-4 h-4 mr-1 text-gray-500" /> Work Model
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <select
+                  name="workModel"
+                  value={formData.workModel}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.workModel ? "border-red-500" : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Select...</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                  <option value="Onsite">Onsite</option>
+                </select>
+                {errors.workModel && (
+                  <p className="text-sm text-red-600 mt-1">{errors.workModel}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                <DollarSign className="w-4 h-4 mr-1 text-gray-500" /> Salary Range
+                <span className="text-red-500 ml-1">*</span>
               </label>
+              <input
+                type="text"
+                name="salaryRange"
+                value={formData.salaryRange}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  errors.salaryRange ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="e.g. $1000 - $2000"
+              />
+              {errors.salaryRange && (
+                <p className="text-sm text-red-600 mt-1">{errors.salaryRange}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <Calendar className="w-4 h-4 mr-1 text-gray-500" /> Expiration Date
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="expirationDate"
+                  value={formData.expirationDate}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.expirationDate ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                {errors.expirationDate && (
+                  <p className="text-sm text-red-600 mt-1">{errors.expirationDate}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <Package className="w-4 h-4 mr-1 text-gray-500" /> Job Package
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <select
+                  name="jobPackage"
+                  value={formData.jobPackage}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.jobPackage ? "border-red-500" : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Select Package...</option>
+                  <option value="STANDARD">STANDARD</option>
+                  <option value="PREMIUM">PREMIUM</option>
+                </select>
+                {errors.jobPackage && (
+                  <p className="text-sm text-red-600 mt-1">{errors.jobPackage}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                <Tag className="w-4 h-4 mr-1 text-gray-500" /> Skills
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="flex space-x-2 mb-2">
+                <select
+                  value={selectedSkillId}
+                  onChange={(e) => setSelectedSkillId(e.target.value)}
+                  className="flex-1 p-2 border border-gray-300 rounded-md"
+                  disabled={isLoadingSkills}
+                >
+                  <option value="">
+                    {isLoadingSkills ? "Loading skills..." : "Select a skill"}
+                  </option>
+                  {availableSkills.map((jdskill) => (
+                    <option key={jdskill.id} value={jdskill.id}>
+                      {jdskill.name}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center space-x-2 px-3 border border-gray-300 rounded-md">
+                  <input
+                    type="checkbox"
+                    checked={newSkillMustHave}
+                    onChange={(e) => setNewSkillMustHave(e.target.checked)}
+                    className="h-4 w-4 text-sky-600"
+                  />
+                  <span className="text-sm text-gray-700">Must Have</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+                  disabled={isLoadingSkills}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              {errors.skills && (
+                <p className="text-sm text-red-600 mb-2">{errors.skills}</p>
+              )}
+              <div className="space-y-2">
+                {formData.skills.map((skill) => (
+                  <div key={skill.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                    <span className="text-sm text-gray-700">
+                      {skill.name || `Skill #${skill.id}`} {skill.mustToHave && <span className="text-red-600 font-medium">(Must Have)</span>}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reason (Optional)
+              </label>
+              <textarea
+                name="reason"
+                value={formData.reason}
+                onChange={handleChange}
+                rows={2}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="Why are you posting this job?"
+              />
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
@@ -356,27 +719,72 @@ export default function CreateJobPage() {
               <p className="text-base font-medium text-gray-800">{viewJob.title}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Job Type</p>
-              <p className="text-base text-gray-800">{viewJob.jobType}</p>
-            </div>
-            <div>
               <p className="text-sm text-gray-500">Description</p>
               <p className="text-base text-gray-700 whitespace-pre-line">{viewJob.description}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Expiry Date</p>
-              <p className="text-base text-gray-800">{viewJob.expiryDate}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-500">Address</p>
+                <p className="text-base text-gray-800">{viewJob.address}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Work Model</p>
+                <p className="text-base text-gray-800">{viewJob.workModel}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Boosted</p>
-              {viewJob.isBoosted ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                  ⚡ Boosted
-                </span>
-              ) : (
-                <span className="text-gray-400 text-sm">No</span>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-500">Years of Experience</p>
+                <p className="text-base text-gray-800">{viewJob.yearsOfExperience} years</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Salary Range</p>
+                <p className="text-base text-gray-800">{viewJob.salaryRange}</p>
+              </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-500">Expiration Date</p>
+                <p className="text-base text-gray-800">{viewJob.expirationDate}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Job Package</p>
+                <p className="text-base text-gray-800">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    viewJob.jobPackage === 'PREMIUM' ? 'bg-purple-100 text-purple-800' :
+                    viewJob.jobPackage === 'STANDARD' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {viewJob.jobPackage}
+                  </span>
+                </p>
+              </div>
+            </div>
+            {viewJob.skills && viewJob.skills.length > 0 && (
+              <div>
+                <p className="text-sm text-gray-500 mb-2">Skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {viewJob.skills.map((skill: any) => (
+                    <span
+                      key={skill.id}
+                      className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                        skill.mustToHave
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {skill.name || `Skill #${skill.id}`} {skill.mustToHave && '★'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {viewJob.reason && (
+              <div>
+                <p className="text-sm text-gray-500">Reason</p>
+                <p className="text-base text-gray-700">{viewJob.reason}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end mt-5">

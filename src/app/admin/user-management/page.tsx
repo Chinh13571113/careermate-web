@@ -84,21 +84,19 @@ export default function UserManagementPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h1 className="text-3xl font-light mb-6 text-gray-800">User Management</h1>
-            <div className="text-center p-12 bg-red-50 rounded-xl border border-red-200">
-              <div className="text-red-500 text-5xl mb-4">⚠️</div>
-              <p className="text-red-600 mb-6 text-lg">{error}</p>
-              <Button 
-                onClick={() => fetchUsers(currentPage)}
-                className="bg-red-500 hover:bg-red-600 text-white"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Try Again
-              </Button>
-            </div>
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">User Management</h1>
+          <div className="text-center p-12 bg-red-50 rounded-lg border border-red-200">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <p className="text-red-600 mb-6">{error}</p>
+            <Button 
+              onClick={() => fetchUsers(currentPage)}
+              className="bg-sky-600 hover:bg-sky-700 text-white"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
           </div>
         </div>
       </div>
@@ -106,66 +104,60 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-light text-gray-800">User Management</h1>
-                <p className="text-sm text-gray-500 mt-1">Manage and view all system users</p>
-              </div>
-            </div>
-            
-            {!isLoading && (
-              <div className="flex items-center gap-4">
-                <div className="text-center px-6 py-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                  <p className="text-xs text-gray-600 mb-1">Total Users</p>
-                  <p className="text-2xl font-semibold text-blue-600">{totalElements}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Search Bar */}
-          <div className="mt-6 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by username, email, or role..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage and view all system users</p>
         </div>
         
-        {isLoading ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-20">
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-              <p className="text-gray-500">Loading users...</p>
+        {!isLoading && (
+          <div className="flex items-center gap-4">
+            <div className="text-center px-6 py-3 bg-sky-50 rounded-lg border border-sky-200">
+              <p className="text-xs text-gray-600 mb-1">Total Users</p>
+              <p className="text-2xl font-semibold text-sky-600">{totalElements}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by username, email, or role..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+          />
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-20">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-sky-500 border-t-transparent mb-4"></div>
+            <p className="text-gray-500">Loading users...</p>
             </div>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-20">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-20">
             <div className="text-center">
               <div className="text-gray-400 text-6xl mb-4">👥</div>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600">
                 {searchQuery ? 'No users found matching your search' : 'No users found'}
               </p>
             </div>
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                  <TableRow className="bg-gray-50 border-b border-gray-200">
                     <TableHead className="font-semibold text-gray-700 py-4">Username</TableHead>
                     <TableHead className="font-semibold text-gray-700">Email</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status</TableHead>
@@ -181,7 +173,7 @@ export default function UserManagementPage() {
                     >
                       <TableCell className="font-medium text-gray-800 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                          <div className="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white font-semibold">
                             {user.username.charAt(0).toUpperCase()}
                           </div>
                           {user.username}
@@ -216,7 +208,7 @@ export default function UserManagementPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleViewDetails(user)}
-                          className="hover:bg-blue-50 hover:text-blue-600 transition-colors rounded-lg"
+                          className="hover:bg-sky-50 hover:text-sky-600 transition-colors rounded-md"
                           title="View details"
                         >
                           <Eye className="h-4 w-4" />
@@ -229,54 +221,52 @@ export default function UserManagementPage() {
             </div>
 
             {/* Pagination */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Page {currentPage + 1}</span> of <span className="font-medium">{totalPages}</span>
-                  <span className="mx-2">•</span>
-                  Showing <span className="font-medium">{filteredUsers.length}</span> of <span className="font-medium">{users.length}</span> users
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
-                    disabled={currentPage === 0}
-                    className="rounded-lg border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    ← Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-                    disabled={currentPage === totalPages - 1}
-                    className="rounded-lg border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next →
-                  </Button>
-                </div>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Page <span className="font-medium">{currentPage + 1}</span> of <span className="font-medium">{totalPages}</span>
+                <span className="mx-2">•</span>
+                Showing <span className="font-medium">{filteredUsers.length}</span> of <span className="font-medium">{users.length}</span> users
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="rounded-md border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  ← Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                  disabled={currentPage === totalPages - 1}
+                  className="rounded-md border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next →
+                </Button>
               </div>
             </div>
           </>
         )}
 
-        {/* User Details Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-light text-gray-800">User Details</DialogTitle>
-              <DialogDescription className="text-gray-500">
-                Complete information about the selected user
-              </DialogDescription>
-            </DialogHeader>
-            
-            {selectedUser && (
-              <div className="space-y-6 mt-4">
-                {/* User Avatar and Basic Info */}
-                <div className="flex items-center gap-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-3xl font-semibold shadow-lg">
-                    {selectedUser.username.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
+      {/* User Details Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl rounded-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900">User Details</DialogTitle>
+            <DialogDescription className="text-gray-500">
+              Complete information about the selected user
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-6 mt-4">
+              {/* User Avatar and Basic Info */}
+              <div className="flex items-center gap-4 p-6 bg-sky-50 rounded-lg">
+                <div className="w-20 h-20 rounded-full bg-sky-500 flex items-center justify-center text-white text-3xl font-semibold">
+                  {selectedUser.username.charAt(0).toUpperCase()}
+                </div>
+                <div>
                     <h3 className="text-xl font-semibold text-gray-800">{selectedUser.username}</h3>
                     <p className="text-gray-600">{selectedUser.email}</p>
                     <Badge 
@@ -349,7 +339,6 @@ export default function UserManagementPage() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
     </div>
   );
 }

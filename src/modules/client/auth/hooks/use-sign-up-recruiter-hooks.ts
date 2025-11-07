@@ -29,10 +29,7 @@ export const signUpRecruiterFormSchema = z.object({
     .min(3, { message: "Username must be at least 3 characters" }),
   email: z
     .string()
-    .email({ message: "Invalid email address" })
-    .refine((value) => value.toLowerCase().endsWith("@gmail.com"), {
-      message: "Email must end with @gmail.com",
-    }),
+    .email({ message: "Invalid email address" }),
   password: passwordSchema,
   // Organization Information
   companyName: z
@@ -86,6 +83,7 @@ const useSignUpRecruiterHook = () => {
       companyName: "",
       website: "",
       logoUrl: "",
+      about: "",
       businessLicense: "",
       contactPerson: "",
       phoneNumber: "",
@@ -100,65 +98,97 @@ const useSignUpRecruiterHook = () => {
 
   const onSubmit = async (values: SignUpRecruiterFormValues) => {
     try {
+      // Single step: Create recruiter account with all information
+      console.log("🔵 [SIGNUP] Creating recruiter account with organization info...");
+      
+      // Backend expects organizationInfo as a nested object
       const payload = {
+        // User account info (flat)
         username: values.username,
         email: values.email,
         password: values.password,
+        // Organization info (nested in organizationInfo object)
         organizationInfo: {
           companyName: values.companyName,
-          website: values.website || undefined,
-          logoUrl: values.logoUrl || undefined,
-          about: values.about || "",
+          website: values.website && values.website.trim() !== "" ? values.website : undefined,
+          logoUrl: values.logoUrl && values.logoUrl.trim() !== "" ? values.logoUrl : undefined,
+          about: values.about && values.about.trim() !== "" ? values.about : undefined,
           businessLicense: values.businessLicense,
           contactPerson: values.contactPerson,
           phoneNumber: values.phoneNumber,
           companyAddress: values.companyAddress,
-        },
+        }
       };
 
-  const response = await api.post("/api/registration/recruiter", payload);
+      console.log("📤 [SIGNUP] Payload:", { 
+        ...payload, 
+        password: '***hidden***',
+        organizationInfo: { ...payload.organizationInfo }
+      });
+
+      const response = await api.post("/api/registration/recruiter", payload);
+
+      console.log("📥 [SIGNUP] Response:", response.data);
 
       if (response.status >= 200 && response.status < 300) {
-        const result = response.data?.result;
+        console.log("✅ [SIGNUP] Registration successful!");
         
-        if (result && result.status === "PENDING") {
-          toast.success(`Recruiter account created successfully! Status: ${result.status}`);
-          
-          // Store user info in localStorage
-          if (typeof window !== "undefined") {
-            localStorage.setItem("pending_profile_email", result.email);
-            localStorage.setItem("pending_profile_username", result.username);
-          }
-          
-          form.reset({
-            username: "",
-            email: "",
-            password: "",
-            companyName: "",
-            website: "",
-            logoUrl: "",
-            businessLicense: "",
-            contactPerson: "",
-            phoneNumber: "",
-            companyAddress: "",
-            terms: false,
-          });
-          setShowPassword(false);
-          
-          toast.success("Please sign in to continue");
-          router.push("/sign-in");
-          return;
+        // Successful registration
+        toast.success("Đăng ký thành công! Tài khoản của bạn đang chờ phê duyệt.");
+        
+        // Store user info in localStorage
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pending_profile_email", values.email);
+          localStorage.setItem("pending_profile_username", values.username);
         }
+        
+        form.reset({
+          username: "",
+          email: "",
+          password: "",
+          companyName: "",
+          website: "",
+          logoUrl: "",
+          about: "",
+          businessLicense: "",
+          contactPerson: "",
+          phoneNumber: "",
+          companyAddress: "",
+          terms: false,
+        });
+        setShowPassword(false);
+        
+        // Redirect to pending page after successful registration
+        setTimeout(() => {
+          router.push("/auth/account-pending");
+        }, 1500);
+        return;
       }
 
-      toast.error("Failed to create account. Please try again.");
+      toast.error("Không thể tạo tài khoản. Vui lòng thử lại.");
     } catch (error) {
       const axiosError = error as AxiosError<any>;
+      
+      // Log detailed error for debugging
+      console.error("❌ [SIGNUP] Error details:", {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: axiosError.response?.data,
+        message: axiosError.message
+      });
+      
+      // Check if there are validation errors
+      if (axiosError.response?.data?.errors) {
+        console.error("❌ [SIGNUP] Validation errors:", axiosError.response.data.errors);
+      }
+      
       const message =
         axiosError.response?.data?.message ||
         axiosError.response?.data?.error ||
         axiosError.message ||
-        "Failed to create recruiter account. Please try again.";
+        "Đăng ký thất bại. Vui lòng thử lại.";
+      
+      console.error("❌ [SIGNUP] Error:", message);
       toast.error(message);
     }
   };

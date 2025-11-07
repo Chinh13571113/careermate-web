@@ -10,13 +10,14 @@ import toast from "react-hot-toast";
 import { ProfileDropdown } from "@/components/profile/ProfileDropdown";
 import UserTypeSelectionModal from "@/components/auth/UserTypeSelectionModal";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { getCurrentUser } from "@/lib/user-api";
 
 export default function CandidateHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState<{ name: string; email: string } | null>(null);
+  const [userInfo, setUserInfo] = useState<{ name: string; email: string; username?: string } | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Lấy trạng thái auth đã chuẩn hoá từ hook client
@@ -39,22 +40,40 @@ export default function CandidateHeader() {
   // Đánh dấu đã hydrate (tránh SSR mismatch)
   useEffect(() => setIsHydrated(true), []);
 
-  // Decode token CHỈ sau khi có accessToken ở client
+  // Fetch current user info from API
   useEffect(() => {
-    if (!accessToken) {
-      setUserInfo(null);
-      return;
-    }
-    try {
-      const decoded = decodeJWT(accessToken);
-      setUserInfo({
-        email: decoded?.sub || decoded?.email || "User",
-        name: decoded?.name || decoded?.sub || "User",
-      });
-    } catch {
-      setUserInfo(null);
-    }
-  }, [accessToken]);
+    const fetchCurrentUser = async () => {
+      if (!accessToken || !isAuthenticated) {
+        setUserInfo(null);
+        return;
+      }
+
+      try {
+        const currentUser = await getCurrentUser();
+        console.log('📋 Current user from API (Candidate):', currentUser);
+        
+        setUserInfo({
+          username: currentUser.username,
+          email: currentUser.email,
+          name: currentUser.username || currentUser.email,
+        });
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        // Fallback to JWT decode
+        try {
+          const decoded = decodeJWT(accessToken);
+          setUserInfo({
+            email: decoded?.sub || decoded?.email || "User",
+            name: decoded?.name || decoded?.sub || "User",
+          });
+        } catch {
+          setUserInfo(null);
+        }
+      }
+    };
+
+    fetchCurrentUser();
+  }, [accessToken, isAuthenticated]);
 
   // Đóng dropdown khi click ra ngoài / nhấn ESC
   useEffect(() => {
@@ -172,12 +191,12 @@ export default function CandidateHeader() {
             {isAuthenticated && user ? (
               <>
                 <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
-                  For Recruiter abc
+                  For Candidate {userInfo?.username || username || user?.username || "abc"}
                 </span>
 
                 <ProfileDropdown
-                  userName={username || user?.username || userInfo?.name || user?.email || "User"}
-                  userEmail={user?.email || userInfo?.email}
+                  userName={userInfo?.username || username || user?.username || userInfo?.name || user?.email || "User"}
+                  userEmail={userInfo?.email || user?.email}
                   role={role || undefined}
                   userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
                 />

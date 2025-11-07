@@ -391,34 +391,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         message: err?.message,
         hasResponse: !!err?.response,
         status: err?.response?.status,
-        data: err?.response?.data,
       });
       set({ isLoading: false });
-      
-      // Check if account is rejected
-      if (err?.response?.status === 403 && err?.response?.data?.status === "rejected") {
-        console.log("❌ [AUTH STORE] Account rejected by admin");
-        const userEmail = err?.response?.data?.email;
-        const reason = err?.response?.data?.reason;
-        const error = new Error("Account has been rejected");
-        (error as any).response = err?.response;
-        (error as any).isRejected = true;
-        (error as any).email = userEmail;
-        (error as any).reason = reason;
-        throw error;
-      }
-      
-      // Check if account is pending approval
-      if (err?.response?.status === 403 && err?.response?.data?.status === "pending") {
-        console.log("⏳ [AUTH STORE] Account pending approval, redirecting...");
-        const userEmail = err?.response?.data?.email;
-        const error = new Error("Account pending approval");
-        (error as any).response = err?.response;
-        (error as any).isPending = true;
-        (error as any).email = userEmail;
-        throw error;
-      }
-      
       // Convert to proper Error object if needed
       if (typeof err === "string") {
         const error = new Error(err);

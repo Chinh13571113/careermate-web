@@ -28,9 +28,29 @@ export default function CompleteRecruiterRegistration() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
+    
     if (!formData.companyName.trim()) {
       newErrors.companyName = "Company name is required";
     }
+    
+    if (!formData.businessLicense.trim()) {
+      newErrors.businessLicense = "Business license is required";
+    }
+    
+    if (!formData.contactPerson.trim()) {
+      newErrors.contactPerson = "Contact person is required";
+    }
+    
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Phone number is required";
+    } else if (!/^0\d{9}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = "Phone must be 10 digits starting with 0";
+    }
+    
+    if (!formData.companyAddress.trim()) {
+      newErrors.companyAddress = "Company address is required";
+    }
+    
     return newErrors;
   };
 
@@ -109,28 +129,28 @@ export default function CompleteRecruiterRegistration() {
               <Building2 className="w-8 h-8 text-sky-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Complete Your Recruiter Profile
+              Hoàn Tất Hồ Sơ Recruiter
             </h1>
             <p className="text-gray-600">
-              Tell us about your company to complete registration
+              Vui lòng điền thông tin doanh nghiệp để hoàn tất đăng ký
             </p>
           </div>
 
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
             <p className="text-sm text-blue-700">
-              Logged in as: <strong>{email}</strong>
+              Đăng nhập bằng: <strong>{email}</strong>
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              Your account will be reviewed by an admin before activation.
+              Tài khoản của bạn sẽ được admin xem xét trước khi kích hoạt.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Company Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <Building2 className="w-4 h-4 mr-2" />
-                Company Name <span className="text-red-500 ml-1">*</span>
+                Tên Công Ty <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="text"
@@ -142,7 +162,7 @@ export default function CompleteRecruiterRegistration() {
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
                   errors.companyName ? "border-red-500" : "border-gray-300"
                 }`}
-                placeholder="e.g., FPT Corporation"
+                placeholder="VD: FPT Corporation"
               />
               {errors.companyName && (
                 <p className="text-sm text-red-600 mt-1">{errors.companyName}</p>
@@ -151,9 +171,9 @@ export default function CompleteRecruiterRegistration() {
 
             {/* Website */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <Globe className="w-4 h-4 mr-2" />
-                Company Website
+                Website Công Ty
               </label>
               <input
                 type="url"
@@ -167,9 +187,9 @@ export default function CompleteRecruiterRegistration() {
 
             {/* Logo URL */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <ImageIcon className="w-4 h-4 mr-2" />
-                Company Logo URL
+                Logo Công Ty (URL)
               </label>
               <input
                 type="url"
@@ -180,15 +200,15 @@ export default function CompleteRecruiterRegistration() {
                 placeholder="https://www.example.com/logo.png"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Provide a URL to your company logo
+                Cung cấp đường dẫn đến logo công ty của bạn
               </p>
             </div>
 
             {/* About */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <FileText className="w-4 h-4 mr-2" />
-                About Company
+                Giới Thiệu Công Ty
               </label>
               <textarea
                 name="about"
@@ -197,85 +217,109 @@ export default function CompleteRecruiterRegistration() {
                 value={formData.about}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500"
-                placeholder="Tell us about your company, mission, and culture..."
+                placeholder="Mô tả về công ty, sứ mệnh và văn hóa doanh nghiệp..."
               />
               <p className="text-xs text-gray-500 mt-1">
-                {formData.about.length}/2000 characters
+                {formData.about.length}/2000 ký tự
               </p>
             </div>
 
             {/* Business License */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <FileText className="w-4 h-4 mr-2" />
-                Business License Number
+                Giấy Phép Kinh Doanh <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="text"
                 name="businessLicense"
+                required
                 maxLength={100}
                 value={formData.businessLicense}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.businessLicense ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="BL-2025-123456"
               />
+              {errors.businessLicense && (
+                <p className="text-sm text-red-600 mt-1">{errors.businessLicense}</p>
+              )}
             </div>
 
             {/* Contact Person */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <User className="w-4 h-4 mr-2" />
-                Contact Person
+                Người Liên Hệ <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="text"
                 name="contactPerson"
+                required
                 maxLength={100}
                 value={formData.contactPerson}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500"
-                placeholder="John Doe"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.contactPerson ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Nguyễn Văn A"
               />
+              {errors.contactPerson && (
+                <p className="text-sm text-red-600 mt-1">{errors.contactPerson}</p>
+              )}
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <Phone className="w-4 h-4 mr-2" />
-                Phone Number
+                Số Điện Thoại <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="tel"
                 name="phoneNumber"
+                required
                 maxLength={20}
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500"
-                placeholder="+84 123 456 789"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.phoneNumber ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="0123456789"
               />
+              {errors.phoneNumber && (
+                <p className="text-sm text-red-600 mt-1">{errors.phoneNumber}</p>
+              )}
             </div>
 
             {/* Address */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <MapPin className="w-4 h-4 mr-2" />
-                Company Address
+                Địa Chỉ Công Ty <span className="text-red-500 ml-1">*</span>
               </label>
               <textarea
                 name="companyAddress"
+                required
                 maxLength={500}
                 rows={3}
                 value={formData.companyAddress}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500"
-                placeholder="123 Tech Street, District 1, Ho Chi Minh City"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.companyAddress ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="123 Đường Tech, Quận 1, TP. Hồ Chí Minh"
               />
+              {errors.companyAddress && (
+                <p className="text-sm text-red-600 mt-1">{errors.companyAddress}</p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !formData.companyName}
+              disabled={loading || !formData.companyName || !formData.businessLicense || !formData.contactPerson || !formData.phoneNumber || !formData.companyAddress}
               className="w-full bg-sky-600 text-white py-3 rounded-lg 
                        hover:bg-sky-700 disabled:bg-gray-400 
                        transition-colors font-medium shadow-sm
@@ -287,17 +331,17 @@ export default function CompleteRecruiterRegistration() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Submitting...
+                  Đang gửi...
                 </span>
               ) : (
-                "Complete Registration"
+                "Hoàn Tất Đăng Ký"
               )}
             </button>
           </form>
 
           <p className="text-sm text-gray-500 text-center mt-6">
-            Your information will be reviewed by our team. You'll receive an email 
-            once your account is approved.
+            Thông tin của bạn sẽ được xem xét bởi admin. Bạn sẽ nhận được email 
+            khi tài khoản được phê duyệt.
           </p>
         </div>
       </div>

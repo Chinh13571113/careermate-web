@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT, ADMIN_ROLES } from "@/lib/auth-admin";
 import { safeLog, DEBUG } from "@/lib/debug-config";
 import { getDefaultRedirectPath, isRecruiter } from "@/lib/role-utils";
+import { getMyRecruiterProfile } from "@/lib/recruiter-api";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -94,6 +95,61 @@ const useSignInHook = () => {
             });
           }
 
+          // Check if user is recruiter and verify account status
+          if (role === "RECRUITER" || role === "ROLE_RECRUITER") {
+            try {
+              const profileResponse = await getMyRecruiterProfile();
+              const profile = profileResponse.result;
+
+              if (DEBUG.LOGIN) {
+                safeLog.authState("🔵 [SIGNIN] Recruiter profile fetched", {
+                  accountStatus: profile.accountStatus,
+                  hasRejectionReason: !!profile.rejectionReason,
+                });
+              }
+
+              // Handle REJECTED status
+              if (profile.accountStatus === "REJECTED") {
+                toast.error(
+                  profile.rejectionReason 
+                    ? `Tài khoản bị từ chối: ${profile.rejectionReason}`
+                    : "Tài khoản của bạn đã bị từ chối"
+                );
+                
+                // Keep auth token (don't clear) and redirect to rejected page so user can resubmit
+                setTimeout(() => {
+                  const rejectionReason = encodeURIComponent(profile.rejectionReason || '');
+                  window.location.href = `/auth/account-rejected?reason=${rejectionReason}`;
+                }, 500);
+                return;
+              }
+
+              // Handle PENDING status
+              if (profile.accountStatus === "PENDING") {
+                toast("Tài khoản đang chờ phê duyệt. Vui lòng chờ chúng tôi xác nhận và sẽ thông báo lại sau.");
+                
+                // Redirect to pending page
+                setTimeout(() => {
+                  window.location.href = "/auth/account-pending";
+                }, 500);
+                return;
+              }
+
+              // If status is APPROVED or ACTIVE, continue with normal flow
+              if (profile.accountStatus === "APPROVED" || profile.accountStatus === "ACTIVE") {
+                if (DEBUG.LOGIN) {
+                  safeLog.authState("✅ [SIGNIN] Recruiter account is active", {
+                    status: profile.accountStatus,
+                  });
+                }
+              }
+            } catch (error) {
+              // If we can't fetch profile, log error but continue
+              safeLog.error("🔴 [SIGNIN] Error fetching recruiter profile:", error);
+              // Don't block login if profile fetch fails
+            }
+          }
+
           // Determine redirect path based on role
           const redirectPath = getDefaultRedirectPath(role);
 
@@ -124,34 +180,6 @@ const useSignInHook = () => {
       }
     } catch (err: any) {
       safeLog.error("🔴 [SIGNIN] Login error:", err);
-      
-      // Check if account is rejected
-      if (err?.isRejected) {
-        const email = err?.email || data.email;
-        const reason = err?.reason || "No reason provided";
-        console.log("❌ [SIGNIN] Account rejected by admin");
-        toast.error("Your account has been rejected");
-        
-        // Redirect to error page with rejected status
-        setTimeout(() => {
-          route.push(`/auth/oauth/error?status=rejected&email=${encodeURIComponent(email)}&reason=${encodeURIComponent(reason)}`);
-        }, 500);
-        return;
-      }
-      
-      // Check if account is pending approval
-      if (err?.isPending) {
-        const email = err?.email || data.email;
-        console.log("⏳ [SIGNIN] Account pending approval, redirecting to pending page");
-        toast("Your account is awaiting approval");
-        
-        // Redirect to pending approval page
-        setTimeout(() => {
-          route.push(`/auth/pending-approval?email=${encodeURIComponent(email)}`);
-        }, 500);
-        return;
-      }
-      
       // Extract the actual error message for the toast
       const errorMessage =
         err?.message || err?.response?.data?.message || "Login failed";

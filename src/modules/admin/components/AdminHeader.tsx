@@ -7,16 +7,16 @@ import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT } from "@/lib/auth-admin";
 import { getCurrentUser } from "@/lib/user-api";
 
-interface RecruiterHeaderProps {
+interface AdminHeaderProps {
   sidebarOpen?: boolean;
 }
 
-export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
+export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
   const { user } = useAuthStore();
   const { isAuthenticated, accessToken, logout, role } = useAuthStore();
   const [isOpen, setIsOpen] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("sidebar-open") === "true";
+      return localStorage.getItem("admin-sidebar-open") === "true";
     }
     return sidebarOpen;
   });
@@ -36,7 +36,7 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
 
       try {
         const currentUser = await getCurrentUser();
-        console.log('📋 Current user from API:', currentUser);
+        console.log('📋 Current admin from API:', currentUser);
         
         setUserInfo({
           username: currentUser.username,
@@ -44,13 +44,13 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
           name: currentUser.username || currentUser.email,
         });
       } catch (error) {
-        console.error('Failed to fetch current user:', error);
+        console.error('Failed to fetch current admin:', error);
         // Fallback to JWT decode
         try {
           const decoded = decodeJWT(accessToken);
           setUserInfo({
-            email: decoded?.sub || decoded?.email || "User",
-            name: decoded?.name || decoded?.sub || "User",
+            email: decoded?.sub || decoded?.email || "Admin",
+            name: decoded?.name || decoded?.sub || "Admin",
           });
         } catch {
           setUserInfo(null);
@@ -63,30 +63,28 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
 
   useEffect(() => {
     const checkSidebarState = () => {
-      const savedState = localStorage.getItem("sidebar-open");
+      const savedState = localStorage.getItem("admin-sidebar-open");
       const newIsOpen = savedState === "true";
       setIsOpen(newIsOpen);
     };
 
-    // Lắng nghe hover events từ sidebar
+    // Listen to hover events from sidebar
     const handleSidebarHover = (event: CustomEvent) => {
-      console.log("🎯 Header received sidebar state:", event.detail);
       setIsOpen(event.detail.isOpen);
     };
 
-    window.addEventListener("sidebar-toggle", checkSidebarState);
+    window.addEventListener("admin-sidebar-toggle", checkSidebarState);
     window.addEventListener(
-      "sidebar-hover",
+      "admin-sidebar-hover",
       handleSidebarHover as EventListener
     );
 
-    // Gọi ngay 1 lần đầu tiên khi mount
     checkSidebarState();
 
     return () => {
-      window.removeEventListener("sidebar-toggle", checkSidebarState);
+      window.removeEventListener("admin-sidebar-toggle", checkSidebarState);
       window.removeEventListener(
-        "sidebar-hover",
+        "admin-sidebar-hover",
         handleSidebarHover as EventListener
       );
     };
@@ -95,14 +93,13 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
   const toggleSidebar = () => {
     const newState = !isOpen;
     setIsOpen(newState);
-    localStorage.setItem("sidebar-open", newState.toString());
-    localStorage.setItem("sidebar-pinned", newState.toString()); // Pin when manually toggled
+    localStorage.setItem("admin-sidebar-open", newState.toString());
+    localStorage.setItem("admin-sidebar-pinned", newState.toString());
 
-    // Gửi cả 2 events
     requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent("sidebar-toggle"));
+      window.dispatchEvent(new CustomEvent("admin-sidebar-toggle"));
       window.dispatchEvent(
-        new CustomEvent("sidebar-hover", {
+        new CustomEvent("admin-sidebar-hover", {
           detail: { isOpen: newState, isHover: false, isPinned: newState },
         })
       );
@@ -117,7 +114,7 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
     >
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-6">
-          {/* Nút menu */}
+          {/* Menu button */}
           <button
             onClick={toggleSidebar}
             className="p-2 rounded-lg hover:bg-[#436a9d] transition-colors duration-200"
@@ -126,44 +123,43 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Tiêu đề */}
-          <h1 className="text-lg font-semibold">CareerMate</h1>
+          {/* Title */}
+          <h1 className="text-lg font-semibold">CareerMate Admin</h1>
         </div>
+        
         <div className="flex items-center gap-4">
-          
+          {/* Right side header */}
+          <div className="flex items-center space-x-4">
+            {isAuthenticated && user ? (
+              <>
+                <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                  For Admin {userInfo?.username || userInfo?.name || "Admin"}
+                </span>
 
-          {/* Bên phải header */}
-            <div className="flex items-center space-x-4">
-              {isAuthenticated && user ? (
-                <>
-                  <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
-                    For Recruiter {userInfo?.username || userInfo?.name || "abc"}
-                  </span>
-
-                  <ProfileDropdown
-                    userName={userInfo?.username || userInfo?.name || user?.email || "User"}
-                    userEmail={userInfo?.email || user?.email}
-                    role={role || undefined}
-                    userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
-                  />
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/sign-in"
-                    className="px-4 py-2 text-white hover:text-gray-300 transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/sign-up"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
+                <ProfileDropdown
+                  userName={userInfo?.username || userInfo?.name || user?.email || "Admin"}
+                  userEmail={userInfo?.email || user?.email}
+                  role={role || undefined}
+                  userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
+                />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="px-4 py-2 text-white hover:text-gray-300 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
       <div className="border-b border-[#1f4171]"></div>
