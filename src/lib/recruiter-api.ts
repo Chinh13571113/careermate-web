@@ -379,3 +379,27 @@ export const rejectJobApplication = async (applicationId: number, reason?: strin
 export const setReviewingJobApplication = async (applicationId: number): Promise<any> => {
   return updateJobApplicationStatus(applicationId, 'REVIEWING');
 };
+
+// Change Password
+export interface ChangePasswordRequest {
+  password: string;
+  repeatPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  code: number;
+  message: string;
+  result?: any;
+}
+
+export const changePassword = async (email: string, data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
+  try {
+    console.log('🔵 [CHANGE PASSWORD] Sending request for email:', email);
+    const response = await api.put(`/api/users/change-password/${encodeURIComponent(email)}`, data);
+    console.log('✅ [CHANGE PASSWORD] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [CHANGE PASSWORD] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to change password');
+  }
+};
