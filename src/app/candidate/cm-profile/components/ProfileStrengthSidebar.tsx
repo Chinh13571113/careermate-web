@@ -11,9 +11,6 @@ export default function ProfileStrengthSidebar({
     expandedSections,
     onToggleSection
 }: ProfileStrengthSidebarProps) {
-    const circumference = 64 * 2 * Math.PI;
-    const strokeDasharray = `${circumference * (profileCompletion / 100)} ${circumference}`;
-
     return (
         <aside className="hidden xl:block space-y-6 sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start transition-all duration-300">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -21,98 +18,119 @@ export default function ProfileStrengthSidebar({
                     Profile Strength
                 </h3>
 
-                {/* Progress Circle */}
+                {/* Progress Circle with Gradient */}
                 <div className="flex justify-center mb-6">
-                    <div className="relative w-36 h-36">
-                        <svg className="w-36 h-36 transform -rotate-90">
-                            <circle
-                                cx="72"
-                                cy="72"
-                                r="64"
-                                stroke="#fee2e2"
-                                strokeWidth="14"
+                    <div className="relative w-32 h-32">
+                        <svg className="w-full h-full" viewBox="0 0 36 36">
+                            <defs>
+                                <linearGradient
+                                    id="progressGradient"
+                                    x1="0%"
+                                    y1="0%"
+                                    x2="0%"
+                                    y2="100%"
+                                >
+                                    <stop offset="0%" stopColor="#163988" />
+                                    <stop offset="100%" stopColor="#9ca3af" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* Background Circle */}
+                            <path
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                 fill="none"
+                                stroke="#eeeeee"
+                                strokeWidth="3"
                             />
-                            <circle
-                                cx="72"
-                                cy="72"
-                                r="64"
-                                stroke="#ef4444"
-                                strokeWidth="14"
+
+                            {/* Progress Circle */}
+                            <path
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                 fill="none"
-                                strokeDasharray={strokeDasharray}
-                                strokeLinecap="round"
+                                stroke="url(#progressGradient)"
+                                strokeWidth="3"
+                                strokeDasharray={`${profileCompletion}, 100`}
                             />
                         </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-900">
-                                    {profileCompletion}%
-                                </div>
-                                <div className="text-sm text-gray-500">completed</div>
-                            </div>
+
+                        {/* Text Center */}
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                            <div className="text-2xl font-bold">{profileCompletion}%</div>
+                            <div className="text-xs text-gray-500">completed</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Chat bubble for complete profile */}
-                <div className="relative mb-6 mr-10">
-                    <div className="bg-white border border-gray-300 shadow-sm rounded-2xl px-4 py-3 text-gray-700 text-sm leading-relaxed">
-                        Complete profile to{" "}
-                        <span className="text-gray-500 font-semibold">70%</span> to
-                        generate CV template for IT professionals.
+                {/* Info Box */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                        <span className="text-gray-800 font-bold">
+                            Complete profile to 70%
+                        </span>
+                        <span className="text-gray-700">
+                            to generate CV template for IT professionals.
+                        </span>
                     </div>
-                    {/* Đuôi bong bóng */}
-                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-300 rotate-45"></div>
-                    {/* Icon robot */}
-                    <div className="absolute -right-10 top-1/2 -translate-y-1/2">
-                        <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center text-xl">
-                            🤖
-                        </div>
+                    <div className="flex justify-end">
+                        <img
+                            src="/images/general/ad2.png"
+                            alt="CV Template"
+                            className="h-12 w-auto filter grayscale contrast-125 brightness-75"
+                        />
                     </div>
                 </div>
 
                 {/* Action Items */}
-                <div className="space-y-2 mb-6">
-                    <button className="w-full text-left flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        <Plus className="w-4 h-4" />
+                <div className="space-y-4">
+                    <button className="w-full text-left flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        <Plus className="w-5 h-5" />
                         <span>Add About me</span>
                     </button>
-                    <button className="w-full text-left flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        <Plus className="w-4 h-4" />
+                    <button className="w-full text-left flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        <Plus className="w-5 h-5" />
                         <span>Add Contact Information</span>
                     </button>
-                    <button className="w-full text-left flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        <Plus className="w-4 h-4" />
+                    <button className="w-full text-left flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        <Plus className="w-5 h-5" />
                         <span>Add Work Experience</span>
                     </button>
 
-                    <button
-                        onClick={() => onToggleSection("more")}
-                        className="w-full flex items-center justify-between text-sm text-gray-600 hover:text-gray-800 font-medium pt-2"
-                    >
-                        <span>Add more information</span>
-                        {expandedSections.includes("more") ? (
-                            <ChevronUp className="w-4 h-4" />
-                        ) : (
-                            <ChevronDown className="w-4 h-4" />
+                    <div className="mb-6">
+                        <button
+                            onClick={() => onToggleSection("more")}
+                            className="w-full flex items-center gap-2 text-gray-700 font-medium"
+                        >
+                            <ChevronDown
+                                className={`w-5 h-5 transition-transform duration-300 ${expandedSections.includes("more") ? "rotate-180" : ""
+                                    }`}
+                            />
+                            <span>Add more information</span>
+                        </button>
+
+                        {expandedSections.includes("more") && (
+                            <button className="w-full text-left flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium mt-2">
+                                <Plus className="w-5 h-5" />
+                                <span>Add Contact Information</span>
+                            </button>
                         )}
+                    </div>
+
+                    <button
+                        className={`w-full py-3 ${profileCompletion >= 70
+                                ? "bg-gray-700 hover:bg-red-600"
+                                : "bg-gray-400 cursor-not-allowed"
+                            } text-white font-medium rounded-md transition`}
+                        disabled={profileCompletion < 70}
+                    >
+                        Preview & Download CV
                     </button>
 
-                    {expandedSections.includes("more") && (
-                        <div className="pl-4 space-y-2 text-sm text-gray-600">
-                            <p>• Add Skills</p>
-                            <p>• Add Languages</p>
-                            <p>• Add Projects</p>
-                            <p>• Add Certificates</p>
-                        </div>
+                    {profileCompletion < 70 && (
+                        <p className="text-sm text-center text-gray-500">
+                            Complete your profile to 70% to enable CV preview and download.
+                        </p>
                     )}
                 </div>
-
-                {/* Preview & Download Button */}
-                <button className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                    Preview & Download CV
-                </button>
             </div>
         </aside>
     );

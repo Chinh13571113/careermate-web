@@ -119,7 +119,7 @@ export function ClientHeader() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
-            <Link href="/jobs" className="text-gray-300 hover:text-white transition-colors">All Jobs</Link>
+            <Link href="/jobs-detail" className="text-gray-300 hover:text-white transition-colors">All Jobs</Link>
             <Link href="/companies" className="text-gray-300 hover:text-white transition-colors">Companies</Link>
             <Link href="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link>
             <Link href="/cv-templates-introduction" className="text-gray-300 hover:text-white transition-colors">CV Templates</Link>
@@ -223,7 +223,7 @@ export function ClientHeader() {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-700 bg-gray-800 fixed left-0 right-0 top-16 z-50">
             <div className="px-4 py-4 space-y-4">
-              <Link href="/jobs" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>All Jobs</Link>
+              <Link href="/jobs-detail" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>All Jobs</Link>
               <Link href="/companies" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>Companies</Link>
               <Link href="/blog" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
               <Link href="/cv-templates-introduction" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>CV Templates</Link>

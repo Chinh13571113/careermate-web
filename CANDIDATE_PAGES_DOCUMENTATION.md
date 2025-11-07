@@ -130,7 +130,7 @@ src/components/layout/
 ### Menu Items (CVSidebar):
 
 1. Dashboard → `/candidate/dashboard` ✅ NEW
-2. CV Attachment → `/candidate/cv-management`
+2. CV Management → `/candidate/cv-management`
 3. CM Profile → `/candidate/cm-profile` ✅ NEW (updated from /profile)
 4. My Jobs → `/candidate/my-jobs`
 5. Job Invitation → `/candidate/job-invitation`
@@ -141,7 +141,7 @@ src/components/layout/
 ### Links trong Dashboard:
 
 - "Update your profile" → `/candidate/cm-profile`
-- "Manage CV attachment" → `/candidate/cv-management`
+- "Manage CV Management" → `/candidate/cv-management`
 - "Complete your profile" → `/candidate/cm-profile`
 
 ---
@@ -177,7 +177,7 @@ src/components/layout/
 - 📊 Visual progress tracking (58% profile completion)
 - 📈 Activity statistics với color-coded cards
 - 🔗 Quick navigation tới các sections quan trọng
-- 📄 CV attachment status tracking
+- 📄 CV Management status tracking
 
 ### CM Profile:
 

@@ -6,9 +6,10 @@ import JobCard from "../../../components/JobCard";
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { FiMapPin, FiSearch, FiX, FiStar } from 'react-icons/fi';
 import { IoFilterOutline } from 'react-icons/io5';
-import { AiFillStar } from 'react-icons/ai';
-import { fetchJobPostings, transformJobPosting, type JobPosting } from '@/lib/job-api';
+import { AiFillStar, AiFillLike, AiOutlineLike } from 'react-icons/ai';
+import { fetchJobPostings, transformJobPosting, toggleSaveJob, toggleLikeJob, viewJob, type JobPosting } from '@/lib/job-api';
 import { useAuthStore } from '@/store/use-auth-store';
+import toast from 'react-hot-toast';
 
 interface JobListing {
   id: number;
@@ -211,7 +212,7 @@ const jobs: JobListing[] = [
 
 export default function JobsDetailPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, candidateId, fetchCandidateProfile } = useAuthStore();
 
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -222,10 +223,23 @@ export default function JobsDetailPage() {
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isLiking, setIsLiking] = useState<boolean>(false);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [searchLocation, setSearchLocation] = useState<string>("All Cities");
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+
+  // ✅ Fetch candidateId if authenticated but missing
+  useEffect(() => {
+    if (isAuthenticated && !candidateId) {
+      console.log('📝 Candidate ID missing, fetching user profile...');
+      fetchCandidateProfile().catch((err) => {
+        console.error('❌ Failed to fetch candidate profile:', err);
+      });
+    }
+  }, [isAuthenticated, candidateId, fetchCandidateProfile]);
   const jobsPerPage = 10;
 
   // Fetch jobs from API
@@ -267,6 +281,13 @@ export default function JobsDetailPage() {
 
   const handleJobSelect = (jobId: number) => {
     setSelectedJobId(jobId);
+
+    // Track job view
+    if (candidateId) {
+      viewJob(candidateId, jobId).catch((err) => {
+        console.error('Failed to track job view:', err);
+      });
+    }
   };
 
   const handleApplyNow = () => {
@@ -275,6 +296,82 @@ export default function JobsDetailPage() {
       return;
     }
     router.push(`/candidate/jobs/${selectedJobId}/apply`);
+  };
+
+  const handleToggleSave = async () => {
+    // Check authentication
+    if (!isAuthenticated) {
+      toast.error('Please login to save jobs');
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Check candidateId
+    if (!candidateId) {
+      toast.error('Candidate ID not found. Please login again.');
+      return;
+    }
+
+    // Check job ID
+    if (!selectedJobId) {
+      toast.error('No job selected');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const newSavedStatus = await toggleSaveJob(candidateId, selectedJobId, isBookmarked);
+      setIsBookmarked(newSavedStatus);
+
+      if (newSavedStatus) {
+        toast.success('Job saved successfully! 💾');
+      } else {
+        toast.success('Job unsaved');
+      }
+    } catch (error: any) {
+      console.error('Error toggling save status:', error);
+      toast.error(error?.response?.data?.message || 'Failed to save job. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    // Check authentication
+    if (!isAuthenticated) {
+      toast.error('Please login to like jobs');
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Check candidateId
+    if (!candidateId) {
+      toast.error('Candidate ID not found. Please login again.');
+      return;
+    }
+
+    // Check job ID
+    if (!selectedJobId) {
+      toast.error('No job selected');
+      return;
+    }
+
+    setIsLiking(true);
+    try {
+      const newLikedStatus = await toggleLikeJob(candidateId, selectedJobId, isLiked);
+      setIsLiked(newLikedStatus);
+
+      if (newLikedStatus) {
+        toast.success('You like this job! 👍');
+      } else {
+        toast.success('Job unliked');
+      }
+    } catch (error: any) {
+      console.error('Error toggling like status:', error);
+      toast.error(error?.response?.data?.message || 'Failed to like job. Please try again.');
+    } finally {
+      setIsLiking(false);
+    }
   };
 
   const handleLoginRedirect = () => {
@@ -287,7 +384,9 @@ export default function JobsDetailPage() {
   };
 
   const handleSearch = () => {
+    console.log('🔍 Searching for:', searchKeyword);
     setCurrentPage(0); // Reset to first page on search
+    // The useEffect will automatically re-fetch with the new keyword
   };
 
   const handlePageChange = (newPage: number) => {
@@ -297,6 +396,7 @@ export default function JobsDetailPage() {
 
   const clearSearch = () => {
     setSearchKeyword("");
+    setCurrentPage(0); // Reset page when clearing search
   };
 
   return (
@@ -569,7 +669,8 @@ export default function JobsDetailPage() {
                           {/* NEW: chips ngay dưới tiêu đề */}
                           <div className="flex flex-wrap gap-2 mb-2">
                             {selectedJob.salaryRange && (
-                              <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="salary-badge inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+                                <RiMoneyDollarCircleLine size={18} />
                                 {selectedJob.salaryRange}
                               </span>
                             )}
@@ -609,14 +710,48 @@ export default function JobsDetailPage() {
                           Apply Now
                         </button>
 
-                        {/* Bookmark Button */}
+                        {/* Like Button */}
                         <div className="relative group">
                           <button
-                            onClick={() => setIsBookmarked(!isBookmarked)}
-                            className="p-3 border-2 border-gray-300 rounded-md hover:border-red-500 transition-colors"
+                            onClick={handleToggleLike}
+                            disabled={isLiking}
+                            className={`p-3 border-2 rounded-md transition-colors ${isLiking
+                              ? 'border-gray-200 cursor-not-allowed opacity-50'
+                              : isLiked
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-300 hover:border-blue-500'
+                              }`}
+                          >
+                            {isLiked ? (
+                              <AiFillLike className="w-6 h-6 text-blue-500" />
+                            ) : (
+                              <AiOutlineLike className="w-6 h-6 text-gray-600" />
+                            )}
+                          </button>
+
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+                            <div className="bg-gray-800 text-white text-sm px-3 py-1.5 rounded whitespace-nowrap">
+                              {isLiking ? 'Processing...' : (isLiked ? 'Liked' : 'You like this job')}
+                            </div>
+                            <div className="w-3 h-3 bg-gray-800 transform rotate-45 absolute -bottom-1 right-4"></div>
+                          </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="relative group">
+                          <button
+                            onClick={handleToggleSave}
+                            disabled={isSaving}
+                            className={`p-3 border-2 rounded-md transition-colors ${isSaving
+                              ? 'border-gray-200 cursor-not-allowed opacity-50'
+                              : isBookmarked
+                                ? 'border-yellow-500 bg-yellow-50'
+                                : 'border-gray-300 hover:border-yellow-500'
+                              }`}
                           >
                             {isBookmarked ? (
-                              <AiFillStar className="w-6 h-6 text-red-500" />
+                              <AiFillStar className="w-6 h-6 text-yellow-500" />
                             ) : (
                               <FiStar className="w-6 h-6 text-gray-600" />
                             )}
@@ -625,7 +760,7 @@ export default function JobsDetailPage() {
                           {/* Tooltip */}
                           <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
                             <div className="bg-gray-800 text-white text-sm px-3 py-1.5 rounded whitespace-nowrap">
-                              {isBookmarked ? 'Saved' : 'Save this job'}
+                              {isSaving ? 'Saving...' : (isBookmarked ? 'Saved' : 'Save this job')}
                             </div>
                             <div className="w-3 h-3 bg-gray-800 transform rotate-45 absolute -bottom-1 right-4"></div>
                           </div>
@@ -638,11 +773,12 @@ export default function JobsDetailPage() {
                       <div className="p-6">
                         {/* NEW: meta bar tóm tắt compensation */}
                         {(selectedJob.salaryRange || selectedJob.benefitSummary?.length) && (
-                          <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                          <div className="mb-6 rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-4 shadow-sm">
                             <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-800">
                               {selectedJob.salaryRange && (
-                                <li className="font-medium flex items-center gap-1">
-                                  <RiMoneyDollarCircleLine className="text-green-600" size={18} /> {selectedJob.salaryRange}
+                                <li className="salary-badge inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold shadow-md w-fit">
+                                  <RiMoneyDollarCircleLine size={18} />
+                                  {selectedJob.salaryRange}
                                 </li>
                               )}
                               {selectedJob.benefitSummary?.slice(0, 3).map((x, i) => (
@@ -656,33 +792,32 @@ export default function JobsDetailPage() {
                           <div>
                             <h3 className="font-semibold text-gray-900 mb-3">Skills:</h3>
                             <div className="flex flex-wrap gap-2 mb-4">
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Java</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">DevOps</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Linux</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Cloud</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">SQL</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Oracle</span>
+                              {selectedJob.skills && selectedJob.skills.length > 0 ? (
+                                selectedJob.skills.map((skill, index) => (
+                                  <span key={index} className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">
+                                    {skill}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-sm text-gray-500">No skills listed</span>
+                              )}
                             </div>
 
                             <h3 className="font-semibold text-gray-700 mb-3">Job Expertise:</h3>
-                            <p className="text-sm text-gray-700 mb-4 ml-2">DevOps Engineer</p>
+                            <p className="text-sm text-gray-700 mb-4 ml-2">{selectedJob.expertise}</p>
 
                             <h3 className="font-semibold text-gray-700 mb-3">Job Domain:</h3>
                             <div className="flex flex-wrap gap-2 mb-4">
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Banking</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">IT Services and IT Consulting</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Software Products and Web Services</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Securities & Investment</span>
-                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">Financial Services</span>
+                              <span className="px-4 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded-full shadow-sm">{selectedJob.company}</span>
                             </div>
                           </div>
 
                           <div>
-                            <h3 className="font-semibold text-blue-900 mb-3">Top 3 reasons to join us</h3>
-                            <ul className="space-y-2 text-sm">
+                            <h3 className="font-semibold text-gray-900 mb-4">Why you'll love working here</h3>
+                            <ul className="space-y-3 text-sm">
                               {selectedJob.highlights.map((item, index) => (
                                 <li key={index} className="flex items-start gap-2">
-                                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></span>
                                   <span className="text-gray-700">{item}</span>
                                 </li>
                               ))}
@@ -711,14 +846,13 @@ export default function JobsDetailPage() {
                           <div className="flex items-center gap-2 mb-4">
                             <h3 className="font-semibold text-gray-900">Job description</h3>
                           </div>
-                          <ul className="space-y-3 text-sm text-gray-700">
+                          <div className="text-sm text-gray-700 leading-relaxed">
                             {selectedJob.description.map((item, index) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                                <span>{item}</span>
-                              </li>
+                              <p key={index} className="mb-3">
+                                {item}
+                              </p>
                             ))}
-                          </ul>
+                          </div>
                         </div>
                       </div>
                     </div>

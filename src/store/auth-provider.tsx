@@ -20,18 +20,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If no access token in state but we haven't tried refreshing yet
       if (!accessToken && !hasAttemptedRefreshRef.current) {
         hasAttemptedRefreshRef.current = true;
-        console.debug("No access token in state, attempting refresh from cookie...");
+        console.debug("🔍 AuthProvider: No access token in state, attempting refresh from cookie...");
 
         try {
           const newToken = await refresh();
           if (newToken) {
-            console.debug("✅ Successfully restored session from refresh token cookie");
+            console.debug("✅ AuthProvider: Successfully restored session from refresh token cookie");
           } else {
-            console.debug("No valid refresh token cookie found");
+            console.debug("❌ AuthProvider: No valid refresh token cookie found");
           }
         } catch (error) {
-          console.debug("Failed to refresh from cookie:", error);
+          console.debug("❌ AuthProvider: Failed to refresh from cookie:", error);
         }
+      } else if (accessToken) {
+        console.debug("✅ AuthProvider: Access token found in state");
       }
     };
 

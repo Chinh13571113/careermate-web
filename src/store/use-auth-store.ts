@@ -313,46 +313,71 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ candidateId });
   },
 
-  // ✅ Fetch user profile from API to get real userId
+  // ✅ Fetch user profile from API to get real candidateId
   fetchCandidateProfile: async () => {
     try {
       const { isAuthenticated } = get();
       
       // Only fetch if user is authenticated
       if (!isAuthenticated) {
-        console.log('⚠️  Not authenticated, skipping user profile fetch');
+        console.log('⚠️  Not authenticated, skipping candidate profile fetch');
         return;
       }
 
-      console.log('📝 Fetching user profile from /api/users/current...');
+      console.log('📝 Fetching candidate profile from /api/candidates/profiles/current...');
       
-      // Import dynamically to avoid circular dependency
-      const { fetchCurrentUser } = await import('@/lib/candidate-profile-api');
-      const userProfile = await fetchCurrentUser();
-      
-      console.log('✅ User profile fetched:', userProfile);
-      
-      // Update store with userId as candidateId
-      // userProfile.id is the real user ID (number) we need!
-      set({ candidateId: userProfile.id });
-      
-      // Also update user object with profile data
-      set((state) => ({
-        user: {
-          ...state.user,
-          userId: userProfile.id, // Real user ID (number)
-          candidateId: userProfile.id, // Same as userId for candidates
-          username: userProfile.username,
-          email: userProfile.email,
-          status: userProfile.status,
-          roles: userProfile.roles,
+      try {
+        // Try to fetch candidate profile first
+        const { fetchCurrentCandidateProfile } = await import('@/lib/candidate-profile-api');
+        const candidateProfile = await fetchCurrentCandidateProfile();
+        
+        console.log('✅ Candidate profile fetched:', candidateProfile);
+        
+        // Update store with candidateId from the API response
+        set({ candidateId: candidateProfile.candidateId });
+        
+        // Also update candidate object with profile data
+        set((state) => ({
+          candidate: {
+            ...state.candidate,
+            candidateId: candidateProfile.candidateId,
+            fullName: candidateProfile.fullName,
+            email: state.candidate?.email || '', // Keep existing email
+          }
+        }));
+        
+        console.log('✅ Store updated with candidateId:', candidateProfile.candidateId);
+        
+      } catch (profileError: any) {
+        // If profile doesn't exist (400/404), fallback to /api/users/current
+        if (profileError.message === 'PROFILE_NOT_FOUND') {
+          console.log('⚠️ Candidate profile not found, falling back to /api/users/current');
+          
+          const { fetchCurrentUser } = await import('@/lib/candidate-profile-api');
+          const userProfile = await fetchCurrentUser();
+          
+          console.log('✅ User profile fetched (fallback):', userProfile);
+          
+          // Use user.id as candidateId temporarily
+          set({ candidateId: userProfile.id });
+          
+          set((state) => ({
+            candidate: {
+              ...state.candidate,
+              candidateId: userProfile.id,
+              email: userProfile.email,
+            }
+          }));
+          
+          console.log('✅ Store updated with userId (fallback):', userProfile.id);
+          console.log('📊 Current store state:', get());
+        } else {
+          throw profileError;
         }
-      }));
-      
-      console.log('✅ Store updated with userId:', userProfile.id);
+      }
       
     } catch (error) {
-      console.error('❌ Error fetching user profile:', error);
+      console.error('❌ Error fetching candidate profile:', error);
       // Don't throw - let the app continue even if profile fetch fails
     }
   },

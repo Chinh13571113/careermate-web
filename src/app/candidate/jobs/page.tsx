@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -17,11 +17,29 @@ import {
   Briefcase,
   TrendingUp,
 } from "lucide-react";
+import { AiFillLike, AiOutlineLike, AiFillStar } from 'react-icons/ai';
+import { FiStar } from 'react-icons/fi';
+import { toggleSaveJob, toggleLikeJob } from '@/lib/job-api';
+import { useAuthStore } from '@/store/use-auth-store';
+import toast from 'react-hot-toast';
 
 export default function JobsPage() {
+  const { candidateId, fetchCandidateProfile, isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [selectedJobType, setSelectedJobType] = useState("all");
+  const [savingJobId, setSavingJobId] = useState<number | null>(null);
+  const [likingJobId, setLikingJobId] = useState<number | null>(null);
+
+  // ✅ Fetch candidateId if authenticated but missing
+  useEffect(() => {
+    if (isAuthenticated && !candidateId) {
+      console.log('📝 Candidate ID missing, fetching user profile...');
+      fetchCandidateProfile().catch((err) => {
+        console.error('❌ Failed to fetch candidate profile:', err);
+      });
+    }
+  }, [isAuthenticated, candidateId, fetchCandidateProfile]);
 
   const jobTypes = [
     { id: "all", name: "All Types", count: 1240 },
@@ -52,6 +70,7 @@ export default function JobsPage() {
       postedDate: "2 days ago",
       isUrgent: true,
       isSaved: false,
+      isLiked: false,
       skills: ["React", "TypeScript", "Next.js", "Node.js"],
       description:
         "We are looking for an experienced Senior Frontend Developer with React and modern ecosystem to join our product development team.",
@@ -74,6 +93,7 @@ export default function JobsPage() {
       postedDate: "1 day ago",
       isUrgent: false,
       isSaved: true,
+      isLiked: false,
       skills: ["Figma", "Adobe XD", "Sketch", "Prototyping"],
       description:
         "UI/UX Designer position for web and mobile app projects. Experience in user-centered design required.",
@@ -96,6 +116,7 @@ export default function JobsPage() {
       postedDate: "3 days ago",
       isUrgent: false,
       isSaved: false,
+      isLiked: false,
       skills: ["Python", "Machine Learning", "SQL", "Tableau"],
       description:
         "Great internship opportunity for students/fresh graduates who want to step into the Data Science field.",
@@ -118,6 +139,7 @@ export default function JobsPage() {
       postedDate: "1 week ago",
       isUrgent: false,
       isSaved: false,
+      isLiked: false,
       skills: ["Google Ads", "Facebook Ads", "SEO", "Analytics"],
       description:
         "Looking for Digital Marketing Specialist to execute online marketing campaigns for diverse clients.",
@@ -174,7 +196,69 @@ export default function JobsPage() {
     },
   ];
 
-  const filteredJobs = jobs.filter((job) => {
+  const [jobsList, setJobsList] = useState(jobs);
+
+  const handleToggleSave = async (jobId: number, currentlySaved: boolean) => {
+    if (!candidateId) {
+      toast.error('Please login to save jobs');
+      return;
+    }
+
+    setSavingJobId(jobId);
+    try {
+      const newSavedStatus = await toggleSaveJob(candidateId, jobId, currentlySaved);
+
+      // Update local state
+      setJobsList(prevJobs =>
+        prevJobs.map(job =>
+          job.id === jobId ? { ...job, isSaved: newSavedStatus } : job
+        )
+      );
+
+      if (newSavedStatus) {
+        toast.success('Job saved successfully! 💾');
+      } else {
+        toast.success('Job unsaved');
+      }
+    } catch (error: any) {
+      console.error('Error toggling save status:', error);
+      toast.error(error?.response?.data?.message || 'Failed to save job. Please try again.');
+    } finally {
+      setSavingJobId(null);
+    }
+  };
+
+  const handleToggleLike = async (jobId: number, currentlyLiked: boolean) => {
+    if (!candidateId) {
+      toast.error('Please login to like jobs');
+      return;
+    }
+
+    setLikingJobId(jobId);
+    try {
+      const newLikedStatus = await toggleLikeJob(candidateId, jobId, currentlyLiked);
+
+      // Update local state
+      setJobsList(prevJobs =>
+        prevJobs.map(job =>
+          job.id === jobId ? { ...job, isLiked: newLikedStatus } : job
+        )
+      );
+
+      if (newLikedStatus) {
+        toast.success('You like this job! 👍');
+      } else {
+        toast.success('Job unliked');
+      }
+    } catch (error: any) {
+      console.error('Error toggling like status:', error);
+      toast.error(error?.response?.data?.message || 'Failed to like job. Please try again.');
+    } finally {
+      setLikingJobId(null);
+    }
+  };
+
+  const filteredJobs = jobsList.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -259,19 +343,17 @@ export default function JobsPage() {
                     <button
                       key={type.id}
                       onClick={() => setSelectedJobType(type.id)}
-                      className={`w-full text-left flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${
-                        selectedJobType === type.id
-                          ? "bg-gradient-to-r from-[#3a4660] to-gray-400 text-white"
-                          : "hover:bg-gray-100 text-gray-700"
-                      }`}
+                      className={`w-full text-left flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${selectedJobType === type.id
+                        ? "bg-gradient-to-r from-[#3a4660] to-gray-400 text-white"
+                        : "hover:bg-gray-100 text-gray-700"
+                        }`}
                     >
                       <span>{type.name}</span>
                       <span
-                        className={`text-sm ${
-                          selectedJobType === type.id
-                            ? "text-gray-300"
-                            : "text-[#6B7280]"
-                        }`}
+                        className={`text-sm ${selectedJobType === type.id
+                          ? "text-gray-300"
+                          : "text-[#6B7280]"
+                          }`}
                       >
                         ({type.count})
                       </span>
@@ -412,15 +494,62 @@ export default function JobsPage() {
                                   Urgent
                                 </span>
                               )}
-                              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                                <BookmarkIcon
-                                  className={`w-5 h-5 ${
-                                    job.isSaved
-                                      ? "fill-current text-gray-600"
-                                      : ""
-                                  }`}
-                                />
-                              </button>
+
+                              {/* Like Button */}
+                              <div className="relative group">
+                                <button
+                                  onClick={() => handleToggleLike(job.id, job.isLiked || false)}
+                                  disabled={likingJobId === job.id}
+                                  className={`p-2 transition-colors ${likingJobId === job.id
+                                      ? 'cursor-not-allowed opacity-50'
+                                      : job.isLiked
+                                        ? 'text-blue-500'
+                                        : 'text-gray-400 hover:text-blue-500'
+                                    }`}
+                                >
+                                  {job.isLiked ? (
+                                    <AiFillLike className="w-5 h-5" />
+                                  ) : (
+                                    <AiOutlineLike className="w-5 h-5" />
+                                  )}
+                                </button>
+
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+                                  <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                    {job.isLiked ? 'Liked' : 'You like this job'}
+                                  </div>
+                                  <div className="w-2 h-2 bg-gray-800 transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
+                                </div>
+                              </div>
+
+                              {/* Save Button */}
+                              <div className="relative group">
+                                <button
+                                  onClick={() => handleToggleSave(job.id, job.isSaved)}
+                                  disabled={savingJobId === job.id}
+                                  className={`p-2 transition-colors ${savingJobId === job.id
+                                      ? 'cursor-not-allowed opacity-50'
+                                      : job.isSaved
+                                        ? 'text-yellow-500'
+                                        : 'text-gray-400 hover:text-yellow-500'
+                                    }`}
+                                >
+                                  {job.isSaved ? (
+                                    <AiFillStar className="w-5 h-5" />
+                                  ) : (
+                                    <FiStar className="w-5 h-5" />
+                                  )}
+                                </button>
+
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+                                  <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                    {job.isSaved ? 'Saved' : 'Save this job'}
+                                  </div>
+                                  <div className="w-2 h-2 bg-gray-800 transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
+                                </div>
+                              </div>
                             </div>
                           </div>
 

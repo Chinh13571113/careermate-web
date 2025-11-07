@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 
 interface SkillItem {
     id: string;
@@ -24,6 +24,7 @@ interface SkillsDialogProps {
     onRemoveSkill: (id: string) => void;
     onSave: () => void;
     onCancel: () => void;
+    isEditMode?: boolean;
 }
 
 export default function SkillsDialog({
@@ -38,7 +39,8 @@ export default function SkillsDialog({
     onAddSkill,
     onRemoveSkill,
     onSave,
-    onCancel
+    onCancel,
+    isEditMode = false
 }: SkillsDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,16 +82,16 @@ export default function SkillsDialog({
                                         <SelectValue placeholder="Select experience" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="1">1 year</SelectItem>
-                                        <SelectItem value="2">2 years</SelectItem>
-                                        <SelectItem value="3">3 years</SelectItem>
-                                        <SelectItem value="4">4 years</SelectItem>
-                                        <SelectItem value="5">5 years</SelectItem>
-                                        <SelectItem value="6">6 years</SelectItem>
-                                        <SelectItem value="7">7 years</SelectItem>
-                                        <SelectItem value="8">8 years</SelectItem>
-                                        <SelectItem value="9">9 years</SelectItem>
-                                        <SelectItem value="10">10 years</SelectItem>
+                                        <SelectItem value="1">&lt;1 year</SelectItem>
+                                        <SelectItem value="2">1 year+</SelectItem>
+                                        <SelectItem value="3">2 years+</SelectItem>
+                                        <SelectItem value="4">3 years+</SelectItem>
+                                        <SelectItem value="5">4 years+</SelectItem>
+                                        <SelectItem value="6">5 years+</SelectItem>
+                                        <SelectItem value="7">6 years+</SelectItem>
+                                        <SelectItem value="8">7 years+</SelectItem>
+                                        <SelectItem value="9">8 years+</SelectItem>
+                                        <SelectItem value="10">9 years+</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -114,14 +116,20 @@ export default function SkillsDialog({
                                 >
                                     <span>{skill.skill}</span>
                                     {skill.experience && (
-                                        <span className="text-gray-500">({skill.experience} years)</span>
+                                        <span className="text-gray-500">
+                                            ({parseInt(skill.experience) === 1
+                                                ? '<1 year'
+                                                : parseInt(skill.experience) === 2
+                                                    ? '1 year+'
+                                                    : `${parseInt(skill.experience) - 1} years+`})
+                                        </span>
                                     )}
                                     <button
                                         className="ml-1 text-gray-400 hover:text-red-500"
                                         onClick={() => onRemoveSkill(skill.id)}
                                         type="button"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <X className="w-3 h-3" />
                                     </button>
                                 </div>
                             ))}

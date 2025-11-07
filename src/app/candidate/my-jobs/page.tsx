@@ -13,6 +13,13 @@ import {
   formatApplicationDate,
   type JobApplication
 } from "@/lib/my-jobs-api";
+import {
+  fetchSavedJobs,
+  unsaveJob,
+  fetchViewedJobs,
+  type SavedJobFeedback
+} from "@/lib/job-api";
+import { ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 
 type TabType = "applied" | "saved" | "recent";
@@ -30,7 +37,11 @@ const MyJobsPage = () => {
 
   // State for job applications
   const [jobApplications, setJobApplications] = useState<JobApplication[]>([]);
+  const [savedJobs, setSavedJobs] = useState<SavedJobFeedback[]>([]);
+  const [viewedJobs, setViewedJobs] = useState<SavedJobFeedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavedJobsLoading, setIsSavedJobsLoading] = useState(false);
+  const [isViewedJobsLoading, setIsViewedJobsLoading] = useState(false);
   const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
 
   // Chỉ sử dụng localStorage ở client-side
@@ -86,6 +97,73 @@ const MyJobsPage = () => {
     loadJobApplications();
   }, [candidateId]);
 
+  // Fetch saved jobs when tab changes to "saved"
+  useEffect(() => {
+    const loadSavedJobs = async () => {
+      if (activeTab !== "saved" || !candidateId) {
+        return;
+      }
+
+      setIsSavedJobsLoading(true);
+      try {
+        console.log('📡 Fetching saved jobs for candidate:', candidateId);
+        const jobs = await fetchSavedJobs(candidateId);
+        setSavedJobs(jobs);
+        console.log(`✅ Loaded ${jobs.length} saved jobs`, jobs);
+      } catch (error: any) {
+        console.error('❌ Failed to load saved jobs:', error);
+        toast.error('Failed to load saved jobs');
+      } finally {
+        setIsSavedJobsLoading(false);
+      }
+    };
+
+    loadSavedJobs();
+  }, [activeTab, candidateId]);
+
+  // Fetch viewed jobs when tab changes to "recent"
+  useEffect(() => {
+    const loadViewedJobs = async () => {
+      if (activeTab !== "recent" || !candidateId) {
+        return;
+      }
+
+      setIsViewedJobsLoading(true);
+      try {
+        console.log('📡 Fetching viewed jobs for candidate:', candidateId);
+        const jobs = await fetchViewedJobs(candidateId);
+        setViewedJobs(jobs);
+        console.log(`✅ Loaded ${jobs.length} viewed jobs`, jobs);
+      } catch (error: any) {
+        console.error('❌ Failed to load viewed jobs:', error);
+        toast.error('Failed to load viewed jobs');
+      } finally {
+        setIsViewedJobsLoading(false);
+      }
+    };
+
+    loadViewedJobs();
+  }, [activeTab, candidateId]);
+
+  const handleUnsaveJob = async (jobId: number) => {
+    if (!candidateId) {
+      toast.error("Please login to unsave jobs");
+      return;
+    }
+
+    try {
+      console.log('🗑️ Unsaving job:', jobId);
+      await unsaveJob(candidateId, jobId);
+
+      // Update local state
+      setSavedJobs(prev => prev.filter(job => job.jobId !== jobId));
+      toast.success("Job removed from saved");
+    } catch (error: any) {
+      console.error('❌ Failed to unsave job:', error);
+      toast.error('Failed to remove job from saved');
+    }
+  };
+
   const toggleJobDetails = (jobId: number) => {
     setExpandedJobId(expandedJobId === jobId ? null : jobId);
   };
@@ -138,8 +216,8 @@ const MyJobsPage = () => {
                     }`}
                 >
                   Saved Jobs
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full">
-                    0
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-500 text-white rounded-full">
+                    {savedJobs.length}
                   </span>
                 </button>
 
@@ -151,8 +229,8 @@ const MyJobsPage = () => {
                     }`}
                 >
                   Recent Viewed Jobs
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full">
-                    6
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-500 text-white rounded-full">
+                    {viewedJobs.length}
                   </span>
                 </button>
               </div>
@@ -324,62 +402,225 @@ const MyJobsPage = () => {
                 )}
 
                 {activeTab === "saved" && (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="bg-gray-200 p-4 rounded-lg mb-4">
-                      <svg
-                        className="w-16 h-16 text-gray-400"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                        />
-                      </svg>
+                  <div>
+                    {/* Header with info and sort */}
+                    <div className="flex items-center justify-between mb-6 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>You can save up to 20 jobs.</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>Sort by:</span>
+                        <button className="font-medium text-gray-900 flex items-center gap-1">
+                          Nearest expiration time
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-gray-500 mb-6">
-                      You haven't saved any jobs yet.
-                    </p>
-                    <Link
-                      href="/jobs-list"
-                      className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-md font-medium"
-                    >
-                      Explore jobs
-                    </Link>
+
+                    {/* Loading state */}
+                    {isSavedJobsLoading && (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
+
+                    {/* Saved Jobs List */}
+                    {!isSavedJobsLoading && savedJobs.length > 0 && (
+                      <div className="space-y-4">
+                        {savedJobs.map((job) => (
+                          <div
+                            key={job.id}
+                            className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-sm transition-shadow"
+                          >
+                            <div className="flex items-start gap-4">
+                              {/* Company Logo */}
+                              <div className="w-20 h-20 bg-black rounded flex-shrink-0 flex items-center justify-center">
+                                <div className="w-12 h-12 bg-white transform rotate-12" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%)' }}></div>
+                              </div>
+
+                              {/* Job Info */}
+                              <div className="flex-1 min-w-0">
+                                <Link
+                                  href={`/jobs-detail?id=${job.jobId}`}
+                                  className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors block mb-2"
+                                >
+                                  {job.jobTitle}
+                                </Link>
+
+                                <p className="text-gray-700 mb-2">{job.candidateName}</p>
+
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
+                                  <span>{job.candidateName}</span>
+                                  <span>•</span>
+                                  <span>At office</span>
+                                </div>
+
+                                <div className="salary-badge">
+                                  💰 1,500 - 4,000 USD
+                                </div>
+                              </div>
+
+                              {/* Right Side - Posted Info and Actions */}
+                              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                                <div className="text-right text-sm">
+                                  <p className="text-gray-600">Posted {Math.floor((new Date().getTime() - new Date(job.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days ago</p>
+                                  <p className="text-orange-500">(Expires in 19 days)</p>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    href={`/jobs-detail?id=${job.jobId}`}
+                                    className="px-6 py-2 border-2 border-red-500 text-red-500 rounded hover:bg-red-50 transition-colors font-medium"
+                                  >
+                                    Apply now
+                                  </Link>
+                                  <button
+                                    onClick={() => handleUnsaveJob(job.jobId)}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
+                                    title="Remove from saved"
+                                  >
+                                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!isSavedJobsLoading && savedJobs.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16">
+                        <div className="bg-gray-200 p-4 rounded-lg mb-4">
+                          <svg
+                            className="w-16 h-16 text-gray-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-gray-500 mb-6">
+                          You haven't saved any jobs yet.
+                        </p>
+                        <Link
+                          href="/jobs-list"
+                          className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-md font-medium"
+                        >
+                          Explore jobs
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === "recent" && (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="bg-gray-200 p-4 rounded-lg mb-4">
-                      <svg
-                        className="w-16 h-16 text-gray-400"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-gray-500 mb-6">
-                      No recently viewed jobs to display.
-                    </p>
-                    <Link
-                      href="/jobs-list"
-                      className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-md font-medium"
-                    >
-                      Explore jobs
-                    </Link>
+                  <div>
+                    {/* Loading state */}
+                    {isViewedJobsLoading && (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
+
+                    {/* Viewed Jobs List */}
+                    {!isViewedJobsLoading && viewedJobs.length > 0 && (
+                      <div className="space-y-4">
+                        {viewedJobs.map((job) => (
+                          <div
+                            key={job.id}
+                            className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-sm transition-shadow"
+                          >
+                            <div className="flex items-start gap-4">
+                              {/* Company Logo */}
+                              <div className="w-20 h-20 bg-black rounded flex-shrink-0 flex items-center justify-center">
+                                <div className="w-12 h-12 bg-white transform rotate-12" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%)' }}></div>
+                              </div>
+
+                              {/* Job Info */}
+                              <div className="flex-1 min-w-0">
+                                <Link
+                                  href={`/jobs-detail?id=${job.jobId}`}
+                                  className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors block mb-2"
+                                >
+                                  {job.jobTitle}
+                                </Link>
+
+                                <p className="text-gray-700 mb-2">{job.candidateName}</p>
+
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
+                                  <span>{job.candidateName}</span>
+                                  <span>•</span>
+                                  <span>At office</span>
+                                </div>
+
+                                <div className="salary-badge">
+                                  💰 Salary Range
+                                </div>
+                              </div>
+
+                              {/* Right Side - Viewed Info and Actions */}
+                              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                                <div className="text-right text-sm">
+                                  <p className="text-gray-600">Viewed {Math.floor((new Date().getTime() - new Date(job.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days ago</p>
+                                </div>
+
+                                <Link
+                                  href={`/jobs-detail?id=${job.jobId}`}
+                                  className="px-6 py-2 border-2 border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-colors font-medium"
+                                >
+                                  View Details
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!isViewedJobsLoading && viewedJobs.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16">
+                        <div className="bg-gray-200 p-4 rounded-lg mb-4">
+                          <svg
+                            className="w-16 h-16 text-gray-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-gray-500 mb-6">
+                          No recently viewed jobs to display.
+                        </p>
+                        <Link
+                          href="/jobs-list"
+                          className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-md font-medium"
+                        >
+                          Explore jobs
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

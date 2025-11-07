@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { FiEdit } from "react-icons/fi";
 import { SkillGroup, SkillItem } from "./types";
 
 interface SkillsSectionProps {
@@ -6,6 +7,8 @@ interface SkillsSectionProps {
     softSkillItems: SkillItem[];
     onAddCoreSkills: () => void;
     onAddSoftSkills: () => void;
+    onEditCoreSkills?: (group: SkillGroup) => void;
+    onEditSoftSkills?: () => void;
     popoverOpen: boolean;
     setPopoverOpen: (open: boolean) => void;
 }
@@ -15,6 +18,8 @@ export default function SkillsSection({
     softSkillItems,
     onAddCoreSkills,
     onAddSoftSkills,
+    onEditCoreSkills,
+    onEditSoftSkills,
     popoverOpen,
     setPopoverOpen
 }: SkillsSectionProps) {
@@ -75,7 +80,20 @@ export default function SkillsSection({
                 <div className="mt-4 space-y-4">
                     {coreSkillGroups.map((group) => (
                         <div key={group.id} className="space-y-2">
-                            <div className="font-semibold text-gray-900">{group.name}</div>
+                            <div className="flex items-center justify-between">
+                                <div className="font-semibold text-gray-900">Core Skills</div>
+                                {onEditCoreSkills && (
+                                    <button
+                                        onClick={() => onEditCoreSkills(group)}
+                                        className="text-gray-400 hover:text-blue-600 p-1.5"
+                                        title="Edit core skills"
+                                    >
+                                        <FiEdit className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                            {/* Gray divider line */}
+                            <div className="border-t border-gray-200"></div>
                             <div className="flex flex-wrap gap-2">
                                 {group.items.map((item) => (
                                     <div
@@ -85,7 +103,13 @@ export default function SkillsSection({
                                     >
                                         <span>{item.skill}</span>
                                         {item.experience && (
-                                            <span className="text-gray-500">({item.experience} years)</span>
+                                            <span className="text-gray-500">
+                                                ({parseInt(item.experience) === 1
+                                                    ? '<1 year'
+                                                    : parseInt(item.experience) === 2
+                                                        ? '1 year+'
+                                                        : `${parseInt(item.experience) - 1} years+`})
+                                            </span>
                                         )}
                                     </div>
                                 ))}
@@ -94,7 +118,20 @@ export default function SkillsSection({
                     ))}
                     {softSkillItems.length > 0 && (
                         <div className="space-y-2">
-                            <div className="font-semibold text-gray-900">Soft Skills</div>
+                            <div className="flex items-center justify-between">
+                                <div className="font-semibold text-gray-900">Soft Skills</div>
+                                {onEditSoftSkills && (
+                                    <button
+                                        onClick={onEditSoftSkills}
+                                        className="text-gray-400 hover:text-blue-600 p-1.5"
+                                        title="Edit soft skills"
+                                    >
+                                        <FiEdit className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                            {/* Gray divider line */}
+                            <div className="border-t border-gray-200"></div>
                             <div className="flex flex-wrap gap-2">
                                 {softSkillItems.map((item) => (
                                     <div

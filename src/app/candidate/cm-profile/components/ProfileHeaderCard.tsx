@@ -1,5 +1,6 @@
 import { FiEdit } from "react-icons/fi";
-import { FaEnvelope, FaPhone, FaCalendar, FaVenusMars, FaMapMarkerAlt, FaLink } from "react-icons/fa";
+import { FaEnvelope, FaPhone, FaCalendar, FaMapMarkerAlt, FaLink, FaGenderless } from "react-icons/fa";
+import { BsGenderMale, BsGenderFemale } from "react-icons/bs";
 
 interface ProfileHeaderCardProps {
     profileName: string;
@@ -26,6 +27,19 @@ export default function ProfileHeaderCard({
     email,
     onEditPersonalDetails
 }: ProfileHeaderCardProps) {
+    // Determine gender icon based on profileGender value
+    const getGenderIcon = () => {
+        const gender = profileGender?.toLowerCase();
+        if (gender === 'male') {
+            return <BsGenderMale className="text-gray-400 text-base" />;
+        } else if (gender === 'female') {
+            return <BsGenderFemale className="text-gray-400 text-base" />;
+        } else {
+            // For 'other' or empty/undefined
+            return <FaGenderless className="text-gray-400 text-base" />;
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-6">
@@ -41,10 +55,10 @@ export default function ProfileHeaderCard({
                     </div>
                     <div>
                         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-                            {profileName || 'Lê Quang Anh'}
+                            {profileName || 'Your full name'}
                         </h1>
                         <p className="text-base font-semibold text-gray-900">
-                            {profileTitle || 'Backend Developer'}
+                            {profileTitle || 'Your title'}
                         </p>
                     </div>
                 </div>
@@ -78,7 +92,7 @@ export default function ProfileHeaderCard({
                     </span>
                 </div>
                 <div className="flex items-center space-x-2.5">
-                    <FaVenusMars className="text-gray-400 text-base" />
+                    {getGenderIcon()}
                     <span className={profileGender ? "text-gray-900 font-medium" : "text-gray-400"}>
                         {profileGender || "Your gender"}
                     </span>

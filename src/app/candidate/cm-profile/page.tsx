@@ -79,6 +79,11 @@ export default function ITviecProfile() {
     skill: string;
     experience?: string;
   }>>([]);
+  const [originalSkills, setOriginalSkills] = useState<Array<{
+    id: string;
+    skill: string;
+    experience?: string;
+  }>>([]);
   const { headerHeight } = useLayout();
   const [headerH, setHeaderH] = useState(headerHeight || 0);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -94,6 +99,60 @@ export default function ITviecProfile() {
   const [profileLink, setProfileLink] = useState("");
   const [profileImage, setProfileImage] = useState("");
   const [userEmail, setUserEmail] = useState("");
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (): number => {
+    let completion = 0;
+
+    // 1. Awards, Certificates, Projects, Languages: +5% each if at least 1 item exists
+    if (awardsHook.awards.length > 0) completion += 5;
+    if (certificatesHook.certificates.length > 0) completion += 5;
+    if (projectsHook.projects.length > 0) completion += 5;
+    if (languagesHook.languages.length > 0) completion += 5;
+
+    // 2. Education, About Me: +10% each if exists
+    if (educationHook.educations.length > 0) completion += 10;
+    if (aboutMeHook.aboutMeText.trim().length > 0) completion += 10;
+
+    // 3. Work Experience: +10% per item (max 3 = 30%)
+    const workExpCount = Math.min(workExpHook.workExperiences.length, 3);
+    completion += workExpCount * 10;
+
+    // 4. Core Skills: +2.5% per skill (max 8 = 20%)
+    const coreSkillsCount = skillsHook.coreSkillGroups.reduce(
+      (total, group) => total + (group.items?.length || 0),
+      0
+    );
+    const coreSkillsBonus = Math.min(coreSkillsCount, 8) * 2.5;
+    completion += coreSkillsBonus;
+
+    // 5. Soft Skills: +2.5% if at least 1 exists
+    const softSkillsCount = skillsHook.softSkillGroups.reduce(
+      (total, group) => total + (group.items?.length || 0),
+      0
+    );
+    if (softSkillsCount > 0) completion += 2.5;
+
+    // 6. Profile Header fields (excluding image): distribute remaining % among filled fields
+    // Total possible from above: 5+5+5+5+10+10+30+20+2.5 = 92.5%
+    // Remaining for profile fields: 7.5%
+    const profileFields = [
+      profileName,
+      profileTitle,
+      profilePhone,
+      profileDob,
+      profileGender,
+      profileAddress,
+      profileLink
+    ];
+    const filledProfileFields = profileFields.filter(field => field && field.trim().length > 0).length;
+    const profileFieldBonus = (filledProfileFields / profileFields.length) * 7.5;
+    completion += profileFieldBonus;
+
+    return Math.round(completion);
+  };
+
+  const profileCompletion = calculateProfileCompletion();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -427,11 +486,12 @@ export default function ITviecProfile() {
       return;
     }
 
-    await skillsHook.saveSkills(skills, skillType);
+    await skillsHook.saveSkills(skills, skillType, originalSkills);
 
     // Reset form after successful save
     setSkillType("");
     setSkills([]);
+    setOriginalSkills([]);
     setSelectedSkill("");
     setSkillExperience("");
   };
@@ -441,8 +501,28 @@ export default function ITviecProfile() {
     // Reset form
     setSkillType("");
     setSkills([]);
+    setOriginalSkills([]);
     setSelectedSkill("");
     setSkillExperience("");
+  };
+
+  // Edit handlers for skills
+  const handleEditCoreSkills = (group: any) => {
+    // Populate dialog with existing core skills
+    setSkillType("core");
+    const groupSkills = group.items || [];
+    setSkills([...groupSkills]);
+    setOriginalSkills([...groupSkills]); // Store original for comparison
+    skillsHook.setIsSkillDialogOpen(true);
+  };
+
+  const handleEditSoftSkills = () => {
+    // Populate dialog with existing soft skills
+    setSkillType("soft");
+    const softSkills = skillsHook.softSkillGroups.flatMap(group => group.items || []);
+    setSkills([...softSkills]);
+    setOriginalSkills([...softSkills]); // Store original for comparison
+    skillsHook.setIsSkillDialogOpen(true);
   };
 
   // Personal Detail handlers
@@ -478,9 +558,6 @@ export default function ITviecProfile() {
       toast.error("Failed to update personal details. Please try again.");
     }
   };
-
-
-  const profileCompletion = 20; // 20% completed
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -552,12 +629,18 @@ export default function ITviecProfile() {
               softSkillItems={skillsHook.softSkillGroups.flatMap(group => group.items || [])}
               onAddCoreSkills={() => {
                 setSkillType("core");
+                setSkills([]);
+                setOriginalSkills([]);
                 skillsHook.setIsSkillDialogOpen(true);
               }}
               onAddSoftSkills={() => {
                 setSkillType("soft");
+                setSkills([]);
+                setOriginalSkills([]);
                 skillsHook.setIsSkillDialogOpen(true);
               }}
+              onEditCoreSkills={handleEditCoreSkills}
+              onEditSoftSkills={handleEditSoftSkills}
               popoverOpen={popoverOpen}
               setPopoverOpen={setPopoverOpen}
             />
@@ -610,6 +693,7 @@ export default function ITviecProfile() {
         onRemoveSkill={handleRemoveSkill}
         onSave={handleSaveSkills}
         onCancel={handleCancelSkills}
+        isEditMode={skills.length > 0}
       />
 
       {/* Certificate Dialog Component */}

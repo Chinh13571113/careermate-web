@@ -309,6 +309,6 @@ export const addSkill = async (data: SkillData): Promise<any> => {
   return response.data.result || response.data;
 };
 
-export const deleteSkill = async (skillId: number): Promise<void> => {
-  await api.delete(`/api/skill/${skillId}`);
+export const deleteSkill = async (resumeId: number, skillId: number): Promise<void> => {
+  await api.delete(`/api/skill/${resumeId}/${skillId}`);
 };

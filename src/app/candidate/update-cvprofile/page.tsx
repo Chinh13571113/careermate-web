@@ -645,7 +645,7 @@ export default function UpdateCVProfilePage() {
                       />
                     </svg>
                   </span>
-                  <span>CV Attachment</span>
+                  <span>CV Management</span>
                 </Link>
 
                 <Link
@@ -991,7 +991,7 @@ export default function UpdateCVProfilePage() {
                 <div className="flex-1">
                   <h2 className="text-xl font-bold mb-4">Skills</h2>
                   {completedSections.coreSkills ||
-                  completedSections.softSkills ? (
+                    completedSections.softSkills ? (
                     <div className="text-gray-700">
                       {completedSections.coreSkills && (
                         <div className="mb-2">
@@ -1049,7 +1049,7 @@ export default function UpdateCVProfilePage() {
                     onClick={openSkillsOptions}
                   >
                     {completedSections.coreSkills ||
-                    completedSections.softSkills ? (
+                      completedSections.softSkills ? (
                       <Edit size={24} />
                     ) : (
                       <CirclePlus size={24} />
@@ -1406,9 +1406,8 @@ export default function UpdateCVProfilePage() {
                   >
                     <ChevronDown
                       size={20}
-                      className={`transition-transform duration-300 ${
-                        showMoreInfo ? "rotate-180" : ""
-                      }`}
+                      className={`transition-transform duration-300 ${showMoreInfo ? "rotate-180" : ""
+                        }`}
                     />
                     <span>Add more information</span>
                   </button>
@@ -1422,11 +1421,10 @@ export default function UpdateCVProfilePage() {
                 </div>
 
                 <button
-                  className={`w-full py-3 ${
-                    profileCompletion >= 70
+                  className={`w-full py-3 ${profileCompletion >= 70
                       ? "bg-[#5d5d5d] hover:bg-red-600"
                       : "bg-gray-400 cursor-not-allowed"
-                  } text-white font-medium rounded-md transition`}
+                    } text-white font-medium rounded-md transition`}
                   disabled={profileCompletion < 70}
                 >
                   Preview & Download CV
@@ -1456,31 +1454,28 @@ export default function UpdateCVProfilePage() {
         projectModal ||
         certificationModal ||
         awardModal) && (
-        <div
-          className={`fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
-          onClick={(e) => {
-            e.preventDefault();
-            closeAllModals();
-          }}
-        />
-      )}
+          <div
+            className={`fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+              }`}
+            onClick={(e) => {
+              e.preventDefault();
+              closeAllModals();
+            }}
+          />
+        )}
 
       {/* Personal Info Modal */}
       {personalInfoModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Personal details</h3>
@@ -1720,17 +1715,15 @@ export default function UpdateCVProfilePage() {
       {/* About Me Modal */}
       {aboutMeModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">About Me</h3>
@@ -1832,17 +1825,15 @@ export default function UpdateCVProfilePage() {
       {/* Education Modal */}
       {educationModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Education</h3>
@@ -2029,17 +2020,15 @@ export default function UpdateCVProfilePage() {
       {/* Work Experience Modal */}
       {workExpModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Work Experience</h3>
@@ -2236,17 +2225,15 @@ export default function UpdateCVProfilePage() {
       {/* Core Skills Modal */}
       {skillsModal && skillType === "core" && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Core Skills</h3>
@@ -2381,17 +2368,15 @@ export default function UpdateCVProfilePage() {
       {/* Soft Skills Modal */}
       {skillsModal && skillType === "soft" && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Soft Skills</h3>
@@ -2554,17 +2539,15 @@ export default function UpdateCVProfilePage() {
       {/* Foreign Language Modal */}
       {languageModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Foreign Language</h3>
@@ -2762,17 +2745,15 @@ export default function UpdateCVProfilePage() {
       {/* Highlight Project Modal */}
       {projectModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Highlight Project</h3>
@@ -3013,17 +2994,15 @@ export default function UpdateCVProfilePage() {
       {/* Certificates Modal */}
       {certificationModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Certificates</h3>
@@ -3180,17 +3159,15 @@ export default function UpdateCVProfilePage() {
       {/* Awards Modal */}
       {awardModal && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${
-            modalAnimation ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${modalAnimation ? "opacity-100" : "opacity-0"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${
-              modalAnimation
+            className={`bg-white rounded-lg shadow-xl w-full max-w-3xl transition-all duration-300 overflow-hidden ${modalAnimation
                 ? "transform scale-100 translate-y-0"
                 : "transform scale-95 -translate-y-4"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-xl font-bold">Awards</h3>

@@ -28,6 +28,7 @@ export interface JobPosting {
   yearsOfExperience: number;
   workModel: string;
   salaryRange: string;
+  reason: string; // Why you should join us
   jobPackage: string;
   recruiterInfo: RecruiterInfo;
 }
@@ -148,14 +149,24 @@ export const transformJobPosting = (job: JobPosting) => {
     experience: `${job.yearsOfExperience}+ years`,
     expertise: job.title, // Using title as expertise
     skills: job.skills.map(s => s.name),
-    highlights: mustHaveSkills.length > 0 ? [`Must have: ${mustHaveSkills.join(', ')}`] : [],
-    description: job.description.split('\n').filter(line => line.trim() !== ''),
+    mustHaveSkills: mustHaveSkills, // ✅ Skills required
+    niceToHaveSkills: niceToHaveSkills, // ✅ Skills nice to have
+    highlights: [
+      ...(mustHaveSkills.length > 0 ? [`Must have: ${mustHaveSkills.join(', ')}`] : []),
+      ...(job.reason ? [job.reason] : []) // ✅ Why you should join
+    ],
+    description: job.description ? job.description.split('\n').filter(line => line.trim() !== '') : [], // ✅ Full job description
+    whyYouShouldJoin: job.reason || '', // ✅ Reason to join
     salaryRange: job.salaryRange,
     benefitSummary: job.jobPackage ? [job.jobPackage] : [],
     benefits: job.jobPackage ? [job.jobPackage] : [],
-    isHot: false, // API doesn't provide this
-    isNegotiable: job.salaryRange.toLowerCase().includes('negotiable'),
+    isHot: job.jobPackage === 'Premium', // Mark premium jobs as hot
+    isNegotiable: job.salaryRange.toLowerCase().includes('negotiable') || job.salaryRange.toLowerCase().includes('thỏa thuận'),
     companyType: job.recruiterInfo.about || '',
+    companyWebsite: job.recruiterInfo.website || '',
+    companyAbout: job.recruiterInfo.about || '',
+    expirationDate: job.expirationDate,
+    postTime: job.postTime,
   };
 };
 
@@ -261,5 +272,260 @@ export const fetchJobPostingById = async (id: number): Promise<JobPosting | null
   } catch (error) {
     console.error(`Error fetching job posting ${id}:`, error);
     return null;
+  }
+};
+
+// ==================== JOB FEEDBACK API ====================
+
+export interface SaveJobRequest {
+  candidateId: number;
+  jobId: number;
+  feedbackType: 'save';
+  score: number; // typically 1 for save
+}
+
+export interface SaveJobResponse {
+  code: number;
+  message: string;
+  result?: any;
+}
+
+/**
+ * Save/bookmark a job
+ * POST /api/job-feedback
+ */
+export const saveJob = async (candidateId: number, jobId: number): Promise<SaveJobResponse> => {
+  try {
+    const requestBody: SaveJobRequest = {
+      candidateId,
+      jobId,
+      feedbackType: 'save',
+      score: 1
+    };
+
+    console.log('💾 Saving job:', requestBody);
+    const response = await api.post('/api/job-feedback', requestBody);
+    console.log('✅ Job saved successfully:', response.data);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error saving job:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Unsave/unbookmark a job
+ * DELETE /api/job-feedback?jobId={jobId}&candidateId={candidateId}&feedbackType=save
+ */
+export const unsaveJob = async (candidateId: number, jobId: number): Promise<void> => {
+  try {
+    const params = new URLSearchParams({
+      jobId: jobId.toString(),
+      candidateId: candidateId.toString(),
+      feedbackType: 'save'
+    });
+
+    console.log('🗑️ Unsaving job:', { candidateId, jobId });
+    await api.delete(`/api/job-feedback?${params.toString()}`);
+    console.log('✅ Job unsaved successfully');
+  } catch (error: any) {
+    console.error('❌ Error unsaving job:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Toggle save status of a job
+ * Helper function that calls saveJob or unsaveJob based on current status
+ */
+export const toggleSaveJob = async (
+  candidateId: number, 
+  jobId: number, 
+  currentlySaved: boolean
+): Promise<boolean> => {
+  try {
+    if (currentlySaved) {
+      await unsaveJob(candidateId, jobId);
+      return false; // Now unsaved
+    } else {
+      await saveJob(candidateId, jobId);
+      return true; // Now saved
+    }
+  } catch (error) {
+    console.error('Error toggling save status:', error);
+    throw error;
+  }
+};
+
+// ==================== JOB LIKE API ====================
+
+export interface LikeJobRequest {
+  candidateId: number;
+  jobId: number;
+  feedbackType: 'like';
+  score: number; // typically 1 for like
+}
+
+/**
+ * Like a job
+ * POST /api/job-feedback
+ */
+export const likeJob = async (candidateId: number, jobId: number): Promise<SaveJobResponse> => {
+  try {
+    const requestBody: LikeJobRequest = {
+      candidateId,
+      jobId,
+      feedbackType: 'like',
+      score: 1
+    };
+
+    console.log('👍 Liking job:', requestBody);
+    const response = await api.post('/api/job-feedback', requestBody);
+    console.log('✅ Job liked successfully:', response.data);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error liking job:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Unlike a job
+ * DELETE /api/job-feedback?jobId={jobId}&candidateId={candidateId}&feedbackType=like
+ */
+export const unlikeJob = async (candidateId: number, jobId: number): Promise<void> => {
+  try {
+    const params = new URLSearchParams({
+      jobId: jobId.toString(),
+      candidateId: candidateId.toString(),
+      feedbackType: 'like'
+    });
+
+    console.log('👎 Unliking job:', { candidateId, jobId });
+    await api.delete(`/api/job-feedback?${params.toString()}`);
+    console.log('✅ Job unliked successfully');
+  } catch (error: any) {
+    console.error('❌ Error unliking job:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Toggle like status of a job
+ * Helper function that calls likeJob or unlikeJob based on current status
+ */
+export const toggleLikeJob = async (
+  candidateId: number, 
+  jobId: number, 
+  currentlyLiked: boolean
+): Promise<boolean> => {
+  try {
+    if (currentlyLiked) {
+      await unlikeJob(candidateId, jobId);
+      return false; // Now unliked
+    } else {
+      await likeJob(candidateId, jobId);
+      return true; // Now liked
+    }
+  } catch (error) {
+    console.error('Error toggling like status:', error);
+    throw error;
+  }
+};
+
+// ==================== SAVED JOBS API ====================
+
+export interface SavedJobFeedback {
+  id: number;
+  candidateId: number;
+  candidateName: string;
+  jobId: number;
+  jobTitle: string;
+  feedbackType: string;
+  score: number;
+  createdAt: string;
+}
+
+export interface SavedJobsResponse {
+  code: number;
+  message: string;
+  result: SavedJobFeedback[];
+}
+
+/**
+ * Fetch saved jobs for a candidate
+ * GET /api/job-feedback/candidate/{candidateId}/type/save
+ */
+export const fetchSavedJobs = async (candidateId: number): Promise<SavedJobFeedback[]> => {
+  try {
+    console.log('📡 Fetching saved jobs for candidate:', candidateId);
+    
+    const response = await api.get<SavedJobsResponse>(
+      `/api/job-feedback/candidate/${candidateId}/type/save`
+    );
+
+    console.log('✅ Saved jobs response:', response.data);
+
+    if (response.data.code === 200 || response.data.code === 1073741824) {
+      return response.data.result || [];
+    }
+
+    console.warn('⚠️ Unexpected response code:', response.data.code);
+    return [];
+  } catch (error: any) {
+    console.error('❌ Error fetching saved jobs:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// ==================== VIEW JOB API ====================
+
+/**
+ * Record a job view
+ * POST /api/job-feedback
+ */
+export const viewJob = async (candidateId: number, jobId: number): Promise<void> => {
+  try {
+    console.log('👁️ Recording job view - candidateId:', candidateId, 'jobId:', jobId);
+    const response = await api.post('/api/job-feedback', {
+      candidateId,
+      jobId,
+      feedbackType: 'view',
+      score: 1
+    });
+    console.log('✅ Job view recorded:', response.data);
+  } catch (error: any) {
+    console.error('❌ Error recording job view:', error);
+    // Don't throw error, view tracking should be silent
+  }
+};
+
+/**
+ * Fetch viewed jobs for a candidate
+ * GET /api/job-feedback/candidate/{candidateId}/type/view
+ */
+export const fetchViewedJobs = async (candidateId: number): Promise<SavedJobFeedback[]> => {
+  try {
+    console.log('📡 Fetching viewed jobs for candidate:', candidateId);
+    
+    const response = await api.get<SavedJobsResponse>(
+      `/api/job-feedback/candidate/${candidateId}/type/view`
+    );
+
+    console.log('✅ Viewed jobs response:', response.data);
+
+    if (response.data.code === 200 || response.data.code === 1073741824) {
+      return response.data.result || [];
+    }
+
+    console.warn('⚠️ Unexpected response code:', response.data.code);
+    return [];
+  } catch (error: any) {
+    console.error('❌ Error fetching viewed jobs:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    return [];
   }
 };

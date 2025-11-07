@@ -7,7 +7,7 @@
 ### 1️⃣ Dashboard (`/candidate/dashboard`)
 
 - ✅ Welcome header với avatar & info
-- ✅ CV attachment status card
+- ✅ CV Management status card
 - ✅ ITviec Profile progress (58% với circular progress)
 - ✅ Your Activities: 3 cards thống kê (Applied, Saved, Invitations)
 - ✅ Loading skeleton
@@ -46,7 +46,7 @@ docs/
 | Menu Item     | Old Route                  | New Route                  | Status      |
 | ------------- | -------------------------- | -------------------------- | ----------- |
 | Dashboard     | ❌ N/A                     | `/candidate/dashboard`     | ✅ NEW      |
-| CV Attachment | `/candidate/cv-management` | `/candidate/cv-management` | ✅ Existing |
+| CV Management | `/candidate/cv-management` | `/candidate/cv-management` | ✅ Existing |
 | CM Profile    | `/candidate/profile`       | `/candidate/cm-profile`    | ✅ NEW      |
 | My Jobs       | `/candidate/my-jobs`       | `/candidate/my-jobs`       | ✅ Existing |
 
