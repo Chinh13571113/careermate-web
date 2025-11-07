@@ -170,3 +170,61 @@ export const fetchCurrentUser = async (): Promise<UserProfile> => {
  * Kept for backward compatibility
  */
 export const fetchCandidateProfile = fetchCurrentCandidateProfile;
+
+/**
+ * Update candidate profile
+ * PUT /api/candidates/profiles
+ * 
+ * Updates the candidate's profile information including avatar image
+ */
+export interface UpdateCandidateProfileRequest {
+  fullName?: string;
+  dob?: string;
+  title?: string;
+  phone?: string;
+  address?: string;
+  image?: string;
+  gender?: string;
+  link?: string;
+}
+
+export const updateCandidateProfile = async (
+  data: UpdateCandidateProfileRequest
+): Promise<CandidateProfile> => {
+  try {
+    console.log('📝 Updating candidate profile...', data);
+    
+    const response = await api.put<CandidateProfileResponse>(
+      '/api/candidates/profiles',
+      data
+    );
+
+    console.log('✅ Update profile response:', response.data);
+
+    const responseData = response.data;
+
+    // Check for success
+    if (responseData.code !== 200) {
+      throw new Error(responseData.message || 'Failed to update candidate profile');
+    }
+
+    if (!responseData.result) {
+      throw new Error('No result in update response');
+    }
+
+    return responseData.result;
+    
+  } catch (error: any) {
+    console.error('❌ Error updating candidate profile:', error);
+    
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+      throw new Error(
+        error.response.data?.message || 'Failed to update candidate profile'
+      );
+    }
+    
+    throw error;
+  }
+};
