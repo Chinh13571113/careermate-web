@@ -54,7 +54,7 @@ function decodeJwt(token: string): { email?: string; sub?: string;[key: string]:
   }
 }
 
-export default function ITviecProfile() {
+export default function CMProfile() {
   // Resume ID state - will be fetched from API
   const [resumeId, setResumeId] = useState<number | null>(null);
   const [isLoadingResume, setIsLoadingResume] = useState(true);
@@ -180,278 +180,309 @@ export default function ITviecProfile() {
     }
   }, []);
 
-  // Auto-create profile and resume on page load
+  // Auto-create profile and resume on page load, then fetch data
   useEffect(() => {
-    const initializeProfileAndResume = async () => {
-      try {
-        // ✅ STEP 1: Check if profile already exists
-        let profileExists = false;
-        try {
-          const profileCheck = await api.get("/api/candidates/profiles/current");
-          if (profileCheck.data?.result?.id) {
-            console.log("✅ Profile already exists, ID:", profileCheck.data.result.id);
-            profileExists = true;
-          }
-        } catch (checkError: any) {
-          console.log("Profile doesn't exist yet, will create if needed");
-        }
-
-        // ✅ STEP 2: Create profile only if it doesn't exist
-        if (!profileExists) {
-          // Check if there's a pending DoB from sign-up
-          const pendingDob = typeof window !== "undefined"
-            ? localStorage.getItem("pending_profile_dob")
-            : null;
-
-          if (pendingDob) {
-            // Create candidate profile with DoB from sign-up
-            try {
-              const profilePayload = {
-                dob: pendingDob,
-                title: "",
-                phone: "",
-                address: "",
-                image: "",
-                gender: "",
-                link: ""
-              };
-              await api.post("/api/candidates/profiles", profilePayload);
-              console.log("✅ Candidate profile created successfully with DoB:", pendingDob);
-              // Clear the pending DoB after successful creation
-              localStorage.removeItem("pending_profile_dob");
-            } catch (profileError: any) {
-              // If profile already exists (409/400), clear the flag
-              if (profileError?.response?.status === 409 || profileError?.response?.status === 400) {
-                localStorage.removeItem("pending_profile_dob");
-              }
-              console.log("Profile creation skipped:", profileError?.response?.data?.message || profileError?.message);
-            }
-          }
-        } else {
-          // Profile exists, clear pending DoB flag if any
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("pending_profile_dob");
-          }
-        }
-
-        // ✅ STEP 3: Create resume (blank) only if no resume exists
-        try {
-          const resumePayload = {
-            aboutMe: ""
-          };
-          await api.post("/api/resume", resumePayload);
-          console.log("✅ Resume created successfully");
-        } catch (resumeError: any) {
-          console.log("Resume creation skipped:", resumeError?.response?.data?.message || resumeError?.message);
-        }
-      } catch (error: any) {
-        console.log("Initialization error:", error?.message);
-      }
-    };
-
-    initializeProfileAndResume();
-  }, []);
-
-  // Fetch resume data to get resumeId and all related data
-  useEffect(() => {
-    const fetchResumeData = async () => {
+    const initializeAndFetchData = async () => {
       setIsLoadingResume(true);
+
       try {
-        const response = await api.get("/api/resume");
+        // ✅ STEP 1: Initialize profile and resume
+        await initializeProfileAndResume();
 
-        if (response.data?.result && response.data.result.length > 0) {
-          const resume = response.data.result[0]; // Get first resume
-          console.log("📋 Resume data:", resume);
-          console.log("🆔 Resume ID:", resume.resumeId, "Type:", typeof resume.resumeId);
-          setResumeId(resume.resumeId);
+        // ✅ STEP 2: Fetch resume data
+        await fetchResumeData();
 
-          // Load About Me
-          if (resume.aboutMe) {
-            aboutMeHook.setAboutMeText(resume.aboutMe);
-          }
+        // ✅ STEP 3: Fetch personal details
+        await fetchPersonalDetails();
 
-          // Load Awards
-          if (resume.awards && resume.awards.length > 0) {
-            const transformedAwards = resume.awards.map((award: any) => {
-              const date = new Date(award.getDate);
-              return {
-                id: award.awardId.toString(),
-                name: award.name,
-                organization: award.organization,
-                month: String(date.getMonth() + 1).padStart(2, '0'),
-                year: String(date.getFullYear()),
-                description: award.description
-              };
-            });
-            awardsHook.setAwards(transformedAwards);
-          }
-
-          // Load Education
-          if (resume.educations && resume.educations.length > 0) {
-            const transformedEducations = resume.educations.map((edu: any) => {
-              const startDate = new Date(edu.startDate);
-              const endDate = edu.endDate ? new Date(edu.endDate) : null;
-              return {
-                id: edu.educationId.toString(),
-                school: edu.school,
-                degree: edu.degree,
-                major: edu.major,
-                startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
-                startYear: String(startDate.getFullYear()),
-                endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
-                endYear: endDate ? String(endDate.getFullYear()) : ''
-              };
-            });
-            educationHook.setEducations(transformedEducations);
-          }
-
-          // Load Highlight Projects
-          if (resume.highlightProjects && resume.highlightProjects.length > 0) {
-            const transformedProjects = resume.highlightProjects.map((project: any) => {
-              const startDate = new Date(project.startDate);
-              const endDate = project.endDate ? new Date(project.endDate) : null;
-              return {
-                id: project.highlightProjectId.toString(),
-                name: project.name,
-                startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
-                startYear: String(startDate.getFullYear()),
-                endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
-                endYear: endDate ? String(endDate.getFullYear()) : '',
-                description: project.description,
-                url: project.projectUrl,
-                working: !project.endDate
-              };
-            });
-            projectsHook.setProjects(transformedProjects);
-          }
-
-          // Load Work Experience
-          if (resume.workExperiences && resume.workExperiences.length > 0) {
-            const transformedWorkExp = resume.workExperiences.map((exp: any) => {
-              const startDate = new Date(exp.startDate);
-              const endDate = exp.endDate ? new Date(exp.endDate) : null;
-              return {
-                id: exp.workExperienceId.toString(),
-                jobTitle: exp.jobTitle,
-                company: exp.company,
-                startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
-                startYear: String(startDate.getFullYear()),
-                endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
-                endYear: endDate ? String(endDate.getFullYear()) : '',
-                description: exp.description,
-                project: exp.project,
-                working: !exp.endDate
-              };
-            });
-            workExpHook.setWorkExperiences(transformedWorkExp);
-          }
-
-          // Load Foreign Languages
-          if (resume.foreignLanguages && resume.foreignLanguages.length > 0) {
-            const transformedLanguages = resume.foreignLanguages.map((lang: any) => ({
-              id: lang.foreignLanguageId.toString(),
-              language: lang.language,
-              level: lang.level
-            }));
-            languagesHook.setLanguages(transformedLanguages);
-          }
-
-          // Load Certificates
-          if (resume.certificates && resume.certificates.length > 0) {
-            const transformedCerts = resume.certificates.map((cert: any) => {
-              const date = new Date(cert.getDate);
-              return {
-                id: cert.certificateId.toString(),
-                name: cert.name,
-                org: cert.organization,
-                month: String(date.getMonth() + 1).padStart(2, '0'),
-                year: String(date.getFullYear()),
-                url: cert.certificateUrl,
-                desc: cert.description
-              };
-            });
-            certificatesHook.setCertificates(transformedCerts);
-          }
-
-          // Load Skills
-          if (resume.skills && resume.skills.length > 0) {
-            const coreSkills = resume.skills.filter((skill: any) => skill.skillType === "core");
-            const softSkills = resume.skills.filter((skill: any) => skill.skillType === "soft");
-
-            // Transform core skills
-            if (coreSkills.length > 0) {
-              const coreSkillItems = coreSkills.map((skill: any) => ({
-                id: skill.skillId.toString(),
-                skill: skill.skillName,
-                experience: skill.yearOfExperience ? String(skill.yearOfExperience) : ''
-              }));
-
-              skillsHook.setCoreSkillGroups([{
-                id: 'core-group-1',
-                name: 'Core Skills',
-                items: coreSkillItems
-              }]);
-            }
-
-            // Transform soft skills
-            if (softSkills.length > 0) {
-              const softSkillItems = softSkills.map((skill: any) => ({
-                id: skill.skillId.toString(),
-                skill: skill.skillName
-              }));
-
-              skillsHook.setSoftSkillGroups([{
-                id: 'soft-group-1',
-                name: 'Soft Skills',
-                items: softSkillItems
-              }]);
-            }
-          }
-
-          console.log("Resume data loaded successfully, resumeId:", resume.resumeId);
-        }
-      } catch (error) {
-        console.error("Error fetching resume data:", error);
-        toast.error("Failed to load resume data");
+      } catch (error: any) {
+        console.error("Failed to initialize:", error);
+        toast.error("Failed to load profile. Please refresh the page.");
       } finally {
         setIsLoadingResume(false);
       }
     };
 
-    fetchResumeData();
+    initializeAndFetchData();
   }, []);
 
-  // Fetch personal details (candidate profile)
-  useEffect(() => {
-    const fetchPersonalDetails = async () => {
+  // Initialize profile and resume helper function
+  const initializeProfileAndResume = async () => {
+    try {
+      // ✅ STEP 1: Check if profile already exists
+      let profileExists = false;
       try {
-        // ✅ Use /api/candidates/profiles/current
-        const response = await api.get("/api/candidates/profiles/current");
-
-        console.log("📝 Profile API Response:", response.data);
-
-        if (response.data?.result) {
-          const profile = response.data.result;
-          console.log("👤 Personal details loaded:", profile);
-
-          // ✅ Use fullName from API (not username)
-          setProfileName(profile.fullName || "");
-          setProfileTitle(profile.title || "");
-          setProfilePhone(profile.phone || "");
-          setProfileDob(profile.dob || "");
-          setProfileGender(profile.gender || "");
-          setProfileAddress(profile.address || "");
-          setProfileLink(profile.link || "");
-          setProfileImage(profile.image || "");
+        const profileCheck = await api.get("/api/candidates/profiles/current");
+        if (profileCheck.data?.result?.id) {
+          profileExists = true;
         }
-      } catch (error) {
-        console.error("Error fetching personal details:", error);
-        // Don't show error toast on initial load if profile doesn't exist
+      } catch (checkError: any) {
+        // Profile doesn't exist yet (404 or other error)
+        profileExists = false;
       }
-    };
 
-    fetchPersonalDetails();
-  }, []);
+      // ✅ STEP 2: Create profile if it doesn't exist
+      if (!profileExists) {
+        try {
+          // Check if there's a pending DoB from sign-up
+          const pendingDob = typeof window !== "undefined"
+            ? localStorage.getItem("pending_profile_dob")
+            : null;
+
+          // ✅ Create candidate profile - only dob is required
+          const profilePayload = {
+            dob: pendingDob || new Date().toISOString().split('T')[0] // Use today's date as fallback
+          };
+
+          await api.post("/api/candidates/profiles/create", profilePayload);
+
+          // Clear the pending DoB after successful creation
+          if (pendingDob && typeof window !== "undefined") {
+            localStorage.removeItem("pending_profile_dob");
+          }
+
+          toast.success("Profile created successfully!");
+        } catch (profileError: any) {
+          // If profile already exists (409/400), just clear the flag
+          if (profileError?.response?.status === 409 || profileError?.response?.status === 400) {
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("pending_profile_dob");
+            }
+          } else {
+            throw profileError; // Re-throw to be caught by outer try-catch
+          }
+        }
+      } else {
+        // Profile exists, clear pending DoB flag if any
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("pending_profile_dob");
+        }
+      }
+
+      // ✅ STEP 3: Check if resume exists
+      let resumeExists = false;
+      try {
+        const resumeCheck = await api.get("/api/resume");
+        if (resumeCheck.data?.result && resumeCheck.data.result.length > 0) {
+          resumeExists = true;
+        }
+      } catch (resumeCheckError: any) {
+        resumeExists = false;
+      }
+
+      // ✅ STEP 4: Create resume (blank) only if no resume exists
+      if (!resumeExists) {
+        try {
+          const resumePayload = {
+            aboutMe: ""
+          };
+          await api.post("/api/resume", resumePayload);
+          toast.success("Resume created successfully!");
+
+          // ✅ Wait a bit for backend to process
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (resumeError: any) {
+          // Resume creation failed or already exists
+          if (resumeError?.response?.status !== 409 && resumeError?.response?.status !== 400) {
+            throw resumeError; // Re-throw to be caught by outer try-catch
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Initialization error:", error);
+      throw error; // Re-throw to be caught by main useEffect
+    }
+  };
+
+  // Fetch resume data helper function
+  const fetchResumeData = async () => {
+    try {
+      const response = await api.get("/api/resume");
+
+      if (response.data?.result && response.data.result.length > 0) {
+        const resume = response.data.result[0]; // Get first resume
+        setResumeId(resume.resumeId);
+
+        // Load About Me
+        if (resume.aboutMe) {
+          aboutMeHook.setAboutMeText(resume.aboutMe);
+        }
+
+        // Load Awards
+        if (resume.awards && resume.awards.length > 0) {
+          const transformedAwards = resume.awards.map((award: any) => {
+            const date = new Date(award.getDate);
+            return {
+              id: award.awardId.toString(),
+              name: award.name,
+              organization: award.organization,
+              month: String(date.getMonth() + 1).padStart(2, '0'),
+              year: String(date.getFullYear()),
+              description: award.description
+            };
+          });
+          awardsHook.setAwards(transformedAwards);
+        }
+
+        // Load Education
+        if (resume.educations && resume.educations.length > 0) {
+          const transformedEducations = resume.educations.map((edu: any) => {
+            const startDate = new Date(edu.startDate);
+            const endDate = edu.endDate ? new Date(edu.endDate) : null;
+            return {
+              id: edu.educationId.toString(),
+              school: edu.school,
+              degree: edu.degree,
+              major: edu.major,
+              startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
+              startYear: String(startDate.getFullYear()),
+              endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+              endYear: endDate ? String(endDate.getFullYear()) : ''
+            };
+          });
+          educationHook.setEducations(transformedEducations);
+        }
+
+        // Load Highlight Projects
+        if (resume.highlightProjects && resume.highlightProjects.length > 0) {
+          const transformedProjects = resume.highlightProjects.map((project: any) => {
+            const startDate = new Date(project.startDate);
+            const endDate = project.endDate ? new Date(project.endDate) : null;
+            return {
+              id: project.highlightProjectId.toString(),
+              name: project.name,
+              startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
+              startYear: String(startDate.getFullYear()),
+              endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+              endYear: endDate ? String(endDate.getFullYear()) : '',
+              description: project.description,
+              url: project.projectUrl,
+              working: !project.endDate
+            };
+          });
+          projectsHook.setProjects(transformedProjects);
+        }
+
+        // Load Work Experience
+        if (resume.workExperiences && resume.workExperiences.length > 0) {
+          const transformedWorkExp = resume.workExperiences.map((exp: any) => {
+            const startDate = new Date(exp.startDate);
+            const endDate = exp.endDate ? new Date(exp.endDate) : null;
+            return {
+              id: exp.workExperienceId.toString(),
+              jobTitle: exp.jobTitle,
+              company: exp.company,
+              startMonth: String(startDate.getMonth() + 1).padStart(2, '0'),
+              startYear: String(startDate.getFullYear()),
+              endMonth: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+              endYear: endDate ? String(endDate.getFullYear()) : '',
+              description: exp.description,
+              project: exp.project,
+              working: !exp.endDate
+            };
+          });
+          workExpHook.setWorkExperiences(transformedWorkExp);
+        }
+
+        // Load Foreign Languages
+        if (resume.foreignLanguages && resume.foreignLanguages.length > 0) {
+          const transformedLanguages = resume.foreignLanguages.map((lang: any) => ({
+            id: lang.foreignLanguageId.toString(),
+            language: lang.language,
+            level: lang.level
+          }));
+          languagesHook.setLanguages(transformedLanguages);
+        }
+
+        // Load Certificates
+        if (resume.certificates && resume.certificates.length > 0) {
+          const transformedCerts = resume.certificates.map((cert: any) => {
+            const date = new Date(cert.getDate);
+            return {
+              id: cert.certificateId.toString(),
+              name: cert.name,
+              org: cert.organization,
+              month: String(date.getMonth() + 1).padStart(2, '0'),
+              year: String(date.getFullYear()),
+              url: cert.certificateUrl,
+              desc: cert.description
+            };
+          });
+          certificatesHook.setCertificates(transformedCerts);
+        }
+
+        // Load Skills
+        if (resume.skills && resume.skills.length > 0) {
+          const coreSkills = resume.skills.filter((skill: any) => skill.skillType === "core");
+          const softSkills = resume.skills.filter((skill: any) => skill.skillType === "soft");
+
+          // Transform core skills
+          if (coreSkills.length > 0) {
+            const coreSkillItems = coreSkills.map((skill: any) => ({
+              id: skill.skillId.toString(),
+              skill: skill.skillName,
+              experience: skill.yearOfExperience ? String(skill.yearOfExperience) : ''
+            }));
+
+            skillsHook.setCoreSkillGroups([{
+              id: 'core-group-1',
+              name: 'Core Skills',
+              items: coreSkillItems
+            }]);
+          }
+
+          // Transform soft skills
+          if (softSkills.length > 0) {
+            const softSkillItems = softSkills.map((skill: any) => ({
+              id: skill.skillId.toString(),
+              skill: skill.skillName
+            }));
+
+            skillsHook.setSoftSkillGroups([{
+              id: 'soft-group-1',
+              name: 'Soft Skills',
+              items: softSkillItems
+            }]);
+          }
+        }
+      }
+    } catch (error: any) {
+      // Handle 400 error when resume is just created
+      if (error?.response?.status === 400) {
+        console.log("Resume exists but empty - this is expected for new users");
+        // Don't throw error, just continue with empty data
+      } else {
+        console.error("Failed to load resume data:", error);
+        toast.error("Failed to load resume data");
+        throw error; // Re-throw for other errors
+      }
+    }
+  };
+
+  // Fetch personal details helper function
+  const fetchPersonalDetails = async () => {
+    try {
+      // ✅ Use /api/candidates/profiles/current
+      const response = await api.get("/api/candidates/profiles/current");
+
+      if (response.data?.result) {
+        const profile = response.data.result;
+
+        // ✅ Use fullName from API (not username)
+        setProfileName(profile.fullName || "");
+        setProfileTitle(profile.title || "");
+        setProfilePhone(profile.phone || "");
+        setProfileDob(profile.dob || "");
+        setProfileGender(profile.gender || "");
+        setProfileAddress(profile.address || "");
+        setProfileLink(profile.link || "");
+        setProfileImage(profile.image || "");
+      }
+    } catch (error) {
+      // Don't show error on initial load if profile doesn't exist yet
+      console.error("Failed to fetch personal details:", error);
+    }
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
@@ -546,15 +577,11 @@ export default function ITviecProfile() {
         link: profileLink || undefined
       };
 
-      console.log("💾 Saving profile data:", profileData);
-
       await api.put("/api/candidates/profiles", profileData);
 
       toast.success("Personal details updated successfully!");
       setIsPersonalDetailOpen(false);
     } catch (error: any) {
-      console.error("❌ Error updating personal details:", error);
-      console.error("Error response:", error?.response?.data);
       toast.error("Failed to update personal details. Please try again.");
     }
   };
@@ -576,98 +603,140 @@ export default function ITviecProfile() {
 
           {/* Main Content */}
           <section className="space-y-6 min-w-0 lg:mt-[var(--sticky-offset)] transition-all duration-300">
-            {/* Profile Header */}
-            <ProfileHeaderCard
-              profileName={profileName}
-              profileTitle={profileTitle}
-              profileImage={profileImage}
-              profilePhone={profilePhone}
-              profileDob={profileDob}
-              profileGender={profileGender}
-              profileAddress={profileAddress}
-              profileLink={profileLink}
-              email={userEmail}
-              onEditPersonalDetails={() => setIsPersonalDetailOpen(true)}
-            />
+            {isLoadingResume ? (
+              /* Loading State - Skeleton Loaders */
+              <div className="space-y-6">
+                {/* Profile Header Skeleton */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-20 h-20 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="space-y-2">
+                        <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    ))}
+                  </div>
+                </div>
 
-            {/* About Me */}
-            <AboutMeSection
-              aboutMeText={aboutMeHook.aboutMeText}
-              onEdit={() => aboutMeHook.setIsAboutMeOpen(true)}
-            />
+                {/* Content Sections Skeleton */}
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-5 bg-gray-200 rounded w-40 animate-pulse"></div>
+                      <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/5 animate-pulse"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Actual Content */
+              <>
+                {/* Profile Header */}
+                <ProfileHeaderCard
+                  profileName={profileName}
+                  profileTitle={profileTitle}
+                  profileImage={profileImage}
+                  profilePhone={profilePhone}
+                  profileDob={profileDob}
+                  profileGender={profileGender}
+                  profileAddress={profileAddress}
+                  profileLink={profileLink}
+                  email={userEmail}
+                  onEditPersonalDetails={() => setIsPersonalDetailOpen(true)}
+                />
 
-            {/* Education */}
-            <EducationSection
-              educations={educationHook.educations}
-              onAdd={() => educationHook.openEducationDialog()}
-              onEdit={(edu) => educationHook.openEducationDialog(edu)}
-              onRemove={educationHook.removeEducation}
-            />
+                {/* About Me */}
+                <AboutMeSection
+                  aboutMeText={aboutMeHook.aboutMeText}
+                  onEdit={() => aboutMeHook.setIsAboutMeOpen(true)}
+                />
 
-            {/* Work Experience */}
-            <WorkExperienceSection
-              workExperiences={workExpHook.workExperiences}
-              onAdd={() => workExpHook.openWorkExpDialog()}
-              onEdit={(exp) => workExpHook.openWorkExpDialog(exp)}
-              onRemove={workExpHook.removeWorkExp}
-            />
+                {/* Education */}
+                <EducationSection
+                  educations={educationHook.educations}
+                  onAdd={() => educationHook.openEducationDialog()}
+                  onEdit={(edu) => educationHook.openEducationDialog(edu)}
+                  onRemove={educationHook.removeEducation}
+                />
 
-            {/* Foreign Language */}
-            <LanguageSection
-              languages={languagesHook.languages}
-              onAdd={() => languagesHook.openLanguageDialog()}
-              onEdit={(lang) => {
-                // Language edit uses same dialog as add
-                languagesHook.openLanguageDialog();
-              }}
-              onRemove={languagesHook.removeLanguage}
-            />
+                {/* Work Experience */}
+                <WorkExperienceSection
+                  workExperiences={workExpHook.workExperiences}
+                  onAdd={() => workExpHook.openWorkExpDialog()}
+                  onEdit={(exp) => workExpHook.openWorkExpDialog(exp)}
+                  onRemove={workExpHook.removeWorkExp}
+                />
 
-            {/* Skills */}
-            <SkillsSection
-              coreSkillGroups={skillsHook.coreSkillGroups}
-              softSkillItems={skillsHook.softSkillGroups.flatMap(group => group.items || [])}
-              onAddCoreSkills={() => {
-                setSkillType("core");
-                setSkills([]);
-                setOriginalSkills([]);
-                skillsHook.setIsSkillDialogOpen(true);
-              }}
-              onAddSoftSkills={() => {
-                setSkillType("soft");
-                setSkills([]);
-                setOriginalSkills([]);
-                skillsHook.setIsSkillDialogOpen(true);
-              }}
-              onEditCoreSkills={handleEditCoreSkills}
-              onEditSoftSkills={handleEditSoftSkills}
-              popoverOpen={popoverOpen}
-              setPopoverOpen={setPopoverOpen}
-            />
+                {/* Foreign Language */}
+                <LanguageSection
+                  languages={languagesHook.languages}
+                  onAdd={() => languagesHook.openLanguageDialog()}
+                  onEdit={(lang) => {
+                    // Language edit uses same dialog as add
+                    languagesHook.openLanguageDialog();
+                  }}
+                  onRemove={languagesHook.removeLanguage}
+                />
 
-            {/* Highlight Project */}
-            <HighlightProjectsSection
-              projects={projectsHook.projects}
-              onAdd={() => projectsHook.openProjectDialog()}
-              onEdit={(project) => projectsHook.openProjectDialog(project)}
-              onRemove={projectsHook.removeProject}
-            />
+                {/* Skills */}
+                <SkillsSection
+                  coreSkillGroups={skillsHook.coreSkillGroups}
+                  softSkillItems={skillsHook.softSkillGroups.flatMap(group => group.items || [])}
+                  onAddCoreSkills={() => {
+                    setSkillType("core");
+                    setSkills([]);
+                    setOriginalSkills([]);
+                    skillsHook.setIsSkillDialogOpen(true);
+                  }}
+                  onAddSoftSkills={() => {
+                    setSkillType("soft");
+                    setSkills([]);
+                    setOriginalSkills([]);
+                    skillsHook.setIsSkillDialogOpen(true);
+                  }}
+                  onEditCoreSkills={handleEditCoreSkills}
+                  onEditSoftSkills={handleEditSoftSkills}
+                  popoverOpen={popoverOpen}
+                  setPopoverOpen={setPopoverOpen}
+                />
 
-            {/* Certificates */}
-            <CertificatesSection
-              certificates={certificatesHook.certificates}
-              onAdd={() => certificatesHook.openCertDialog()}
-              onEdit={(cert) => certificatesHook.openCertDialog(cert)}
-              onRemove={certificatesHook.removeCertificate}
-            />
+                {/* Highlight Project */}
+                <HighlightProjectsSection
+                  projects={projectsHook.projects}
+                  onAdd={() => projectsHook.openProjectDialog()}
+                  onEdit={(project) => projectsHook.openProjectDialog(project)}
+                  onRemove={projectsHook.removeProject}
+                />
 
-            {/* Awards */}
-            <AwardsSection
-              awards={awardsHook.awards}
-              onAdd={() => awardsHook.openAwardsDialog()}
-              onEdit={(award) => awardsHook.openAwardsDialog(award)}
-              onRemove={awardsHook.removeAward}
-            />
+                {/* Certificates */}
+                <CertificatesSection
+                  certificates={certificatesHook.certificates}
+                  onAdd={() => certificatesHook.openCertDialog()}
+                  onEdit={(cert) => certificatesHook.openCertDialog(cert)}
+                  onRemove={certificatesHook.removeCertificate}
+                />
+
+                {/* Awards */}
+                <AwardsSection
+                  awards={awardsHook.awards}
+                  onAdd={() => awardsHook.openAwardsDialog()}
+                  onEdit={(award) => awardsHook.openAwardsDialog(award)}
+                  onRemove={awardsHook.removeAward}
+                />
+              </>
+            )}
           </section>
 
           {/* Right Sidebar - Profile Strength */}

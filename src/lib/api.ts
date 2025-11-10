@@ -2,8 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "@/store/use-auth-store";
 
 // Debug the API URL being used
-const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-console.log('🌐 API Base URL:', baseURL);
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const api = axios.create({
   baseURL,
@@ -237,10 +236,9 @@ const safeRefreshToken = async (): Promise<string | null> => {
 // Add request interceptor
 api.interceptors.request.use(async (config) => {
   // Block any requests to Google OAuth that might happen due to redirects
-  if (config.url?.includes('accounts.google.com') || 
+  if (config.url?.includes('/oauth') || 
       config.url?.includes('oauth2') || 
       config.url?.includes('google.com')) {
-    console.error("Blocking request to OAuth URL:", config.url);
     // Cancel the request
     return Promise.reject(new Error("OAuth requests are not allowed in this context"));
   }

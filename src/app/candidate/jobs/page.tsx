@@ -34,9 +34,8 @@ export default function JobsPage() {
   // ✅ Fetch candidateId if authenticated but missing
   useEffect(() => {
     if (isAuthenticated && !candidateId) {
-      console.log('📝 Candidate ID missing, fetching user profile...');
       fetchCandidateProfile().catch((err) => {
-        console.error('❌ Failed to fetch candidate profile:', err);
+        // Silent fail
       });
     }
   }, [isAuthenticated, candidateId, fetchCandidateProfile]);
@@ -221,7 +220,6 @@ export default function JobsPage() {
         toast.success('Job unsaved');
       }
     } catch (error: any) {
-      console.error('Error toggling save status:', error);
       toast.error(error?.response?.data?.message || 'Failed to save job. Please try again.');
     } finally {
       setSavingJobId(null);
@@ -249,15 +247,14 @@ export default function JobsPage() {
         toast.success('You like this job! 👍');
       } else {
         toast.success('Job unliked');
+        toast.success('Job unliked');
       }
     } catch (error: any) {
-      console.error('Error toggling like status:', error);
       toast.error(error?.response?.data?.message || 'Failed to like job. Please try again.');
     } finally {
       setLikingJobId(null);
     }
   };
-
   const filteredJobs = jobsList.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -501,10 +498,10 @@ export default function JobsPage() {
                                   onClick={() => handleToggleLike(job.id, job.isLiked || false)}
                                   disabled={likingJobId === job.id}
                                   className={`p-2 transition-colors ${likingJobId === job.id
-                                      ? 'cursor-not-allowed opacity-50'
-                                      : job.isLiked
-                                        ? 'text-blue-500'
-                                        : 'text-gray-400 hover:text-blue-500'
+                                    ? 'cursor-not-allowed opacity-50'
+                                    : job.isLiked
+                                      ? 'text-blue-500'
+                                      : 'text-gray-400 hover:text-blue-500'
                                     }`}
                                 >
                                   {job.isLiked ? (
@@ -529,10 +526,10 @@ export default function JobsPage() {
                                   onClick={() => handleToggleSave(job.id, job.isSaved)}
                                   disabled={savingJobId === job.id}
                                   className={`p-2 transition-colors ${savingJobId === job.id
-                                      ? 'cursor-not-allowed opacity-50'
-                                      : job.isSaved
-                                        ? 'text-yellow-500'
-                                        : 'text-gray-400 hover:text-yellow-500'
+                                    ? 'cursor-not-allowed opacity-50'
+                                    : job.isSaved
+                                      ? 'text-yellow-500'
+                                      : 'text-gray-400 hover:text-yellow-500'
                                     }`}
                                 >
                                   {job.isSaved ? (

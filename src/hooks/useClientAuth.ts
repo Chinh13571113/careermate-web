@@ -25,20 +25,11 @@ export const useClientAuth = () => {
       const storedToken = localStorage.getItem("access_token");
       const storedExpiry = localStorage.getItem("token_expires_at");
 
-      console.log("🔑 [CLIENT AUTH] Loading from localStorage:", {
-        hasToken: !!storedToken,
-        expiry: storedExpiry ? new Date(parseInt(storedExpiry)) : null,
-      });
-
       if (storedToken && storedExpiry) {
         const expiresAt = parseInt(storedExpiry, 10);
         const isValid = expiresAt > Date.now();
 
         if (isValid) {
-          console.log(
-            "🟢 [CLIENT AUTH] Valid token found, updating auth state"
-          );
-
           // Decode user info & role từ JWT thay vì localStorage (an toàn hơn)
           let userInfo = null;
           let role = null;
@@ -64,7 +55,7 @@ export const useClientAuth = () => {
               }
             }
           } catch (e) {
-            console.error("Failed to decode JWT:", e);
+            // Failed to decode JWT
           }
 
           // Update auth store immediately
@@ -79,7 +70,6 @@ export const useClientAuth = () => {
           setClientAuth({ isAuthenticated: true, accessToken: storedToken });
           return;
         } else {
-          console.log("🟡 [CLIENT AUTH] Token expired, clearing storage");
           localStorage.removeItem("access_token");
           localStorage.removeItem("token_expires_at");
           // Xóa legacy keys nếu còn
@@ -88,10 +78,8 @@ export const useClientAuth = () => {
         }
       }
 
-      console.log("🟡 [CLIENT AUTH] No valid token found");
       setClientAuth({ isAuthenticated: false, accessToken: null });
     } catch (error) {
-      console.error("🔴 [CLIENT AUTH] Error loading auth state:", error);
       setClientAuth({ isAuthenticated: false, accessToken: null });
     }
   }, []);
