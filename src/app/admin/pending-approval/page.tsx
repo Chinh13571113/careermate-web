@@ -402,8 +402,8 @@ export default function PendingApprovalPage() {
                   </div>
 
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Business License</p>
-                    <p className="text-gray-800 font-medium">{selectedRecruiter.businessLicense}</p>
+                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Company Email</p>
+                    <p className="text-gray-800 font-medium">{selectedRecruiter.companyEmail || 'N/A'}</p>
                   </div>
 
                   {selectedRecruiter.about && (
@@ -453,7 +453,7 @@ export default function PendingApprovalPage() {
                 <div className="flex flex-wrap gap-2">
                   {[
                     'Incomplete company information',
-                    'Invalid business license',
+                    'Invalid company information',
                     'Suspicious or fraudulent account',
                     'Does not meet platform requirements',
                     'Other'

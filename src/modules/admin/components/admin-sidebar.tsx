@@ -57,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
         subItems: [
             { label: "All Recruiters", href: "/admin/recruiters" },
             { label: "Pending Approval", href: "/admin/pending-approval" },
+            { label: "Profile Updates", href: "/admin/profile-updates" },
             { label: "Banned Recruiters", href: "/admin/banned-recruiters" },
         ],
     },
