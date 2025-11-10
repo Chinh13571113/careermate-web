@@ -186,6 +186,7 @@ function getInitialAuthState() {
           id: decoded.sub ?? null,
           email: decoded.email ?? null,
           name: decoded.name ?? decoded.email ?? null,
+          username: decoded.username ?? null,
         };
 
         // Extract role from JWT

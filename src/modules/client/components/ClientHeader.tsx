@@ -7,24 +7,50 @@ import { useAuthStore } from "@/store/use-auth-store";
 import { useClientAuth } from "@/hooks/useClientAuth";
 import { decodeJWT } from "@/lib/auth-admin";
 import toast from "react-hot-toast";
-import CandidateMenuList from "@/components/layout/CandidateMenuList";
+import { ProfileDropdown } from "@/components/profile/ProfileDropdown";
+import UserTypeSelectionModal from "@/components/auth/UserTypeSelectionModal";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { getCurrentUser } from "@/lib/user-api";
 
-export function ClientHeader() {
+
+export default function ClientHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [userInfo, setUserInfo] = useState<{ name: string; email: string } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    name: string;
+    email: string;
+    username?: string;
+  } | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Auth state (hook đã chuẩn hoá role nếu bạn theo code trước đó)
   const { mounted, isAuthenticated, accessToken, role } = useClientAuth();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
+  
+  // Lấy username từ database
+  const { username } = useUserProfile();
+
+  // Debug log
+  console.log("🔍 ClientHeader State:", {
+    mounted,
+    isAuthenticated,
+    hasAccessToken: !!accessToken,
+    role,
+    hasUser: !!user,
+    userName: user?.name,
+    userEmail: user?.email,
+  });
 
   // Phòng trường hợp role trả về format khác, chuẩn hoá nhẹ tại đây
-  const normalizedRole =
-    role?.includes("CANDIDATE") ? "ROLE_CANDIDATE" :
-    role?.includes("RECRUITER") ? "ROLE_RECRUITER" :
-    role?.includes("ADMIN") ? "ROLE_ADMIN" : "ROLE_USER";
+  const normalizedRole = role?.includes("CANDIDATE")
+    ? "ROLE_CANDIDATE"
+    : role?.includes("RECRUITER")
+    ? "ROLE_RECRUITER"
+    : role?.includes("ADMIN")
+    ? "ROLE_ADMIN"
+    : "ROLE_USER";
 
   const isCandidate = normalizedRole === "ROLE_CANDIDATE";
   const isRecruiter = normalizedRole === "ROLE_RECRUITER";
@@ -32,27 +58,60 @@ export function ClientHeader() {
   // Mark hydrated để tránh SSR mismatch
   useEffect(() => setIsHydrated(true), []);
 
-  // Decode token CHỈ sau khi có accessToken ở client
+  // Fetch current user info from API
   useEffect(() => {
-    if (!accessToken) {
-      setUserInfo(null);
-      return;
-    }
-    try {
-      const decoded = decodeJWT(accessToken);
-      setUserInfo({
-        email: decoded?.sub || decoded?.email || "User",
-        name: decoded?.name || decoded?.sub || "User",
-      });
-    } catch {
-      setUserInfo(null);
-    }
-  }, [accessToken]);
+    const fetchCurrentUser = async () => {
+      if (!accessToken || !isAuthenticated) {
+        setUserInfo(null);
+        return;
+      }
+
+      try {
+        const currentUser = await getCurrentUser();
+        console.log('📋 Current user from API (ClientHeader):', currentUser);
+        
+        setUserInfo({
+          username: currentUser.username,
+          email: currentUser.email,
+          name: currentUser.username || currentUser.email,
+        });
+
+        // Update store user if not set
+        if (!user && currentUser) {
+          useAuthStore.setState({
+            user: {
+              id: currentUser.email,
+              email: currentUser.email,
+              name: currentUser.username || currentUser.email,
+              username: currentUser.username,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        // Fallback to JWT decode
+        try {
+          const decoded = decodeJWT(accessToken);
+          setUserInfo({
+            email: decoded?.sub || decoded?.email || "User",
+            name: decoded?.name || decoded?.sub || "User",
+          });
+        } catch {
+          setUserInfo(null);
+        }
+      }
+    };
+
+    fetchCurrentUser();
+  }, [accessToken, isAuthenticated]);
 
   // Đóng dropdown khi click ra ngoài / nhấn ESC
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
@@ -84,10 +143,17 @@ export function ClientHeader() {
   // Skeleton trong lúc chưa hydrate/mounted
   if (!isHydrated || !mounted) {
     return (
-      <header suppressHydrationWarning className="bg-[#1b1b20f5] text-white shadow-lg fixed top-0 left-0 right-0 z-50">
+      <header
+        suppressHydrationWarning
+        className="bg-[#1b1b20f5] text-white shadow-lg fixed top-0 left-0 right-0 z-50"
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center space-x-2">
-            <img src="/images/general/newlogo.png" alt="Logo" className="h-14 w-auto" />
+            <img
+              src="/images/general/newlogo.png"
+              alt="Logo"
+              className="h-14 w-auto"
+            />
             <span className="text-xl font-bold">CareerMate</span>
           </Link>
           <div className="hidden lg:flex items-center space-x-6">
@@ -106,184 +172,105 @@ export function ClientHeader() {
   }
 
   return (
-    <header suppressHydrationWarning className="bg-[#1b1b20f5] text-[#fff] shadow-lg fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <img src="/images/general/newlogo.png" alt="Logo" className="h-14 w-auto" />
-              <span className="text-xl font-bold text-[#ffffff]">CareerMate</span>
-            </Link>
+    <header className="bg-[#1b1b20f5] sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-8">
+            {/* Logo */}
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center space-x-2">
+                <img
+                  src="/images/general/newlogo.png"
+                  alt="Logo"
+                  className="h-14 w-auto"
+                />
+                <span className="text-xl font-bold text-[#ffffff]">
+                  Home Header 2
+                </span>
+              </Link>
+            </div>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
-            <Link href="/jobs-detail" className="text-gray-300 hover:text-white transition-colors">All Jobs</Link>
-            <Link href="/companies" className="text-gray-300 hover:text-white transition-colors">Companies</Link>
-            <Link href="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link>
-            <Link href="/cv-templates-introduction" className="text-gray-300 hover:text-white transition-colors">CV Templates</Link>
-            <Link href="/ai-jobs" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-              <span>AI Jobs</span>
-              <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">HOT</span>
+            <Link
+              href="/recruiter/recruiter-feature/dashboard"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/recruiter/recruiter-feature/profile?tab=account"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Account
+            </Link>
+            <Link
+              href="/recruiter/recruiter-feature/candidates/applications"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Candidates
+            </Link>
+            <Link
+              href="/recruiter/recruiter-feature/services"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Services
+            </Link>
+            <Link
+              href="/recruiter/recruiter-feature/jobs"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Upload Jobs
+            </Link>
+            <Link
+              href="/recruiter/recruiter-feature/support"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Support
             </Link>
           </nav>
 
-          {/* Right Side */}
+          {/* Bên phải header */}
           <div className="flex items-center space-x-4">
-            <Link href="/recruiter" className="hidden sm:block text-gray-300 hover:text-white transition-colors">
-              For Employers
-            </Link>
+            {isAuthenticated && user ? (
+              <>
+                <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                  {isRecruiter ? `For Recruiter ${userInfo?.username || username || user?.username || "abc"}` : `For Candidate ${userInfo?.username || username || user?.username || "abc"}`}
+                </span>
 
-            {isAuthenticated && userInfo ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  onClick={() => setIsUserMenuOpen(v => !v)}
-                  className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
-                  aria-haspopup="menu"
-                  aria-expanded={isUserMenuOpen}
-                >
-                  <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <span className="hidden sm:block text-sm font-medium">{userInfo.name}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
-                {isUserMenuOpen && (
-                  <div role="menu" className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900">{userInfo.name}</p>
-                      <p className="text-xs text-gray-500">{userInfo.email}</p>
-                    </div>
-
-                    {isCandidate && (
-                      <CandidateMenuList
-                        prefixCandidate
-                        compact
-                        onItemClick={() => setIsUserMenuOpen(false)}
-                      />
-                    )}
-
-                    {isRecruiter && (
-                      <>
-                        <Link
-                          href="/employer/dashboard"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          📋 Dashboard
-                        </Link>
-                        <Link
-                          href="/employer/jobs"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          💼 My Job Posts
-                        </Link>
-                      </>
-                    )}
-
-                    <div className="border-t border-gray-200 mt-1 pt-1">
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                <ProfileDropdown
+                  userName={userInfo?.username || username || user?.username || userInfo?.name || "User"}
+                  userEmail={userInfo?.email || user?.email}
+                  role={role || undefined}
+                  userAvatar="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
+                />
+              </>
             ) : (
               <>
-                <Link href="/sign-in" className="text-gray-300 hover:text-white transition-colors">Sign In</Link>
                 <Link
-                  href="/sign-up"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  href="/sign-in"
+                  className="px-4 py-2 text-white hover:text-gray-300 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Sign Up
-                </Link>
+                </button>
               </>
             )}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(v => !v)}
-              className="lg:hidden p-2 text-gray-300 hover:text-white"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-700 bg-gray-800 fixed left-0 right-0 top-16 z-50">
-            <div className="px-4 py-4 space-y-4">
-              <Link href="/jobs-detail" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>All Jobs</Link>
-              <Link href="/companies" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>Companies</Link>
-              <Link href="/blog" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
-              <Link href="/cv-templates-introduction" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>CV Templates</Link>
-              <Link href="/ai-jobs" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>AI Jobs</Link>
-              <Link href="/update-cvprofile" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>My Profile</Link>
-              <Link href="/recruiter" className="block text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>For Employers</Link>
-
-              {isAuthenticated && userInfo ? (
-                <div className="border-t border-gray-700 pt-4">
-                  <div className="px-2 py-2">
-                    <p className="text-sm font-medium text-white">{userInfo.name}</p>
-                    <p className="text-xs text-gray-400">{userInfo.email}</p>
-                  </div>
-
-                  {[
-                    ...(isCandidate
-                      ? [
-                          { href: "/candidate/profile", label: "👤 Your profile" },
-                          { href: "/candidate/my-jobs", label: "💼 My Jobs" },
-                          { href: "/candidate/cv-templates", label: "📄 CV Templates" },
-                        ]
-                      : []),
-                    ...(isRecruiter
-                      ? [
-                          { href: "/employer/dashboard", label: "📋 Dashboard" },
-                          { href: "/employer/jobs", label: "💼 My Job Posts" },
-                        ]
-                      : []),
-                  ].map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="block px-4 py-2 text-sm text-gray-300 hover:text-white"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-2 py-2 text-gray-300 hover:text-white flex items-center space-x-2"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="border-t border-gray-700 pt-4 space-y-2">
-                  <Link href="/sign-in" className="block px-2 py-2 text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>Sign In</Link>
-                  <Link href="/sign-up" className="block px-2 py-2 text-gray-300 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>Sign Up</Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* User Type Selection Modal */}
+      <UserTypeSelectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </header>
   );
 }

@@ -100,7 +100,7 @@ export function getDefaultRedirectPath(role: string | null | undefined): string 
     case 'RECRUITER':
       return '/recruiter';
     case 'CANDIDATE':
-      return '/';
+      return '/candidate';
     default:
       return '/';
   }

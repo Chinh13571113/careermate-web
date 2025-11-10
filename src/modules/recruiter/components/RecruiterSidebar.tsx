@@ -53,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
-        label: "Blog",
+        label: "Uploaded Jobs",
         href: "/recruiter/jobs",
         icon: BriefcaseBusiness,
         subItems: [
