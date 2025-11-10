@@ -49,7 +49,7 @@ export default function CandidateDashboard() {
                   </div>
                   <div>
                     <h1 className="text-2xl font-semibold text-gray-900 mb-1">
-                      Lê Quang Ánh
+                      
                     </h1>
                     <p className="text-sm text-gray-600 mb-1">
                       💼 Back-end Developer
@@ -87,7 +87,7 @@ export default function CandidateDashboard() {
                   href="/candidate/cv-management"
                   className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center space-x-1"
                 >
-                  <span>Manage CV attachment</span>
+                  <span>Manage CV Management</span>
                   <span>→</span>
                 </Link>
               </div>
@@ -118,9 +118,8 @@ export default function CandidateDashboard() {
                         stroke="#ef4444"
                         strokeWidth="14"
                         fill="none"
-                        strokeDasharray={`${64 * 2 * Math.PI * 0.2} ${
-                          64 * 2 * Math.PI
-                        }`}
+                        strokeDasharray={`${64 * 2 * Math.PI * 0.2} ${64 * 2 * Math.PI
+                          }`}
                         strokeLinecap="round"
                       />
                     </svg>

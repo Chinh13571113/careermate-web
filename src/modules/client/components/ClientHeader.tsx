@@ -274,3 +274,4 @@ export default function ClientHeader() {
     </header>
   );
 }
+export default ClientHeader;

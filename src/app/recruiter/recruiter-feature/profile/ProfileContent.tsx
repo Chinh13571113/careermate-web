@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AccountTabs, RecruiterAccountForm, OrganizationProfileForm } from "@/modules/recruiter";
 
-export default function ProfileContent() {
+function ProfileContentInner() {
     const params = useSearchParams();
     const tab = params.get("tab") || "account";
     return (
@@ -18,4 +19,11 @@ export default function ProfileContent() {
     );
 }
 
+export default function ProfileContent() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ProfileContentInner />
+        </Suspense>
+    );
+}
 

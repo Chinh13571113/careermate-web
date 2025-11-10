@@ -36,7 +36,7 @@ export const candidateMenuItems: MenuItem[] = [
   },
   {
     href: "/cv-management",
-    label: "CV Attachment",
+    label: "CV Management",
     key: "cv-management",
     icon: (
       <svg

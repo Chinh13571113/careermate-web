@@ -155,7 +155,6 @@ const MyJobsPage = () => {
         </main>
       </div>
 
-      <ClientFooter />
     </>
   );
 };

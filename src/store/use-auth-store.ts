@@ -82,6 +82,7 @@ interface AuthState {
   tokenExpiresAt: number | null;
   user: any | null;
   role: string | null;
+  candidateId: number | null; // ✅ Add candidateId from profile API
 
   // Actions
   setLoading: (v: boolean) => void;
@@ -93,6 +94,8 @@ interface AuthState {
     user?: any | null;
   }) => void;
   clearAuth: () => void;
+  setCandidateId: (candidateId: number | null) => void; // ✅ Add setter for candidateId
+  fetchCandidateProfile: () => Promise<void>; // ✅ Add method to fetch profile
 
   // API
   login: (
@@ -220,6 +223,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   tokenExpiresAt: initial.tokenExpiresAt,
   user: initial.user,
   role: initial.role,
+  candidateId: null, // ✅ Initialize candidateId
 
   // -------- Actions cơ bản để hook gọi --------
   setLoading: (v) => set({ isLoading: v }),
@@ -231,26 +235,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     role,
     user,
   }) => {
-    console.log("🔵 [AUTH STORE] setAuthFromTokens called with:", {
-      hasToken: !!accessToken,
-      tokenLength: accessToken?.length || 0,
-      expiresAt: tokenExpiresAt,
-      isAuth: isAuthenticated,
-      role,
-      hasUser: !!user,
-    });
-
     // Cập nhật localStorage - CHỈ LƯU token và expiry
     // KHÔNG LƯU role - decode từ JWT khi cần
     if (typeof window !== "undefined") {
       if (accessToken && tokenExpiresAt && isAuthenticated) {
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
         localStorage.setItem(TOKEN_EXPIRES_AT_KEY, String(tokenExpiresAt));
-        console.log("🔵 [AUTH STORE] Saved to localStorage");
       } else {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
-        console.log("🔴 [AUTH STORE] Cleared localStorage (invalid state)");
       }
       // KHÔNG lưu role vào localStorage - decode từ JWT
       // KHÔNG lưu user_info vào localStorage - chỉ giữ trong memory
@@ -264,13 +257,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       role: role !== undefined ? role : s.role,
       user: user !== undefined ? user : s.user,
     }));
-
-    console.log("🔵 [AUTH STORE] State updated, current state:", {
-      hasToken: !!get().accessToken,
-      tokenLength: get().accessToken?.length || 0,
-      isAuth: get().isAuthenticated,
-      role: get().role,
-    });
 
     // Lên lịch refresh tự động nếu hợp lệ
     if (accessToken && tokenExpiresAt && isAuthenticated) {
@@ -301,7 +287,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: false,
       role: null,
       user: null,
+      candidateId: null, // ✅ Clear candidateId on logout
     });
+  },
+
+  // ✅ Set candidateId
+  setCandidateId: (candidateId) => {
+    set({ candidateId });
+  },
+
+  // ✅ Fetch user profile from API to get real candidateId
+  fetchCandidateProfile: async () => {
+    try {
+      const { isAuthenticated } = get();
+      
+      // Only fetch if user is authenticated
+      if (!isAuthenticated) {
+        return;
+      }
+      
+      try {
+        // Try to fetch candidate profile first
+        const { fetchCurrentCandidateProfile } = await import('@/lib/candidate-profile-api');
+        const candidateProfile = await fetchCurrentCandidateProfile();
+        
+        // Update store with candidateId from the API response
+        set({ candidateId: candidateProfile.candidateId });
+        
+      } catch (profileError: any) {
+        // If profile doesn't exist (400/404), fallback to /api/users/current
+        if (profileError.message === 'PROFILE_NOT_FOUND') {
+          const { fetchCurrentUser } = await import('@/lib/candidate-profile-api');
+          const userProfile = await fetchCurrentUser();
+          
+          // Use user.id as candidateId temporarily
+          set({ candidateId: userProfile.id });
+        } else {
+          throw profileError;
+        }
+      }
+      
+    } catch (error) {
+      // Don't throw - let the app continue even if profile fetch fails
+    }
   },
 
   // -------- API methods --------
@@ -314,24 +342,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         withCredentials: true, // để backend set cookie refresh
       });
 
-      console.log("🔵 [AUTH STORE] Calling login API...");
       const res = await client.post("/api/auth/login", { email, password });
-
-      console.log("🔵 [AUTH STORE] API response received:", {
-        status: res.status,
-        hasResult: !!res.data?.result,
-        hasAccessToken: !!res.data?.result?.accessToken,
-        hasExpiresIn: !!res.data?.result?.expiresIn,
-      });
 
       const result = res.data?.result as TokenResponse;
       if (!result?.accessToken || !result?.expiresIn) {
-        console.error("🔴 [AUTH STORE] Invalid response:", {
-          hasResult: !!result,
-          hasAccessToken: !!result?.accessToken,
-          hasExpiresIn: !!result?.expiresIn,
-          responseData: res.data,
-        });
         set({ isLoading: false });
         const error = new Error(
           "Invalid login response - missing token or expiry"
@@ -360,10 +374,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log("🔵 [AUTH STORE] Calling setAuthFromTokens with:", {
         hasToken: !!accessToken,
         tokenLength: accessToken.length,
-        expiresAt,
-        isAuthenticated: !!result.authenticated,
-        role,
-        hasUser: !!userInfo,
+        name: decoded?.name ?? decoded?.email ?? email,
       });
 
       // Đẩy vào action chung (tự lưu localStorage + set timer)
@@ -375,29 +386,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: userInfo,
       });
 
-      // Verify the state was set correctly
-      const currentState = get();
-      console.log("🔵 [AUTH STORE] State after setAuthFromTokens:", {
-        hasToken: !!currentState.accessToken,
-        tokenLength: currentState.accessToken?.length || 0,
-        isAuth: currentState.isAuthenticated,
-        role: currentState.role,
+      // ✅ Fetch user profile to get real userId
+      // Fire and forget - don't block login flow
+      get().fetchCandidateProfile().catch((err) => {
+        // Silent fail
       });
 
       set({ isLoading: false });
       return { success: true, isAdmin };
     } catch (err: any) {
-      console.error("🔴 [AUTH STORE] Login error caught:", {
-        message: err?.message,
-        hasResponse: !!err?.response,
-        status: err?.response?.status,
-      });
-      set({ isLoading: false });
-      // Convert to proper Error object if needed
-      if (typeof err === "string") {
-        const error = new Error(err);
-        throw error;
-      }
       const msg =
         err?.response?.data?.message || err?.message || "Login failed";
       const error = new Error(msg);

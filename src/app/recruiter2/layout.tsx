@@ -1,5 +1,10 @@
+"use client";
+
 import { RecruiterSidebar } from "@/modules/recruiter";
 import RecruiterAuthGuard from "@/components/auth/RecruiterAuthGuard";
+import { AuthProvider } from "@/store/auth-provider";
+import { LayoutProvider } from "@/contexts/LayoutContext";
+import { SecurityCleanup } from "@/components/auth/SecurityCleanup";
 
 // Recruiter navigation items
 const recruiterNavItems = [
@@ -41,11 +46,17 @@ export default function RecruiterLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RecruiterAuthGuard>
-      <div className="flex min-h-screen bg-gray-100">
-        <RecruiterSidebar />
-        <main className="flex-1">{children}</main>
-      </div>
-    </RecruiterAuthGuard>
+    <AuthProvider>
+      <LayoutProvider>
+        <SecurityCleanup />
+
+        <RecruiterAuthGuard>
+          <div className="flex min-h-screen bg-gray-100">
+            <RecruiterSidebar />
+            <main className="flex-1">{children}</main>
+          </div>
+        </RecruiterAuthGuard>
+      </LayoutProvider>
+    </AuthProvider>
   );
 }
