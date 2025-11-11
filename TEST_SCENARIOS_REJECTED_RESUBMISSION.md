@@ -39,7 +39,7 @@
 **Test Type**: Functional
 
 **Steps**:
-1. Navigate to `http://localhost:3000/sign-in`
+1. Navigate to `http://localhost:3000/auth/signin`
 2. Click "Sign in with Google"
 3. Complete OAuth flow with rejected recruiter account
 4. Backend returns status REJECTED with reason

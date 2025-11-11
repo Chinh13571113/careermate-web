@@ -165,7 +165,7 @@ export default function AccountPendingPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
-                  onClick={() => router.push("/sign-in")}
+                  onClick={() => router.push("/auth/signin")}
                   className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all font-medium"
                 >
                   <ArrowLeft className="w-5 h-5" />

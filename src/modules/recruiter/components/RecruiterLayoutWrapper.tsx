@@ -107,7 +107,7 @@ export function RecruiterLayoutWrapper({ children }: RecruiterLayoutWrapperProps
                         </div>
                     </div>
                 </main>
-                {/* <RecruiterFooter sidebarOpen={sidebarOpen} /> */}
+                <RecruiterFooter sidebarOpen={sidebarOpen} />
             </div>
         </div>
     );
