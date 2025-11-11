@@ -121,24 +121,238 @@ export interface UpdateOrganizationRequest {
   companyName: string;
   website?: string;
   logoUrl?: string;
-  businessLicense: string;
   contactPerson: string;
   phoneNumber: string;
   companyAddress: string;
-  about?: string;
+  companyEmail?: string;
 }
 
-export const updateOrganization = async (data: UpdateOrganizationRequest): Promise<any> => {
+export interface UpdateOrganizationResponse {
+  code: number;
+  message: string;
+  result: any;
+}
+
+// Update Organization Profile (creates pending update request for admin approval)
+export const updateOrganization = async (data: UpdateOrganizationRequest): Promise<UpdateOrganizationResponse> => {
   try {
-    const response = await api.put('/api/recruiter/update-organization', data);
+    console.log('🔵 [UPDATE ORGANIZATION] Sending update request:', data);
+    const response = await api.put('/api/recruiter/profile', data);
+    console.log('✅ [UPDATE ORGANIZATION] Response:', response.data);
     return response.data;
   } catch (error: any) {
-    console.error('Error updating organization:', error);
-    throw new Error(error.response?.data?.message || 'Failed to update organization');
+    console.error('❌ [UPDATE ORGANIZATION] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to submit update request');
   }
 };
 
 // Recruiter Profile Interface
+export interface PendingUpdateRequest {
+  requestId: number;
+  recruiterId: number;
+  recruiterEmail: string;
+  recruiterUsername: string;
+  currentCompanyName: string;
+  currentWebsite: string;
+  currentLogoUrl: string;
+  currentAbout: string;
+  currentCompanyEmail: string;
+  currentContactPerson: string;
+  currentPhoneNumber: string;
+  currentCompanyAddress: string;
+  newCompanyName: string;
+  newWebsite: string;
+  newLogoUrl: string;
+  newAbout: string;
+  newCompanyEmail: string;
+  newContactPerson: string;
+  newPhoneNumber: string;
+  newCompanyAddress: string;
+  status: string;
+  adminNote: string;
+  rejectionReason: string;
+  createdAt: string;
+  reviewedAt: string;
+}
+
+export interface RecruiterProfileData {
+  recruiterId: number;
+  accountId: number;
+  email: string;
+  username: string;
+  companyName: string;
+  website: string;
+  logoUrl: string;
+  about: string;
+  rating: number;
+  companyEmail: string | null;
+  contactPerson: string;
+  phoneNumber: string;
+  companyAddress: string;
+  verificationStatus: string;
+  rejectionReason: string | null;
+  hasPendingUpdate: boolean;
+  pendingUpdateRequest: PendingUpdateRequest | null;
+}
+
+export interface RecruiterProfileApiResponse {
+  code: number;
+  message: string;
+  result: RecruiterProfileData;
+}
+
+// Get Recruiter Profile (New endpoint)
+export const getRecruiterProfile = async (): Promise<RecruiterProfileApiResponse> => {
+  try {
+    console.log('🔵 [GET RECRUITER PROFILE] Fetching profile...');
+    const response = await api.get('/api/recruiter/profile');
+    console.log('✅ [GET RECRUITER PROFILE] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [GET RECRUITER PROFILE] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch recruiter profile');
+  }
+};
+
+// Admin - Get All Profile Update Requests
+export interface ProfileUpdateRequest {
+  requestId: number;
+  recruiterId: number;
+  recruiterEmail: string;
+  recruiterUsername: string;
+  currentCompanyName: string;
+  currentWebsite: string;
+  currentLogoUrl: string;
+  currentAbout: string;
+  currentCompanyEmail: string | null;
+  currentContactPerson: string;
+  currentPhoneNumber: string;
+  currentCompanyAddress: string;
+  newCompanyName: string;
+  newWebsite: string;
+  newLogoUrl: string;
+  newAbout: string | null;
+  newCompanyEmail: string;
+  newContactPerson: string;
+  newPhoneNumber: string;
+  newCompanyAddress: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  adminNote: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export interface ProfileUpdateRequestsParams {
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface ProfileUpdateRequestsResponse {
+  code: number;
+  message: string;
+  result: {
+    content: ProfileUpdateRequest[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  };
+}
+
+export const getProfileUpdateRequests = async (params?: ProfileUpdateRequestsParams): Promise<ProfileUpdateRequestsResponse> => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.status) {
+      queryParams.append('status', params.status);
+    }
+    if (params?.page !== undefined) {
+      queryParams.append('page', params.page.toString());
+    }
+    if (params?.size !== undefined) {
+      queryParams.append('size', params.size.toString());
+    }
+    if (params?.sortBy) {
+      queryParams.append('sortBy', params.sortBy);
+    }
+    if (params?.sortDir) {
+      queryParams.append('sortDir', params.sortDir);
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/admin/recruiter-update-requests${queryString ? `?${queryString}` : ''}`;
+    
+    console.log('🔍 [GET PROFILE UPDATE REQUESTS] URL:', url);
+    const response = await api.get(url);
+    console.log('✅ [GET PROFILE UPDATE REQUESTS] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [GET PROFILE UPDATE REQUESTS] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch profile update requests');
+  }
+};
+
+// Approve Profile Update Request
+export const approveProfileUpdateRequest = async (requestId: number, adminNote?: string): Promise<any> => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (adminNote) {
+      queryParams.append('adminNote', adminNote);
+    }
+    
+    const url = `/api/admin/recruiter-update-requests/${requestId}/approve${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    console.log('🔵 [APPROVE PROFILE UPDATE] Request ID:', requestId, 'Admin Note:', adminNote);
+    const response = await api.put(url);
+    console.log('✅ [APPROVE PROFILE UPDATE] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [APPROVE PROFILE UPDATE] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to approve profile update request');
+  }
+};
+
+// Reject Profile Update Request
+export const rejectProfileUpdateRequest = async (requestId: number, rejectionReason: string): Promise<any> => {
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.append('rejectionReason', rejectionReason);
+    
+    const url = `/api/admin/recruiter-update-requests/${requestId}/reject?${queryParams.toString()}`;
+    
+    console.log('🔵 [REJECT PROFILE UPDATE] Request ID:', requestId, 'Reason:', rejectionReason);
+    const response = await api.put(url);
+    console.log('✅ [REJECT PROFILE UPDATE] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [REJECT PROFILE UPDATE] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to reject profile update request');
+  }
+};
+
+// Recruiter - Get My Profile Update Requests History
+export interface RecruiterUpdateRequestHistoryResponse {
+  code: number;
+  message: string;
+  result: ProfileUpdateRequest[];
+}
+
+export const getMyUpdateRequestsHistory = async (): Promise<RecruiterUpdateRequestHistoryResponse> => {
+  try {
+    console.log('🔍 [GET MY UPDATE REQUESTS] Fetching update request history...');
+    const response = await api.get('/api/recruiter/profile/update-requests');
+    console.log('✅ [GET MY UPDATE REQUESTS] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [GET MY UPDATE REQUESTS] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch update request history');
+  }
+};
+
 export interface RecruiterProfile {
   recruiterId: number;
   accountId: number;
@@ -149,7 +363,7 @@ export interface RecruiterProfile {
   logoUrl?: string;
   about?: string;
   rating?: number;
-  businessLicense: string;
+  companyEmail?: string;
   contactPerson: string;
   phoneNumber: string;
   companyAddress: string;

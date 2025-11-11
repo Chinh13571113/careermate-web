@@ -160,7 +160,6 @@ const useSignInHook = () => {
               safeLog.authState("🟢 [SIGNIN] Redirecting after login", {
                 role,
                 redirectPath,
-                wasFromApply: !!savedRedirect,
               });
             }
 

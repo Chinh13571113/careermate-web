@@ -49,9 +49,11 @@ export const signUpRecruiterFormSchema = z.object({
     .string()
     .optional()
     .or(z.literal("")),
-  businessLicense: z
+  companyEmail: z
     .string()
-    .min(5, { message: "Business license must be at least 5 characters" }),
+    .email({ message: "Please enter a valid company email" })
+    .optional()
+    .or(z.literal("")),
   contactPerson: z
     .string()
     .min(2, { message: "Contact person name must be at least 2 characters" }),
@@ -84,7 +86,7 @@ const useSignUpRecruiterHook = () => {
       website: "",
       logoUrl: "",
       about: "",
-      businessLicense: "",
+      companyEmail: "",
       contactPerson: "",
       phoneNumber: "",
       companyAddress: "",
@@ -113,7 +115,7 @@ const useSignUpRecruiterHook = () => {
           website: values.website && values.website.trim() !== "" ? values.website : undefined,
           logoUrl: values.logoUrl && values.logoUrl.trim() !== "" ? values.logoUrl : undefined,
           about: values.about && values.about.trim() !== "" ? values.about : undefined,
-          businessLicense: values.businessLicense,
+          companyEmail: values.companyEmail && values.companyEmail.trim() !== "" ? values.companyEmail : undefined,
           contactPerson: values.contactPerson,
           phoneNumber: values.phoneNumber,
           companyAddress: values.companyAddress,
@@ -150,7 +152,7 @@ const useSignUpRecruiterHook = () => {
           website: "",
           logoUrl: "",
           about: "",
-          businessLicense: "",
+          companyEmail: "",
           contactPerson: "",
           phoneNumber: "",
           companyAddress: "",
