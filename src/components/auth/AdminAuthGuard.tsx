@@ -18,9 +18,9 @@ function getRoleFromToken(token: string): string | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    
+
     const payload = JSON.parse(atob(parts[1]));
-    
+
     // Extract role from scope or roles field
     if (payload.scope) {
       if (typeof payload.scope === 'string') {
@@ -29,11 +29,11 @@ function getRoleFromToken(token: string): string | null {
       }
       return payload.scope;
     }
-    
+
     if (Array.isArray(payload.roles) && payload.roles.length > 0) {
       return payload.roles[0];
     }
-    
+
     return null;
   } catch (error) {
     return null;
@@ -45,10 +45,20 @@ export default function AdminAuthGuard({
   redirectIfGuest = "/sign-in",
   redirectIfNotAdmin = "/",
 }: AdminAuthGuardProps) {
-  // First, check localStorage immediately (synchronous)
+  // ✅ ALWAYS call ALL hooks at the top - unconditionally
+  const hasHydrated = useAuthHydration();
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const role = useAuthStore((s) => s.role);
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  const isAdmin = role === "ADMIN" || role === "ROLE_ADMIN";
+
+  // Now check localStorage (after hooks)
   const storedToken =
     typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-  
+
   // Decode role from JWT instead of reading from localStorage
   const tokenRole = storedToken ? getRoleFromToken(storedToken) : null;
   const hasStoredAdminRole =
@@ -75,18 +85,6 @@ export default function AdminAuthGuard({
     return <>{children}</>;
   }
 
-  // 1) Đảm bảo store đã rehydrate từ localStorage *trước khi* kiểm tra gì thêm
-  const hasHydrated = useAuthHydration(); // <-- VT: hook nên return boolean
-  const router = useRouter();
-
-  // 2) Đọc state từ store (reactive)
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isLoading = useAuthStore((s) => s.isLoading);
-  const role = useAuthStore((s) => s.role);
-  const accessToken = useAuthStore((s) => s.accessToken);
-
-  const isAdmin = role === "ADMIN" || role === "ROLE_ADMIN";
-
   // 3) Điều hướng sau khi đã hydrate + hết loading
   useEffect(() => {
     if (!hasHydrated || isLoading) {
@@ -99,7 +97,7 @@ export default function AdminAuthGuard({
       typeof window !== "undefined"
         ? localStorage.getItem("access_token")
         : null;
-    
+
     // Get role from token instead of localStorage (security)
     const currentTokenRole = storedToken ? getRoleFromToken(storedToken) : null;
 
