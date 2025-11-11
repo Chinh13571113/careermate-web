@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 type TabKey = "account" | "organization";
 
 const TABS: { key: TabKey; label: string; href: string }[] = [
-    { key: "account", label: "Recruiter account", href: "/recruiter/profile/account" },
-    { key: "organization", label: "Organization profile", href: "/recruiter/profile/organization" },
+    { key: "account", label: "Recruiter account", href: "/recruiter/recruiter-feature/profile/account" },
+    { key: "organization", label: "Organization profile", href: "/recruiter/recruiter-feature/profile/organization" },
 ];
 
 export function AccountTabs() {

@@ -223,8 +223,6 @@ const CVManagementPage = () => {
 
   return (
     <>
-      <ClientHeader />
-
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
         <div
           className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)] gap-6 items-start transition-all duration-300"
@@ -302,8 +300,8 @@ const CVManagementPage = () => {
               ) : (
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
-                      ? "border-green-400 bg-green-50"
-                      : "border-gray-300 bg-white hover:border-green-300"
+                    ? "border-green-400 bg-green-50"
+                    : "border-gray-300 bg-white hover:border-green-300"
                     }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -359,8 +357,8 @@ const CVManagementPage = () => {
                   <button
                     onClick={() => setActiveTab("uploaded")}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "uploaded"
-                        ? "border-green-600 text-green-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-green-600 text-green-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                       }`}
                   >
                     CV đã tải lên ({uploadedCVs.length})
@@ -368,8 +366,8 @@ const CVManagementPage = () => {
                   <button
                     onClick={() => setActiveTab("built")}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "built"
-                        ? "border-green-600 text-green-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-green-600 text-green-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                       }`}
                   >
                     CV đã tạo ({builtCVs.length})

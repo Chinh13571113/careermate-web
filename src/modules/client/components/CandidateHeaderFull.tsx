@@ -182,7 +182,7 @@ export function CandidateHeader() {
                     {/* Right Side */}
                     <div className="flex items-center space-x-4">
                         <Link href="/recruiter" className="hidden sm:block text-gray-300 hover:text-white transition-colors">
-                            For Employers
+                            For Employers a
                         </Link>
 
                         {/* Authentication State */}

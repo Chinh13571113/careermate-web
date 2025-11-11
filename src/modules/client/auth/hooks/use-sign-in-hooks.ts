@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT, ADMIN_ROLES } from "@/lib/auth-admin";
 import { safeLog, DEBUG } from "@/lib/debug-config";
 import { getDefaultRedirectPath, isRecruiter } from "@/lib/role-utils";
+import { getMyRecruiterProfile } from "@/lib/recruiter-api";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -94,16 +95,63 @@ const useSignInHook = () => {
             });
           }
 
-          // Check if there's a saved redirect path (e.g., from Apply Now)
-          const savedRedirect = localStorage.getItem('redirectAfterLogin');
-          
-          // Determine redirect path based on saved redirect or role
-          const redirectPath = savedRedirect || getDefaultRedirectPath(role);
-          
-          // Clear the saved redirect
-          if (savedRedirect) {
-            localStorage.removeItem('redirectAfterLogin');
+          // Check if user is recruiter and verify account status
+          if (role === "RECRUITER" || role === "ROLE_RECRUITER") {
+            try {
+              const profileResponse = await getMyRecruiterProfile();
+              const profile = profileResponse.result;
+
+              if (DEBUG.LOGIN) {
+                safeLog.authState("🔵 [SIGNIN] Recruiter profile fetched", {
+                  accountStatus: profile.accountStatus,
+                  hasRejectionReason: !!profile.rejectionReason,
+                });
+              }
+
+              // Handle REJECTED status
+              if (profile.accountStatus === "REJECTED") {
+                toast.error(
+                  profile.rejectionReason 
+                    ? `Tài khoản bị từ chối: ${profile.rejectionReason}`
+                    : "Tài khoản của bạn đã bị từ chối"
+                );
+                
+                // Keep auth token (don't clear) and redirect to rejected page so user can resubmit
+                setTimeout(() => {
+                  const rejectionReason = encodeURIComponent(profile.rejectionReason || '');
+                  window.location.href = `/auth/account-rejected?reason=${rejectionReason}`;
+                }, 500);
+                return;
+              }
+
+              // Handle PENDING status
+              if (profile.accountStatus === "PENDING") {
+                toast("Tài khoản đang chờ phê duyệt. Vui lòng chờ chúng tôi xác nhận và sẽ thông báo lại sau.");
+                
+                // Redirect to pending page
+                setTimeout(() => {
+                  window.location.href = "/auth/account-pending";
+                }, 500);
+                return;
+              }
+
+              // If status is APPROVED or ACTIVE, continue with normal flow
+              if (profile.accountStatus === "APPROVED" || profile.accountStatus === "ACTIVE") {
+                if (DEBUG.LOGIN) {
+                  safeLog.authState("✅ [SIGNIN] Recruiter account is active", {
+                    status: profile.accountStatus,
+                  });
+                }
+              }
+            } catch (error) {
+              // If we can't fetch profile, log error but continue
+              safeLog.error("🔴 [SIGNIN] Error fetching recruiter profile:", error);
+              // Don't block login if profile fetch fails
+            }
           }
+
+          // Determine redirect path based on role
+          const redirectPath = getDefaultRedirectPath(role);
 
           // Use multiple redirect methods for reliability
           // Wait longer to ensure state is fully updated
