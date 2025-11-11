@@ -28,7 +28,7 @@ export type OrganizationProfile = {
     address: string;
     city: string;
     country: string;
-    businessLicense?: File;
+    companyEmail?: string;
 };
 
 export type CandidateApplication = {

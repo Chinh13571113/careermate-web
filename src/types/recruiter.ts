@@ -6,7 +6,7 @@ export interface Recruiter {
   website: string;
   logoUrl: string;
   about: string;
-  businessLicense: string;
+  companyEmail: string;
   contactPerson: string;
   phoneNumber: string;
   companyAddress: string;

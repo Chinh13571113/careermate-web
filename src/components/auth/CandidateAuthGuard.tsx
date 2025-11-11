@@ -22,18 +22,10 @@ export default function CandidateAuthGuard({
   children,
   redirectIfGuest = "/sign-in",
 }: CandidateAuthGuardProps) {
-  // ✅ ALWAYS call ALL hooks at the top - unconditionally
-  const hasHydrated = useAuthHydration();
-  const router = useRouter();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isLoading = useAuthStore((s) => s.isLoading);
-  const role = useAuthStore((s) => s.role);
-  const accessToken = useAuthStore((s) => s.accessToken);
-
-  // Now check localStorage (after hooks)
+  // First, check localStorage immediately (synchronous)
   const storedToken =
     typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-
+  
   // Decode role from JWT instead of reading from localStorage
   const tokenRole = storedToken ? getRoleFromToken(storedToken) : null;
 
@@ -44,6 +36,27 @@ export default function CandidateAuthGuard({
       role: tokenRole,
     });
   }
+
+  // If we have valid token, render immediately
+  if (storedToken && tokenRole) {
+    if (DEBUG.ADMIN_GUARD) {
+      safeLog.authState(
+        "✅ [CandidateAuthGuard] Has stored credentials - rendering children immediately",
+        {}
+      );
+    }
+    return <>{children}</>;
+  }
+
+  // 1) Đảm bảo store đã rehydrate từ localStorage
+  const hasHydrated = useAuthHydration();
+  const router = useRouter();
+
+  // 2) Đọc state từ store (reactive)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const role = useAuthStore((s) => s.role);
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   // 3) Điều hướng sau khi đã hydrate + hết loading
   useEffect(() => {

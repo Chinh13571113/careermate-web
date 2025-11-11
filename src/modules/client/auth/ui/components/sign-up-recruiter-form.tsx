@@ -266,24 +266,25 @@ export default function SignUpRecruiterForm() {
                       />
                     </div>
 
-                    {/* Business License */}
+                    {/* Company Email */}
                     <div className="mb-6">
                       <FormField
                         control={form.control}
-                        name="businessLicense"
+                        name="companyEmail"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-dark mb-2 block text-sm dark:text-white">
-                              Business License <span className="text-destructive">*</span>
+                              Company Email
                             </FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
-                                id="businessLicense"
-                                placeholder="e.g., BL-2025-123456"
+                                id="companyEmail"
+                                type="email"
+                                placeholder="e.g., contact@company.com"
                                 className={cn(
                                   "border-stroke rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base text-body-color dark:text-body-color-dark dark:shadow-two dark:border-transparent dark:bg-[#2C303B] focus:border-primary dark:focus:border-primary transition-all duration-300",
-                                  form.formState.errors.businessLicense &&
+                                  form.formState.errors.companyEmail &&
                                     "border-destructive focus:border-destructive text-destructive"
                                 )}
                               />

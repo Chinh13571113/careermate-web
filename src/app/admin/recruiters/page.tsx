@@ -51,6 +51,7 @@ export default function RecruiterManagementPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'PENDING' | 'APPROVED' | 'ACTIVE' | 'REJECTED' | 'BANNED'>('all');
+  const [activeTab, setActiveTab] = useState<'info' | 'profile'>('info');
 
   const fetchRecruiters = async () => {
     try {
@@ -100,6 +101,7 @@ export default function RecruiterManagementPage() {
 
   const handleViewDetails = (recruiter: Recruiter) => {
     setSelectedRecruiter(recruiter);
+    setActiveTab('info'); // Reset to info tab when opening dialog
     setIsDialogOpen(true);
   };
 
@@ -421,30 +423,57 @@ export default function RecruiterManagementPage() {
             
             {selectedRecruiter && (
               <div className="space-y-6 mt-4">
-                {/* Company Header */}
-                <div className="flex items-start gap-6 p-6 bg-sky-50 rounded-lg">
-                  {selectedRecruiter.logoUrl ? (
-                    <img 
-                      src={selectedRecruiter.logoUrl} 
-                      alt={selectedRecruiter.companyName}
-                      className="w-24 h-24 rounded-lg object-cover border-2 border-white shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-lg bg-sky-500 flex items-center justify-center text-white shadow-sm">
-                      <Building2 className="h-12 w-12" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-semibold text-gray-800">{selectedRecruiter.companyName}</h3>
-                    <p className="text-gray-600 mt-1">{selectedRecruiter.contactPerson}</p>
-                    <div className="flex items-center gap-3 mt-3">
-                      <Badge className={`${getVerificationBadge(selectedRecruiter.accountStatus).color} px-3 py-1 flex items-center`}>
-                        {getVerificationBadge(selectedRecruiter.accountStatus).icon}
-                        {selectedRecruiter.accountStatus}
-                      </Badge>
-                    </div>
-                  </div>
+                {/* Tabs Navigation */}
+                <div className="flex gap-2 border-b border-gray-200">
+                  <button
+                    onClick={() => setActiveTab('info')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === 'info'
+                        ? 'border-sky-600 text-sky-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    }`}
+                  >
+                    Account Information
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === 'profile'
+                        ? 'border-sky-600 text-sky-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    }`}
+                  >
+                    Organization Profile
+                  </button>
                 </div>
+
+                {/* Tab Content: Account Information */}
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    {/* Company Header */}
+                    <div className="flex items-start gap-6 p-6 bg-sky-50 rounded-lg">
+                      {selectedRecruiter.logoUrl ? (
+                        <img 
+                          src={selectedRecruiter.logoUrl} 
+                          alt={selectedRecruiter.companyName}
+                          className="w-24 h-24 rounded-lg object-cover border-2 border-white shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg bg-sky-500 flex items-center justify-center text-white shadow-sm">
+                          <Building2 className="h-12 w-12" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-semibold text-gray-800">{selectedRecruiter.companyName}</h3>
+                        <p className="text-gray-600 mt-1">{selectedRecruiter.contactPerson}</p>
+                        <div className="flex items-center gap-3 mt-3">
+                          <Badge className={`${getVerificationBadge(selectedRecruiter.accountStatus).color} px-3 py-1 flex items-center`}>
+                            {getVerificationBadge(selectedRecruiter.accountStatus).icon}
+                            {selectedRecruiter.accountStatus}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
 
                 {/* Contact Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -500,8 +529,8 @@ export default function RecruiterManagementPage() {
                   </div>
 
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Business License</p>
-                    <p className="text-gray-800 font-medium">{selectedRecruiter.businessLicense}</p>
+                    <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Company Email</p>
+                    <p className="text-gray-800 font-medium">{selectedRecruiter.companyEmail || 'N/A'}</p>
                   </div>
 
                   {selectedRecruiter.about && (
@@ -524,6 +553,83 @@ export default function RecruiterManagementPage() {
                     <p className="text-gray-800 font-medium">{selectedRecruiter.accountRole}</p>
                   </div>
                 </div>
+                  </div>
+                )}
+
+                {/* Tab Content: Organization Profile */}
+                {activeTab === 'profile' && (
+                  <div className="space-y-6">
+                    <div className="rounded-lg border bg-white p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Profile Information</h3>
+                      
+                      {/* Company Logo */}
+                      <div className="mb-6 flex justify-center">
+                        <div className="relative h-32 w-32 overflow-hidden rounded-lg border-2 border-gray-200">
+                          {selectedRecruiter.logoUrl ? (
+                            <img
+                              src={selectedRecruiter.logoUrl}
+                              alt={selectedRecruiter.companyName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-blue-100">
+                              <Building2 className="h-16 w-16 text-sky-600" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Profile Details Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Company Name</p>
+                          <p className="text-gray-800 font-medium">{selectedRecruiter.companyName}</p>
+                        </div>
+
+                        {selectedRecruiter.website && (
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Website</p>
+                            <a
+                              href={selectedRecruiter.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sky-600 hover:underline font-medium break-all"
+                            >
+                              {selectedRecruiter.website}
+                            </a>
+                          </div>
+                        )}
+
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Contact Person</p>
+                          <p className="text-gray-800 font-medium">{selectedRecruiter.contactPerson}</p>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Phone Number</p>
+                          <p className="text-gray-800 font-medium">{selectedRecruiter.phoneNumber}</p>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 rounded-lg md:col-span-2">
+                          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Company Address</p>
+                          <p className="text-gray-800 font-medium">{selectedRecruiter.companyAddress}</p>
+                        </div>
+
+                        {selectedRecruiter.about && (
+                          <div className="p-4 bg-gray-50 rounded-lg md:col-span-2">
+                            <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Company Introduction</p>
+                            <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{selectedRecruiter.about}</p>
+                          </div>
+                        )}
+
+                        <div className="p-4 bg-gray-50 rounded-lg md:col-span-2">
+                          <p className="text-xs text-gray-600 uppercase tracking-wide mb-2">Company Email</p>
+                          <p className="text-gray-800 font-medium">{selectedRecruiter.companyEmail || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

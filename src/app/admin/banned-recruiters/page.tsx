@@ -398,8 +398,8 @@ export default function BannedRecruitersPage() {
                 {/* Additional Information */}
                 <div className="space-y-4">
                   <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Business License</p>
-                    <p className="text-gray-800 font-medium">{selectedRecruiter.businessLicense}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Company Email</p>
+                    <p className="text-gray-800 font-medium">{selectedRecruiter.companyEmail || 'N/A'}</p>
                   </div>
 
                   {selectedRecruiter.about && (

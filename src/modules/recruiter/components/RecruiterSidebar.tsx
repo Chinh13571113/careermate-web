@@ -29,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
         subItems: [
             { label: "Recruiter account", href: "/recruiter/recruiter-feature/profile/account" },
             { label: "Organization profile", href: "/recruiter/recruiter-feature/profile/organization" },
+            { label: "Update history", href: "/recruiter/recruiter-feature/profile/update-history" },
             { label: "Billing & plans", href: "/recruiter/recruiter-feature/profile/billing" },
         ],
     },

@@ -24,11 +24,10 @@ export function OrganizationUpdateForm({
     companyName: initialData?.companyName || "",
     website: initialData?.website || "",
     logoUrl: initialData?.logoUrl || "",
-    businessLicense: initialData?.businessLicense || "",
+    companyEmail: initialData?.companyEmail || "",
     contactPerson: initialData?.contactPerson || "",
     phoneNumber: initialData?.phoneNumber || "",
     companyAddress: initialData?.companyAddress || "",
-    about: initialData?.about || "",
   });
 
   const handleInputChange = (
@@ -47,7 +46,6 @@ export function OrganizationUpdateForm({
     // Validate required fields
     if (
       !formData.companyName ||
-      !formData.businessLicense ||
       !formData.contactPerson ||
       !formData.phoneNumber ||
       !formData.companyAddress
@@ -137,16 +135,15 @@ export function OrganizationUpdateForm({
         {/* Business License */}
         <fieldset className="space-y-2 md:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Giấy phép kinh doanh <span className="text-red-500">*</span>
+            Email công ty
           </label>
           <input
-            type="text"
-            name="businessLicense"
-            value={formData.businessLicense}
+            type="email"
+            name="companyEmail"
+            value={formData.companyEmail}
             onChange={handleInputChange}
-            required
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors"
-            placeholder="VD: BL-2025-123456"
+            placeholder="VD: contact@company.com"
           />
         </fieldset>
 
@@ -196,21 +193,6 @@ export function OrganizationUpdateForm({
             required
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors"
             placeholder="VD: Ftown1, Đà Nẵng"
-          />
-        </fieldset>
-
-        {/* Company Introduction */}
-        <fieldset className="space-y-2 md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Giới thiệu về công ty
-          </label>
-          <textarea
-            name="about"
-            value={formData.about}
-            onChange={handleInputChange}
-            rows={4}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors resize-none"
-            placeholder="Viết một đoạn giới thiệu ngắn về công ty của bạn..."
           />
         </fieldset>
       </div>
