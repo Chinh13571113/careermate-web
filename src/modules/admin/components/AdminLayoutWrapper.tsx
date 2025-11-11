@@ -48,7 +48,7 @@ export function AdminLayoutWrapper({ children }: AdminLayoutWrapperProps) {
                         </div>
                     </div>
                 </main>
-                <AdminFooter sidebarOpen={sidebarOpen} />
+                {/* <AdminFooter sidebarOpen={sidebarOpen} /> */}
             </div>
         </div>
     );

@@ -375,7 +375,7 @@ export default function JobPostingsManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 border-b border-gray-200">
-                  <TableHead className="font-semibold text-gray-700 py-4 w-16">ID</TableHead>
+                  {/* <TableHead className="font-semibold text-gray-700 py-4 w-16">ID</TableHead> */}
                   <TableHead className="font-semibold text-gray-700">Job Title</TableHead>
                   <TableHead className="font-semibold text-gray-700">Company</TableHead>
                   <TableHead className="font-semibold text-gray-700">Location</TableHead>
@@ -390,9 +390,9 @@ export default function JobPostingsManagementPage() {
                     key={job.id}
                     className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
                   >
-                    <TableCell className="font-medium text-gray-600 py-4">
+                    {/* <TableCell className="font-medium text-gray-600 py-4">
                       {job.id}
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="font-medium text-gray-800">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">

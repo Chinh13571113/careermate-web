@@ -114,7 +114,7 @@ export default function PendingApprovalConfirmationPage() {
               Về trang chủ
             </button>
             <button
-              onClick={() => router.push("/auth/signin")}
+              onClick={() => router.push("/sign-in")}
               className="px-8 py-3 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
             >
               Đăng nhập

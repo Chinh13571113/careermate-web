@@ -243,7 +243,7 @@ export default function SkillManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 border-b border-gray-200">
-                  <TableHead className="font-semibold text-gray-700 py-4 w-20">ID</TableHead>
+                  {/* <TableHead className="font-semibold text-gray-700 py-4 w-20">ID</TableHead> */}
                   <TableHead className="font-semibold text-gray-700">Skill Name</TableHead>
                   <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
                 </TableRow>
@@ -254,9 +254,9 @@ export default function SkillManagementPage() {
                     key={skill.id}
                     className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
                   >
-                    <TableCell className="font-medium text-gray-600 py-4">
+                    {/* <TableCell className="font-medium text-gray-600 py-4">
                       {skill.id}
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="font-medium text-gray-800">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
