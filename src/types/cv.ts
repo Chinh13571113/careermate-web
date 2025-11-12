@@ -18,6 +18,9 @@ export interface CVData {
     website?: string;
     linkedin?: string;
     summary: string;
+    dob?: string;
+    nationality?: string;
+    photoUrl?: string;
   };
   experience: Array<{
     position: string;
@@ -53,6 +56,22 @@ export interface CVData {
     technologies: string[];
     url?: string;
     github?: string;
+    period?: string;
+  }>;
+  softSkills?: string[];
+  hobbies?: string[];
+  references?: Array<{
+    name: string;
+    position: string;
+    company: string;
+    email?: string;
+    phone?: string;
+  }>;
+  awards?: Array<{
+    title: string;
+    issuer: string;
+    date: string;
+    description?: string;
   }>;
 }
 
@@ -108,7 +127,9 @@ export const SAMPLE_CV_DATA: CVData = {
     location: "Hanoi, Vietnam",
     website: "https://nguyenvana.dev",
     linkedin: "https://linkedin.com/in/nguyenvana",
-    summary: "Frontend Developer with 3 years of experience in building web applications using React, JavaScript, and modern technologies. Passionate about creating beautiful user interfaces and delivering the best user experiences."
+    summary: "Frontend Developer with 3 years of experience in building web applications using React, JavaScript, and modern technologies. Passionate about creating beautiful user interfaces and delivering the best user experiences.",
+    dob: "01/01/1995",
+    nationality: "Vietnamese"
   },
   experience: [
     {
@@ -180,7 +201,38 @@ export const SAMPLE_CV_DATA: CVData = {
       description: "An e-commerce platform built with React and Node.js",
       technologies: ["React", "Node.js", "MongoDB", "Stripe"],
       url: "https://demo-ecommerce.com",
-      github: "https://github.com/nguyenvana/ecommerce"
+      github: "https://github.com/nguyenvana/ecommerce",
+      period: "2022 - 2023"
+    }
+  ],
+  softSkills: [
+    "Team Collaboration",
+    "Problem Solving",
+    "Time Management",
+    "Communication",
+    "Critical Thinking"
+  ],
+  hobbies: [
+    "Reading tech blogs",
+    "Open source contribution",
+    "Photography",
+    "Traveling"
+  ],
+  awards: [
+    {
+      title: "Best Developer Award",
+      issuer: "TechCorp Vietnam",
+      date: "2023",
+      description: "Awarded for outstanding performance and contribution to the company"
+    }
+  ],
+  references: [
+    {
+      name: "Tran Thi B",
+      position: "Senior Frontend Developer",
+      company: "TechCorp Vietnam",
+      email: "tranthib@techcorp.com",
+      phone: "0987654321"
     }
   ]
 };

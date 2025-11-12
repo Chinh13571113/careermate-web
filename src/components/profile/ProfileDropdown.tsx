@@ -37,7 +37,7 @@ export function ProfileDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { isAuthenticated, accessToken, logout } = useAuthStore();
-   const router = useRouter();
+  const router = useRouter();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -70,14 +70,14 @@ export function ProfileDropdown({
   };
 
   // Normalize role - handle both "RECRUITER" and "ROLE_RECRUITER" formats
-  const normalizedRole = 
+  const normalizedRole =
     role?.toUpperCase().includes("CANDIDATE")
       ? "ROLE_CANDIDATE"
       : role?.toUpperCase().includes("RECRUITER")
-      ? "ROLE_RECRUITER"
-      : role?.toUpperCase().includes("ADMIN")
-      ? "ROLE_ADMIN"
-      : "ROLE_USER";
+        ? "ROLE_RECRUITER"
+        : role?.toUpperCase().includes("ADMIN")
+          ? "ROLE_ADMIN"
+          : "ROLE_USER";
 
   const isCandidate = normalizedRole === "ROLE_CANDIDATE";
   const isRecruiter = normalizedRole === "ROLE_RECRUITER";
@@ -150,9 +150,8 @@ export function ProfileDropdown({
 
           {/* Dropdown Arrow */}
           <ChevronDown
-            className={`w-4 h-4 transition-transform ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""
+              }`}
           />
         </button>
 
@@ -189,7 +188,15 @@ export function ProfileDropdown({
               {isCandidate && (
                 <>
                   <Link
-                    href="/profile"
+                    href="/candidate/dashboard"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <User className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/candidate/cm-profile"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
@@ -197,20 +204,20 @@ export function ProfileDropdown({
                     My Profile
                   </Link>
                   <Link
-                    href="/candidate/my-jobs"
+                    href="/candidate/cv-management"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
                     <CreditCard className="w-4 h-4" />
-                    My Applications
+                    CV Management
                   </Link>
                   <Link
-                    href="/cv-management"
+                    href="/candidate/my-jobs"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
                     <Settings className="w-4 h-4" />
-                    CV Management
+                    My Applications
                   </Link>
                   <Link
                     href="/settings"
