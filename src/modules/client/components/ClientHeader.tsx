@@ -205,18 +205,19 @@ export default function ClientHeader() {
             >
               Blog
             </Link>
+             <Link
+              href="/recruiter/recruiter-feature/services"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Companies 
+            </Link>
             <Link
               href="/cv-templates"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
               CV Templates
             </Link>
-            {/* <Link
-              href="/recruiter/recruiter-feature/services"
-              className="text-[#ffffff] hover:text-[#c8c8c8]"
-            >
-              Services */}
-            {/* </Link> */}
+           
             {/* <Link
               href="/recruiter/recruiter-feature/jobs"
               className="text-[#ffffff] hover:text-[#c8c8c8]"

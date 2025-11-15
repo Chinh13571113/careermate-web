@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { uploadCVPDF } from "@/lib/firebase-upload";
+import { useAuthStore } from "@/store/use-auth-store";
+import toast from "react-hot-toast";
 import "./zoom-slider.css";
 
 const decodeHtmlEntities = (value: string) => {
@@ -390,7 +393,16 @@ export default function CVPreview({
   onBackClick,
 }: Props) {
   const [zoom, setZoom] = useState(zoomLevel);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+  
+  // Get user from auth store
+  const { user, candidateId } = useAuthStore();
+
+  // Fix hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const currentTemplate =
     CV_TEMPLATES.find((t) => t.id === templateId) || CV_TEMPLATES[3];
@@ -614,6 +626,126 @@ export default function CVPreview({
       } else {
         alert(`${genericMessage}\n\nDetails: ${errorMessage}`);
       }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Export PDF using Puppeteer API and save to Firebase
+  const handleExportAndSavePDF = async (userId?: string) => {
+    if (isDownloading) return;
+
+    // Kiểm tra userId (có thể lấy từ auth context)
+    if (!userId) {
+      toast.error("Bạn cần đăng nhập để lưu CV");
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      // Generate filename
+      const fullName = cvData.personalInfo.fullName || "CV";
+      const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, "_");
+      const fileName = `CV_${cleanName}_${new Date().toISOString().split("T")[0]}`;
+
+      toast.loading("Đang tạo PDF...");
+
+      // Transform cvData to match print template format
+      const printData = {
+        fullName: cvData.personalInfo.fullName || "",
+        title: cvData.personalInfo.position || "",
+        email: cvData.personalInfo.email || "",
+        phone: cvData.personalInfo.phone || "",
+        address: cvData.personalInfo.location || "",
+        website: cvData.personalInfo.website || "",
+        photoUrl: cvData.personalInfo.photoUrl || "",
+        summary: cvData.personalInfo.summary || "",
+        experience: cvData.experience?.map(exp => ({
+          position: exp.position || "",
+          company: exp.company || "",
+          period: exp.period || "",
+          description: exp.description || ""
+        })) || [],
+        education: cvData.education?.map(edu => ({
+          degree: edu.degree || "",
+          institution: edu.school || "",
+          period: edu.period || "",
+          description: edu.description || ""
+        })) || [],
+        skills: cvData.skills?.map(skill => ({
+          category: skill.category || "",
+          items: skill.items || []
+        })) || [],
+        languages: cvData.languages?.map(lang => ({
+          name: lang.language || "",
+          level: lang.level || ""
+        })) || [],
+        certifications: cvData.certifications?.map(cert => ({
+          name: cert.name || "",
+          issuer: cert.issuer || "",
+          date: cert.date || ""
+        })) || [],
+        projects: cvData.projects?.map(proj => ({
+          name: proj.name || "",
+          description: proj.description || "",
+          period: proj.period || ""
+        })) || []
+      };
+
+      // Call NEW API to generate PDF using base64-encoded data
+      const response = await fetch("/api/export-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          templateId: templateId, // Pass template ID
+          cvData: printData, // Pass transformed CV data
+          fileName: fileName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ API Error:", errorData);
+        const errorMsg = errorData.details 
+          ? `${errorData.error}: ${errorData.details}`
+          : errorData.error || "Failed to generate PDF";
+        throw new Error(errorMsg);
+      }
+
+      toast.dismiss();
+      toast.loading("Đang lưu CV lên Firebase...");
+
+      // Get PDF blob
+      const pdfBlob = await response.blob();
+
+      // Upload to Firebase
+      const downloadURL = await uploadCVPDF(userId, pdfBlob, cleanName);
+
+      toast.dismiss();
+      toast.success("CV đã được lưu thành công!");
+
+      console.log("✅ CV saved to Firebase:", downloadURL);
+
+      // Optional: Download to local as well
+      const url = window.URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${fileName}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      return downloadURL;
+    } catch (error) {
+      console.error("❌ Error exporting and saving PDF:", error);
+      toast.dismiss();
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể xuất và lưu CV"
+      );
     } finally {
       setIsDownloading(false);
     }
@@ -2723,6 +2855,46 @@ export default function CVPreview({
                     />
                   </svg>
                   Download PDF
+                </>
+              )}
+            </button>
+
+            {/* Save to Firebase Button */}
+            <button
+              onClick={() => {
+                // Get userId from auth store
+                const userId = candidateId?.toString() || user?.id?.toString();
+                if (!userId) {
+                  toast.error("Bạn cần đăng nhập để lưu CV");
+                  return;
+                }
+                handleExportAndSavePDF(userId);
+              }}
+              disabled={!isMounted || isDownloading || !user}
+              className="px-3 py-2 border border-green-400 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!isMounted || !user ? "Đăng nhập để lưu CV" : "Export PDF and save to Firebase Storage"}
+            >
+              {isDownloading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3 3m0 0l-3-3m3 3V4"
+                    />
+                  </svg>
+                  Lưu CV vào Firebase
                 </>
               )}
             </button>
