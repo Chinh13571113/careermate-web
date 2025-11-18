@@ -118,7 +118,7 @@ export default function CVTemplatesIntroductionPage() {
               <div className="text-center mt-12">
                 <div className="flex justify-center gap-4 mb-16">
                   <button className="bg-gradient-to-r from-[#3a4660] to-gray-400 text-white px-8 py-3 rounded-lg hover:from-[#3a4660] hover:to-[#3a4660] transition-all duration-200 font-medium">
-                    <Link href="/update-cvprofile">Create CV Now</Link>
+                    <Link href="/candidate/cm-profile">Create CV Now</Link>
                   </button>
                   <Link
                     href="/cv-templates"

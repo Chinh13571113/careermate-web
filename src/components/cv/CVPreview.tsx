@@ -324,7 +324,7 @@ const handleDirectPDF = (cvData: CVData) => {
       pdf.setFontSize(11);
       pdf.setTextColor(50, 50, 50);
       const skillsText = cvData.skills
-        .map((skill: CVData['skills'][0]) => `${skill.category}: ${skill.items.join(', ')}`)
+        .map((skill: CVData['skills'][0]) => `${skill.category}: ${skill.items.map(item => item.skill).join(', ')}`)
         .join(" | ");
       const skillsLines = pdf.splitTextToSize(
         skillsText,
@@ -1089,7 +1089,7 @@ export default function CVPreview({
                         {skillGroup.category}:
                       </h3>
                       <p className="text-gray-700">
-                        {skillGroup.items.join(", ")}
+                        {skillGroup.items.map(item => item.skill).join(", ")}
                       </p>
                     </div>
                   ))}
@@ -1373,7 +1373,7 @@ export default function CVPreview({
                         {s.category}
                       </h3>
                       <p className="text-gray-700 text-sm">
-                        {s.items.join(", ")}
+                        {s.items.map(item => item.skill).join(", ")}
                       </p>
                     </div>
                   ))}
@@ -1499,9 +1499,9 @@ export default function CVPreview({
                         {skillGroup.category}
                       </h3>
                       <p className="text-gray-700">
-                        {skillGroup.items.map((skill, i) => (
-                          <span key={i} className="mr-1">
-                            {skill}
+                        {skillGroup.items.map((skillItem, i) => (
+                          <span key={skillItem.id} className="mr-1">
+                            {skillItem.skill}
                             {i < skillGroup.items.length - 1 ? ", " : ""}
                           </span>
                         ))}
@@ -1853,12 +1853,12 @@ export default function CVPreview({
                   <div className="mb-4">
                     <h3 className="font-semibold mb-2">Excellent</h3>
                     <div className="flex flex-wrap gap-2">
-                      {cvData.skills[0]?.items.slice(0, 4).map((skill, i) => (
+                      {cvData.skills[0]?.items.slice(0, 4).map((skillItem) => (
                         <div
-                          key={i}
+                          key={skillItem.id}
                           className="bg-gray-100 text-gray-800 px-3 py-1 rounded-sm text-sm"
                         >
-                          {skill}
+                          {skillItem.skill}
                         </div>
                       ))}
                     </div>
@@ -1868,20 +1868,20 @@ export default function CVPreview({
                   <div className="mb-4">
                     <h3 className="font-semibold mb-2">Intermediate</h3>
                     <div className="flex flex-wrap gap-2">
-                      {cvData.skills[0]?.items.slice(4, 8).map((skill, i) => (
+                      {cvData.skills[0]?.items.slice(4, 8).map((skillItem) => (
                         <div
-                          key={i}
+                          key={skillItem.id}
                           className="bg-gray-100 text-gray-800 px-3 py-1 rounded-sm text-sm"
                         >
-                          {skill}
+                          {skillItem.skill}
                         </div>
                       )) ||
-                        cvData.skills[1]?.items.map((skill, i) => (
+                        cvData.skills[1]?.items.map((skillItem) => (
                           <div
-                            key={i}
+                            key={skillItem.id}
                             className="bg-gray-100 text-gray-800 px-3 py-1 rounded-sm text-sm"
                           >
-                            {skill}
+                            {skillItem.skill}
                           </div>
                         ))}
                       <div className="bg-gray-100 text-gray-800 px-3 py-1 rounded-sm text-sm">
@@ -1903,12 +1903,12 @@ export default function CVPreview({
                   <div>
                     <h3 className="font-semibold mb-2">Beginner</h3>
                     <div className="flex flex-wrap gap-2">
-                      {cvData.skills[2]?.items.map((skill, i) => (
+                      {cvData.skills[2]?.items.map((skillItem) => (
                         <div
-                          key={i}
+                          key={skillItem.id}
                           className="bg-gray-100 text-gray-800 px-3 py-1 rounded-sm text-sm"
                         >
-                          {skill}
+                          {skillItem.skill}
                         </div>
                       )) || (
                         <>
@@ -2216,12 +2216,12 @@ export default function CVPreview({
                         Excellent
                       </p>
                       <div className="flex flex-wrap gap-1">
-                        {cvData.skills[0]?.items.slice(0, 3).map((skill, i) => (
+                        {cvData.skills[0]?.items.slice(0, 3).map((skillItem) => (
                           <span
-                            key={i}
+                            key={skillItem.id}
                             className="bg-gray-700 text-gray-200 text-xs px-2 py-1 rounded"
                           >
-                            {skill}
+                            {skillItem.skill}
                           </span>
                         ))}
                       </div>
@@ -2234,12 +2234,12 @@ export default function CVPreview({
                       <div className="flex flex-wrap gap-1">
                         {cvData.skills[1]?.items
                           ?.slice(0, 4)
-                          .map((skill, i) => (
+                          .map((skillItem) => (
                             <span
-                              key={i}
+                              key={skillItem.id}
                               className="bg-gray-700 text-gray-200 text-xs px-2 py-1 rounded"
                             >
-                              {skill}
+                              {skillItem.skill}
                             </span>
                           ))}
                       </div>
@@ -2252,22 +2252,22 @@ export default function CVPreview({
                       <div className="flex flex-wrap gap-1">
                         {cvData.skills[2]?.items
                           ?.slice(0, 3)
-                          .map((skill, i) => (
+                          .map((skillItem) => (
                             <span
-                              key={i}
+                              key={skillItem.id}
                               className="bg-gray-700 text-gray-200 text-xs px-2 py-1 rounded"
                             >
-                              {skill}
+                              {skillItem.skill}
                             </span>
                           )) ||
                           cvData.skills[0]?.items
                             .slice(3, 5)
-                            .map((skill, i) => (
+                            .map((skillItem) => (
                               <span
-                                key={i}
+                                key={skillItem.id}
                                 className="bg-gray-700 text-gray-200 text-xs px-2 py-1 rounded"
                               >
-                                {skill}
+                                {skillItem.skill}
                               </span>
                             ))}
                       </div>
@@ -2504,12 +2504,12 @@ export default function CVPreview({
                             {group.category}
                           </p>
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {group.items.map((skill, j) => (
+                            {group.items.map((skillItem) => (
                               <span
-                                key={j}
+                                key={skillItem.id}
                                 className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
                               >
-                                {skill}
+                                {skillItem.skill}
                               </span>
                             ))}
                           </div>
@@ -2741,12 +2741,12 @@ export default function CVPreview({
                           {group.category}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {group.items.map((skill, j) => (
+                          {group.items.map((skillItem) => (
                             <span
-                              key={j}
+                              key={skillItem.id}
                               className="border border-gray-300 px-3 py-1 rounded text-gray-700"
                             >
-                              {skill}
+                              {skillItem.skill}
                             </span>
                           ))}
                         </div>
@@ -2792,7 +2792,7 @@ export default function CVPreview({
           <div className="text-sm text-gray-600"></div>
           <div className="flex space-x-3">
             <Link
-              href="/update-cvprofile"
+              href="/candidate/cm-profile"
               className="px-4 py-2 bg-[#163988] hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1"
             >
               <svg

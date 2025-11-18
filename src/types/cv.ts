@@ -44,7 +44,11 @@ export interface CVData {
   }>;
   skills: Array<{
     category: string;
-    items: string[];
+    items: Array<{
+      id: string;
+      skill: string;
+      experience?: string;
+    }>;
   }>;
   languages: Array<{
     language: string;
@@ -127,15 +131,33 @@ export const SAMPLE_CV_DATA: CVData = {
   skills: [
     {
       category: "Programming Languages",
-      items: ["JavaScript", "TypeScript", "Python", "Java", "C++"]
+      items: [
+        { id: "1", skill: "JavaScript", experience: "3 years" },
+        { id: "2", skill: "TypeScript", experience: "2 years" },
+        { id: "3", skill: "Python", experience: "2 years" },
+        { id: "4", skill: "Java", experience: "1 year" },
+        { id: "5", skill: "C++", experience: "1 year" }
+      ]
     },
     {
       category: "Web Technologies",
-      items: ["React", "Next.js", "HTML/CSS", "Node.js", "TailwindCSS"]
+      items: [
+        { id: "6", skill: "React", experience: "2 years" },
+        { id: "7", skill: "Next.js", experience: "1 year" },
+        { id: "8", skill: "HTML/CSS", experience: "3 years" },
+        { id: "9", skill: "Node.js", experience: "2 years" },
+        { id: "10", skill: "TailwindCSS", experience: "1 year" }
+      ]
     },
     {
       category: "Tools & Platforms",
-      items: ["Git", "Docker", "Firebase", "AWS Basics", "MongoDB"]
+      items: [
+        { id: "11", skill: "Git", experience: "3 years" },
+        { id: "12", skill: "Docker", experience: "1 year" },
+        { id: "13", skill: "Firebase", experience: "1 year" },
+        { id: "14", skill: "AWS Basics" },
+        { id: "15", skill: "MongoDB", experience: "1 year" }
+      ]
     }
   ],
   languages: [
