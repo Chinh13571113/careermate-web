@@ -1,28 +1,78 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CVTemplateSelector from '@/components/cv/CVTemplateSelector';
 import CVPreview from '@/components/cv/CVPreview';
 // import CVEditForm from '@/components/cv/CVEditForm';
 import { SAMPLE_CV_DATA, CV_TEMPLATES, type CVData } from '@/types/cv';
+import { decodeCVTemplateData } from '@/lib/cv-template-navigation';
 
 export default function CVTemplatesPage() {
+  const searchParams = useSearchParams();
   const [selectedTemplate, setSelectedTemplate] = useState('minimalist');
-  // Restore selected template from localStorage if available
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [cvData, setCVData] = useState<CVData>(SAMPLE_CV_DATA);
+  const [profileData, setProfileData] = useState<any>(null);
+
+  // Handle incoming data from query parameter (from cm-profile page)
   useEffect(() => {
+    const dataParam = searchParams.get('data');
+    
+    if (dataParam) {
+      // Decode the data parameter
+      const decoded = decodeCVTemplateData(dataParam);
+      
+      if (decoded) {
+        const { template, cvData: incomingCVData, profile } = decoded;
+        
+        console.log('Received data from cm-profile:', { template, cvData: incomingCVData, profile });
+        
+        // Set the template
+        if (template) {
+          setSelectedTemplate(template);
+          try {
+            localStorage.setItem('selectedTemplate', template);
+          } catch (err) {
+            // ignore
+          }
+        }
+        
+        // Set CV data
+        if (incomingCVData) {
+          setCVData(incomingCVData);
+          try {
+            localStorage.setItem('cvData', JSON.stringify(incomingCVData));
+          } catch (err) {
+            // ignore
+          }
+        }
+        
+        // Store profile data
+        if (profile) {
+          setProfileData(profile);
+        }
+        
+        return; // Skip other initialization if we have data param
+      }
+    }
+    
+    // If no data param, restore from localStorage
     try {
       const t = localStorage.getItem('selectedTemplate');
       if (t) setSelectedTemplate(t);
     } catch (err) {
       // ignore
     }
-  }, []);
-  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
-  const [cvData, setCVData] = useState<CVData>(SAMPLE_CV_DATA);
+  }, [searchParams]);
 
   // Load saved CV from localStorage on mount (fallback to SAMPLE_CV_DATA)
+  // Only run if we don't have data from query parameter
   useEffect(() => {
+    const dataParam = searchParams.get('data');
+    if (dataParam) return; // Skip if we have query param data
+    
     try {
       const raw = localStorage.getItem('cvData');
       if (raw) {
@@ -68,7 +118,7 @@ export default function CVTemplatesPage() {
       console.error("Error loading CV data:", err);
       // ignore parse errors and keep SAMPLE_CV_DATA
     }
-  }, []);
+  }, [searchParams]);
 
   // Persist cvData to localStorage whenever it changes
   useEffect(() => {
