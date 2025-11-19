@@ -185,7 +185,7 @@ export default function ClientHeader() {
                   className="h-14 w-auto"
                 />
                 <span className="text-xl font-bold text-[#ffffff]">
-                  Home Header 2
+                  CareerMate
                 </span>
               </Link>
             </div>
@@ -194,41 +194,42 @@ export default function ClientHeader() {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
             <Link
-              href="/recruiter/recruiter-feature/dashboard"
+              href="/jobs-detail"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
-              Dashboard
+              All Jobs
             </Link>
             <Link
-              href="/recruiter/recruiter-feature/profile?tab=account"
+              href="/blog"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
-              Account
+              Blog
             </Link>
-            <Link
-              href="/recruiter/recruiter-feature/candidates/applications"
-              className="text-[#ffffff] hover:text-[#c8c8c8]"
-            >
-              Candidates
-            </Link>
-            <Link
+             <Link
               href="/recruiter/recruiter-feature/services"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
-              Services
+              Companies 
             </Link>
             <Link
+              href="/cv-templates"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              CV Templates
+            </Link>
+           
+            {/* <Link
               href="/recruiter/recruiter-feature/jobs"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
               Upload Jobs
-            </Link>
-            <Link
+            </Link> */}
+            {/* <Link
               href="/recruiter/recruiter-feature/support"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
               Support
-            </Link>
+            </Link> */}
           </nav>
 
           {/* Bên phải header */}

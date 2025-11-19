@@ -19,6 +19,9 @@ import {
   ChevronDown,
   CreditCard,
   HelpCircle,
+  LayoutDashboard,
+  FileUser,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 
@@ -214,6 +217,14 @@ export function ProfileDropdown({
                   >
                     <User className="w-4 h-4" />
                     My Profile
+                  </Link>
+                  <Link
+                    href="/candidate/cv-management"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <FileUser className="w-4 h-4" />
+                    CV Management
                   </Link>
                   <Link
                     href="/candidate/my-jobs"
