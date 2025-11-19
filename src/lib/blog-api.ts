@@ -419,16 +419,144 @@ class BlogApiService {
         return responseData.result || responseData as unknown as PagedResponse<BlogResponse>;
     }
 
-    async getCategories(): Promise<string[]> {
-        const response = await api.get<ApiResponse<string[]>>('/api/blogs/categories');
+    /**
+     * Filter blogs with multiple criteria (keyword, status, category)
+     * This is the recommended method for filtering as it supports all filters simultaneously
+     */
+    async filterBlogs(params: BlogPaginationParams = {}): Promise<PagedResponse<BlogResponse>> {
+        const {
+            keyword,
+            status,
+            category,
+            page = 0,
+            size = 10,
+            sortBy = 'createdAt',
+            sortDir = 'DESC'
+        } = params;
+
+        // Build query parameters - only add non-empty values
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', page.toString());
+        queryParams.append('size', size.toString());
+        queryParams.append('sortBy', sortBy);
+        queryParams.append('sortDir', sortDir);
+
+        // Only add filters if they have values
+        if (keyword && keyword.trim()) queryParams.append('keyword', keyword.trim());
+        if (status && status.trim()) queryParams.append('status', status.trim());
+        if (category && category.trim()) queryParams.append('category', category.trim());
+
+        const url = `/api/blogs/filter?${queryParams.toString()}`;
+        console.log('🔍 Filtering blogs with URL:', url);
+        console.log('🔍 Active filters:', { keyword, status, category });
+        
+        const response = await api.get<ApiResponse<PagedResponse<BlogResponse>>>(url);
         const responseData = response.data;
-        
+
         if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
-            console.error('📝 Get categories error:', responseData);
-            throw new Error(responseData.message || 'Failed to fetch categories');
+            console.error('📝 Filter blogs error:', responseData);
+            throw new Error(responseData.message || 'Failed to filter blogs');
         }
+
+        return responseData.result || responseData as unknown as PagedResponse<BlogResponse>;
+    }
+
+    /**
+     * Filter blogs with multiple criteria (keyword, status, category)
+     * This is the recommended method for filtering as it supports all filters simultaneously
+     * Uses the new /api/blogs/filter endpoint that supports concurrent filtering
+     * Falls back to legacy endpoints if the filter endpoint is not available
+     */
+    async filterBlogs(params: BlogPaginationParams = {}): Promise<PagedResponse<BlogResponse>> {
+        const {
+            keyword,
+            status,
+            category,
+            page = 0,
+            size = 10,
+            sortBy = 'createdAt',
+            sortDir = 'DESC'
+        } = params;
+
+        // Build query parameters - only add non-empty values
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', page.toString());
+        queryParams.append('size', size.toString());
+        queryParams.append('sortBy', sortBy);
+        queryParams.append('sortDir', sortDir);
+
+        // Only add filters if they have values
+        if (keyword && keyword.trim()) queryParams.append('keyword', keyword.trim());
+        if (status && status.trim()) queryParams.append('status', status.trim());
+        if (category && category.trim()) queryParams.append('category', category.trim());
+
+        const url = `/api/blogs/filter?${queryParams.toString()}`;
+        console.log('🔍 Filtering blogs with URL:', url);
+        console.log('🔍 Active filters:', { keyword, status, category });
         
-        return responseData.result || [];
+        try {
+            const response = await api.get<ApiResponse<PagedResponse<BlogResponse>>>(url);
+            const responseData = response.data;
+
+            if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+                console.error('📝 Filter blogs error:', responseData);
+                throw new Error(responseData.message || 'Failed to filter blogs');
+            }
+
+            return responseData.result || responseData as unknown as PagedResponse<BlogResponse>;
+        } catch (error: any) {
+            // If the filter endpoint doesn't exist (404) or returns 400, fall back to legacy endpoints
+            if (error.response?.status === 404 || error.response?.status === 400) {
+                console.warn('⚠️ /api/blogs/filter endpoint not available, falling back to legacy endpoints');
+                
+                const commonParams = { page, size, sortBy, sortDir };
+                
+                // Determine which legacy endpoint to use based on active filters
+                if (keyword) {
+                    // Use search endpoint when there's a keyword
+                    return await this.searchBlogs({
+                        keyword,
+                        status,
+                        ...commonParams
+                    });
+                } else if (status && !category) {
+                    // Use status filter endpoint
+                    return await this.getBlogsByStatus(status, commonParams);
+                } else if (category && !status) {
+                    // Use category filter endpoint
+                    return await this.getBlogsByCategory(category, commonParams);
+                } else if (status && category) {
+                    // Can't combine status + category with legacy endpoints
+                    // Fall back to status only
+                    console.warn('⚠️ Cannot combine status + category with legacy endpoints, using status only');
+                    return await this.getBlogsByStatus(status, commonParams);
+                } else {
+                    // Use default getAll endpoint
+                    return await this.getBlogs(commonParams);
+                }
+            }
+            
+            // For other errors (401, 403, 500), throw them
+            throw error;
+        }
+    }
+
+    async getCategories(): Promise<string[]> {
+        try {
+            const response = await api.get<ApiResponse<string[]>>('/api/blogs/categories');
+            const responseData = response.data;
+            
+            if (responseData.code !== undefined && responseData.code !== 0 && responseData.code !== 1000) {
+                console.warn('📝 Get categories error:', responseData);
+                return []; // Return empty array instead of throwing
+            }
+            
+            return responseData.result || [];
+        } catch (error: any) {
+            console.warn('📝 Categories endpoint not available:', error.message);
+            // Return empty array if endpoint doesn't exist or network fails
+            return [];
+        }
     }
 
     // Image Upload
