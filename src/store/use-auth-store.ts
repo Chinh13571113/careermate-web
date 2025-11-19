@@ -395,6 +395,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false });
       return { success: true, isAdmin };
     } catch (err: any) {
+      set({ isLoading: false }); // ✅ Reset loading state on error
       const msg =
         err?.response?.data?.message || err?.message || "Login failed";
       const error = new Error(msg);

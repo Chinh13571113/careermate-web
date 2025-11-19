@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-
+import {
+  LayoutDashboard
+  , FileText
+  ,BriefcaseBusiness
+} from 'lucide-react';
 import {
   User,
   Settings,
@@ -16,6 +19,9 @@ import {
   ChevronDown,
   CreditCard,
   HelpCircle,
+  LayoutDashboard,
+  FileUser,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 
@@ -37,7 +43,7 @@ export function ProfileDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { isAuthenticated, accessToken, logout } = useAuthStore();
-   const router = useRouter();
+  const router = useRouter();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -70,14 +76,14 @@ export function ProfileDropdown({
   };
 
   // Normalize role - handle both "RECRUITER" and "ROLE_RECRUITER" formats
-  const normalizedRole = 
+  const normalizedRole =
     role?.toUpperCase().includes("CANDIDATE")
       ? "ROLE_CANDIDATE"
       : role?.toUpperCase().includes("RECRUITER")
-      ? "ROLE_RECRUITER"
-      : role?.toUpperCase().includes("ADMIN")
-      ? "ROLE_ADMIN"
-      : "ROLE_USER";
+        ? "ROLE_RECRUITER"
+        : role?.toUpperCase().includes("ADMIN")
+          ? "ROLE_ADMIN"
+          : "ROLE_USER";
 
   const isCandidate = normalizedRole === "ROLE_CANDIDATE";
   const isRecruiter = normalizedRole === "ROLE_RECRUITER";
@@ -150,9 +156,8 @@ export function ProfileDropdown({
 
           {/* Dropdown Arrow */}
           <ChevronDown
-            className={`w-4 h-4 transition-transform ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""
+              }`}
           />
         </button>
 
@@ -189,7 +194,24 @@ export function ProfileDropdown({
               {isCandidate && (
                 <>
                   <Link
-                    href="/profile"
+                    href="/candidate/dashboard"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {/* <User className="w-4 h-4" /> */}
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/candidate/cv-management"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <FileText className="w-4 h-4" />
+                    CV Management
+                  </Link>
+                   <Link
+                    href="/candidate/cm-profile"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
@@ -201,16 +223,8 @@ export function ProfileDropdown({
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
-                    <CreditCard className="w-4 h-4" />
-                    My Applications
-                  </Link>
-                  <Link
-                    href="/cv-management"
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Settings className="w-4 h-4" />
-                    CV Management
+                    <BriefcaseBusiness className="w-4 h-4" />
+                    My jobs
                   </Link>
                   <Link
                     href="/settings"
