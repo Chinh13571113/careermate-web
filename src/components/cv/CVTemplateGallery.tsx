@@ -40,8 +40,8 @@ export default function CVTemplateGallery({ onTemplateSelect }: Props) {
               <div>
                 <div className="font-medium text-gray-800 text-[6px] uppercase mb-1">SKILLS</div>
                 <div className="flex flex-wrap gap-1">
-                  {data.skills[0]?.items.slice(0, 3).map((s: string, i: number) => (
-                    <span key={i} className="bg-gray-100 text-[5px] px-1 rounded">{s}</span>
+                  {data.skills[0]?.items.slice(0, 3).map((skillItem, i: number) => (
+                    <span key={i} className="bg-gray-100 text-[5px] px-1 rounded">{skillItem.skill}</span>
                   ))}
                 </div>
               </div>
@@ -111,8 +111,8 @@ export default function CVTemplateGallery({ onTemplateSelect }: Props) {
               </div>
               <div className="bg-white p-2 rounded-lg">
                 <div className="text-[5px]">
-                  {data.skills[1]?.items.slice(0, 3).map((s: string, i: number) => (
-                    <span key={i} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1 rounded-full text-[4px] ml-1">{s}</span>
+                  {data.skills[1]?.items.slice(0, 3).map((skillItem, i: number) => (
+                    <span key={i} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1 rounded-full text-[4px] ml-1">{skillItem.skill}</span>
                   ))}
                 </div>
               </div>
@@ -149,8 +149,8 @@ export default function CVTemplateGallery({ onTemplateSelect }: Props) {
                 <div className="bg-gray-100 p-2 rounded">
                   <div className="font-bold text-[5px] mb-1">SKILLS</div>
                   <div className="space-y-1">
-                    {data.skills[0]?.items.slice(0, 3).map((s: string, i: number) => (
-                      <div key={i} className="text-[4px] bg-white px-1 rounded">{s}</div>
+                    {data.skills[0]?.items.slice(0, 3).map((skillItem, i: number) => (
+                      <div key={i} className="text-[4px] bg-white px-1 rounded">{skillItem.skill}</div>
                     ))}
                   </div>
                 </div>
@@ -187,8 +187,8 @@ export default function CVTemplateGallery({ onTemplateSelect }: Props) {
                 <div className="bg-gray-100 p-2 rounded">
                   <div className="font-bold text-[5px] mb-1">SKILLS</div>
                   <div className="space-y-1">
-                    {data.skills[0]?.items.slice(0, 3).map((s: string, i: number) => (
-                      <div key={i} className="text-[4px] bg-white px-1 rounded">{s}</div>
+                    {data.skills[0]?.items.slice(0, 3).map((skillItem, i: number) => (
+                      <div key={i} className="text-[4px] bg-white px-1 rounded">{skillItem.skill}</div>
                     ))}
                   </div>
                 </div>

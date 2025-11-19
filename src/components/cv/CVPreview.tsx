@@ -1198,10 +1198,7 @@ export default function CVPreview({
                   </h2>
                   <ul className="list-disc ml-5 text-gray-700 space-y-2">
                     {cvData.awards.map((award, i) => (
-                      <li key={i}>
-                        <strong>{award.title}</strong> - {award.issuer} ({award.date})
-                        {award.description && <p className="text-sm mt-1">{award.description}</p>}
-                      </li>
+                      <li key={i}>{award}</li>
                     ))}
                   </ul>
                 </div>
@@ -1401,10 +1398,8 @@ export default function CVPreview({
                     Awards
                   </h2>
                   <ul className="list-disc ml-5 text-gray-700 text-sm space-y-1">
-                    {cvData.awards.map((a, i) => (
-                      <li key={i}>
-                        <strong>{a.title}</strong> - {a.issuer} ({a.date})
-                      </li>
+                    {cvData.awards.map((award, i) => (
+                      <li key={i}>{award}</li>
                     ))}
                   </ul>
                 </div>
@@ -1633,11 +1628,7 @@ export default function CVPreview({
                       {cvData.awards &&
                         cvData.awards.map((award, index) => (
                           <div key={index} className="mb-2">
-                            <p className="font-bold text-gray-800">{award.title}</p>
-                            <p className="text-gray-600 text-sm">{award.issuer} - {award.date}</p>
-                            {award.description && (
-                              <p className="text-gray-600 text-sm mt-1">{award.description}</p>
-                            )}
+                            <p className="font-bold text-gray-800">{award}</p>
                           </div>
                         ))}
                     </div>
