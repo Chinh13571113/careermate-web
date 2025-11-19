@@ -19,6 +19,9 @@ import {
   ChevronDown,
   CreditCard,
   HelpCircle,
+  LayoutDashboard,
+  FileUser,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 
