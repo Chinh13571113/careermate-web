@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-
+import {
+  LayoutDashboard
+  , FileText
+  ,BriefcaseBusiness
+} from 'lucide-react';
 import {
   User,
   Settings,
@@ -195,10 +198,19 @@ export function ProfileDropdown({
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
+                    {/* <User className="w-4 h-4" /> */}
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
                   </Link>
                   <Link
+                    href="/candidate/cv-management"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <FileText className="w-4 h-4" />
+                    CV Management
+                  </Link>
+                   <Link
                     href="/candidate/cm-profile"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
@@ -207,20 +219,12 @@ export function ProfileDropdown({
                     My Profile
                   </Link>
                   <Link
-                    href="/candidate/cv-management"
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <FileUser className="w-4 h-4" />
-                    CV Management
-                  </Link>
-                  <Link
                     href="/candidate/my-jobs"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
                     <BriefcaseBusiness className="w-4 h-4" />
-                    My Applications
+                    My jobs
                   </Link>
                   <Link
                     href="/settings"
