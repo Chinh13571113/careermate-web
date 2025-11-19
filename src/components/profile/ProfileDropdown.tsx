@@ -5,11 +5,6 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard
-  , FileText
-  ,BriefcaseBusiness
-} from 'lucide-react';
-import {
   User,
   Settings,
   Bell,
@@ -19,9 +14,10 @@ import {
   ChevronDown,
   CreditCard,
   HelpCircle,
-  LayoutDashboard,
   FileUser,
   BriefcaseBusiness,
+  LayoutDashboard,
+  FileText,
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 
@@ -42,7 +38,7 @@ export function ProfileDropdown({
   const [isDarkMode, setIsDarkMode] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { isAuthenticated, accessToken, logout } = useAuthStore();
+  const { isAuthenticated, accessToken, logout, isLoading } = useAuthStore();
   const router = useRouter();
 
   // Close dropdown when clicking outside
@@ -131,34 +127,51 @@ export function ProfileDropdown({
         <button
           onClick={toggleDropdown}
           className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+          disabled={isLoading}
         >
-          {/* Avatar */}
-          <div className="relative">
-            {userAvatar ? (
-              <img
-                src="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
-                alt={userName}
-                className="w-8 h-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
+          {/* Show skeleton during loading/hydration */}
+          {isLoading ? (
+            <>
+              {/* Avatar Skeleton */}
+              <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
+              
+              {/* Username Skeleton */}
+              <div className="h-3 w-20 bg-white/20 rounded animate-pulse hidden sm:block" />
+              
+              {/* Dropdown Arrow - keep visible but subtle */}
+              <ChevronDown className="w-4 h-4 opacity-50" />
+            </>
+          ) : (
+            <>
+              {/* Avatar */}
+              <div className="relative">
+                {userAvatar ? (
+                  <img
+                    src="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
+                    alt={userName}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                )}
+                {/* Online indicator */}
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
-            )}
-            {/* Online indicator */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
-          </div>
 
-          {/* User Name */}
-          <span className="font-medium text-sm hidden sm:block">
-            {userName || userEmail || "User"}
-          </span>
+              {/* User Name */}
+              <span className="font-medium text-sm hidden sm:block">
+                {userName || userEmail || "User"}
+              </span>
 
-          {/* Dropdown Arrow */}
-          <ChevronDown
-            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""
-              }`}
-          />
+              {/* Dropdown Arrow */}
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""
+                  }`}
+              />
+            </>
+          )}
         </button>
 
         {/* Dropdown Menu */}
