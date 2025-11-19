@@ -410,7 +410,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // fallback 0 = hết hạn/không hợp lệ
   },
 
-  refresh: async () =>
+  refresh: async () => {
+    // 🔄 Use unified refresh manager to prevent refresh storms
+    const { unifiedRefresh } = await import("@/lib/refresh-manager");
+    return unifiedRefresh();
+  },
+
+  // Legacy implementation (kept for reference, no longer used directly)
+  _legacyRefresh: async () =>
     SimpleThrottle.throttle("refresh", async () => {
       try {
         const client = axios.create({
