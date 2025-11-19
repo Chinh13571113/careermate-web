@@ -163,6 +163,14 @@ export function middleware(request: NextRequest) {
 
   // 👩‍💼 Candidate routes
   if (request.nextUrl.pathname.startsWith('/candidate')) {
+    // ✨ Allow unauthenticated access to print pages (for PDF export)
+    if (request.nextUrl.pathname.startsWith('/candidate/cv/print/')) {
+      safeLog.middleware('✅ [MIDDLEWARE] Print page - allowing unauthenticated access', {
+        path: request.nextUrl.pathname,
+      });
+      return NextResponse.next();
+    }
+
     safeLog.middleware('🔍 [MIDDLEWARE] Candidate route accessed:', {
       path: request.nextUrl.pathname,
     });

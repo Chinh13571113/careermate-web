@@ -27,7 +27,7 @@ export default function ClientHeader() {
 
   // Auth state (hook đã chuẩn hoá role nếu bạn theo code trước đó)
   const { mounted, isAuthenticated, accessToken, role } = useClientAuth();
-  const { logout, user } = useAuthStore();
+  const { logout, user, isLoading } = useAuthStore();
   
   // Lấy username từ database
   const { username } = useUserProfile();
@@ -205,18 +205,19 @@ export default function ClientHeader() {
             >
               Blog
             </Link>
+             <Link
+              href="/recruiter/recruiter-feature/services"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Companies 
+            </Link>
             <Link
               href="/cv-templates"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
               CV Templates
             </Link>
-            {/* <Link
-              href="/recruiter/recruiter-feature/services"
-              className="text-[#ffffff] hover:text-[#c8c8c8]"
-            >
-              Services */}
-            {/* </Link> */}
+           
             {/* <Link
               href="/recruiter/recruiter-feature/jobs"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
@@ -235,9 +236,14 @@ export default function ClientHeader() {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <>
-                <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
-                  {isRecruiter ? `For Recruiter ${userInfo?.username || username || user?.username || "abc"}` : `For Candidate ${userInfo?.username || username || user?.username || "abc"}`}
-                </span>
+                {/* Show skeleton for username during loading */}
+                {isLoading ? (
+                  <div className="h-3 w-28 bg-white/20 rounded animate-pulse hidden sm:block" />
+                ) : (
+                  <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                    {isRecruiter ? `For Recruiter ${userInfo?.username || username || user?.username || "abc"}` : `For Candidate ${userInfo?.username || username || user?.username || "abc"}`}
+                  </span>
+                )}
 
                 <ProfileDropdown
                   userName={userInfo?.username || username || user?.username || userInfo?.name || "User"}
