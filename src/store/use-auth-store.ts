@@ -1,5 +1,6 @@
 "use client";
 import { create } from "zustand";
+import { setCookie, removeCookie } from "@/lib/cookies";
 import axios from "axios";
 
 // ===== Storage keys =====
@@ -165,6 +166,11 @@ function getInitialAuthState() {
     if (!isAuthenticated) {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
+      
+      // ✅ ALSO remove from cookie
+      removeCookie('access_token');
+      
+      console.debug("✅ [clearTokens] Tokens cleared from localStorage AND cookies");
       return {
         accessToken: null,
         isAuthenticated: false,
@@ -241,6 +247,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (accessToken && tokenExpiresAt && isAuthenticated) {
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
         localStorage.setItem(TOKEN_EXPIRES_AT_KEY, String(tokenExpiresAt));
+        
+        // ✅ ALSO store in cookie for SSE EventSource authentication
+        setCookie('access_token', accessToken);
+        
+        console.debug("✅ [setTokens] Tokens stored in localStorage AND cookies");
       } else {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
