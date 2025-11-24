@@ -20,6 +20,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
+import { NotificationBell } from "@/components/notifications";
 
 interface ProfileDropdownProps {
   userName?: string;
@@ -109,17 +110,8 @@ export function ProfileDropdown({
         )}
       </button>
 
-      {/* Notifications Button */}
-      <button
-        className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-        title="Notifications"
-      >
-        <Bell className="w-5 h-5" />
-        {/* Notification Badge */}
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center">
-          3
-        </span>
-      </button>
+      {/* Notifications Button - Real implementation */}
+      <NotificationBell />
 
       {/* Profile Dropdown */}
       <div className="relative" ref={dropdownRef}>
