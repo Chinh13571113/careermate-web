@@ -23,24 +23,14 @@ interface CVStoreState {
   activeCvId: string | null;
   setCVs: (cvs: CV[]) => void;
   upsertCv: (cv: CV) => void;
-  setDefaultCv: (cvId: string) => Promise<void>;
+  setDefaultCv: (cvId: string) => void;
   setActiveCv: (cvId: string | null) => void;
 }
-
-// Mock API for setDefaultCv - replace with your actual API implementation
-const cvApi = {
-  setDefault: async (cvId: string): Promise<void> => {
-    // TODO: Replace this with actual API call
-    // Example: await api.patch(`/api/cv/${cvId}/set-default`);
-    console.log(`Setting CV ${cvId} as default`);
-    return Promise.resolve();
-  },
-};
 
 // Create the Zustand store
 export const useCVStore = create<CVStoreState>()(
   devtools(
-    (set, get) => ({
+    (set) => ({
       cvs: [],
       defaultCvId: null,
       activeCvId: null,
@@ -49,11 +39,16 @@ export const useCVStore = create<CVStoreState>()(
        * Replace the entire CV list and detect the default CV
        */
       setCVs: (cvs: CV[]) => {
+        console.log('🔄 setCVs called with:', cvs);
         const defaultCv = cvs.find((c) => c.isDefault);
-        set({
-          cvs,
-          defaultCvId: defaultCv?.id ?? null,
-        });
+        set(
+          {
+            cvs,
+            defaultCvId: defaultCv?.id ?? null,
+          },
+          false,
+          'setCVs'
+        );
       },
 
       /**
@@ -63,6 +58,7 @@ export const useCVStore = create<CVStoreState>()(
        * - If cv.isDefault === true → make it the only default
        */
       upsertCv: (cv: CV) => {
+        console.log('➕ upsertCv called with:', cv);
         set((state) => {
           const existingIndex = state.cvs.findIndex((c) => c.id === cv.id);
           let updatedCvs: CV[];
@@ -78,52 +74,68 @@ export const useCVStore = create<CVStoreState>()(
 
           // If this CV is marked as default, unset all others
           if (cv.isDefault) {
-            updatedCvs = updatedCvs.map((c) =>
-              c.id === cv.id ? c : { ...c, isDefault: false }
-            );
+            updatedCvs = updatedCvs.map((c) => ({
+              ...c,
+              isDefault: c.id === cv.id,
+            }));
+
+            return {
+              cvs: updatedCvs,
+              defaultCvId: cv.id,
+            };
           }
 
           return {
             cvs: updatedCvs,
-            defaultCvId: cv.isDefault ? cv.id : state.defaultCvId,
+            defaultCvId: state.defaultCvId,
           };
-        });
+        }, false, 'upsertCv');
       },
 
       /**
-       * Set a CV as the default:
-       * - Call API to persist the change
+       * Set a CV as the default (local state only):
        * - Update Zustand state: only the selected CV becomes isDefault = true
+       * - All other CVs become isDefault = false
        * - Update defaultCvId
        */
-      setDefaultCv: async (cvId: string) => {
-        try {
-          // Call API to set default
-          await cvApi.setDefault(cvId);
-
-          // Update state after successful API call
-          set((state) => ({
-            cvs: state.cvs.map((cv) => ({
-              ...cv,
-              isDefault: cv.id === cvId,
-            })),
-            defaultCvId: cvId,
-          }));
-        } catch (error) {
-          console.error('Failed to set default CV:', error);
-          throw error;
-        }
+      setDefaultCv: (cvId: string) => {
+        console.log('⭐ setDefaultCv called with:', cvId);
+        set((state) => ({
+          cvs: state.cvs.map((cv) => ({
+            ...cv,
+            isDefault: cv.id === cvId,
+          })),
+          defaultCvId: cvId,
+        }), false, 'setDefaultCv');
       },
 
       /**
        * Set the active CV ID (for UI selection/highlighting)
        */
       setActiveCv: (cvId: string | null) => {
-        set({ activeCvId: cvId });
+        console.log('👆 setActiveCv called with:', cvId);
+        set({ activeCvId: cvId }, false, 'setActiveCv');
       },
     }),
     {
       name: 'cv-store',
+      enabled: true,
+      trace: true,
     }
+    
   )
+  
 );
+
+// Debug: expose store to window and initialize immediately
+if (typeof window !== "undefined") {
+  (window as any).cvStore = useCVStore;
+  
+  // Force initialization by calling getState once
+  const initialState = useCVStore.getState();
+  
+  console.log('✅ CV Store initialized and exposed to window.cvStore');
+  console.log('📊 Initial state:', initialState);
+  console.log('📍 Store available at: window.cvStore');
+  console.log('💡 Try: cvStore.getState()');
+}

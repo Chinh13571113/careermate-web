@@ -1,6 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { CV } from "@/services/cvService";
+import { useCVStore } from "@/stores/cvStore";
 
 interface UseCVActionsReturn {
   showPreview: boolean;
@@ -27,12 +28,20 @@ export const useCVActions = (
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedCV, setSelectedCV] = useState<CV | null>(null);
 
+  // Extract Zustand store action
+  const setDefaultCvInStore = useCVStore((state) => state.setDefaultCv);
+
   const handleSetDefault = (cv: CV) => {
-    // Update all CVs
+    // Update all local state CVs
     setUploadedCVs(prev => prev.map(c => ({ ...c, isDefault: c.id === cv.id })));
     setBuiltCVs(prev => prev.map(c => ({ ...c, isDefault: c.id === cv.id })));
     setDraftCVs(prev => prev.map(c => ({ ...c, isDefault: c.id === cv.id })));
     setDefaultCV(cv);
+    
+    // Sync to Zustand store
+    setDefaultCvInStore(cv.id);
+    console.log('⭐ Set default synced to Zustand:', cv.id);
+    
     toast.success(`"${cv.name}" set as default CV`);
   };
 
@@ -53,7 +62,7 @@ export const useCVActions = (
 
   const handlePreview = (cv: CV) => {
     setSelectedCV(cv);
-    setPreviewUrl(cv.fileUrl);
+    setPreviewUrl(cv.fileUrl ?? null);
     setShowPreview(true);
   };
 

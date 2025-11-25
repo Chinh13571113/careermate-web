@@ -9,6 +9,7 @@ import { useCVActions } from "@/hooks/useCVActions";
 import { useResumeData } from "@/hooks/useResumeData";
 import { resumesToCVsSync } from "@/utils/resumeConverter";
 import { useAuthStore } from "@/store/use-auth-store";
+import { useCVStore } from "@/stores/cvStore"; // Import CV Store for Redux DevTools
 import {
   CVCard,
   CVCardHorizontal,
@@ -26,6 +27,10 @@ const CVManagementPage = () => {
   const { headerHeight } = useLayout();
   const [headerH, setHeaderH] = useState(headerHeight || 0);
   const [activeTab, setActiveTab] = useState<TabType>("built");
+  
+  // Initialize CV Store (for Redux DevTools visibility)
+  const cvStore = useCVStore();
+  const { setCVs, setDefaultCv: setDefaultCvInStore } = cvStore;
   
   // Get user info and profile fetcher
   const { candidateId, user, fetchCandidateProfile } = useAuthStore();
@@ -55,7 +60,7 @@ const CVManagementPage = () => {
   const [draftCVs, setDraftCVs] = useState<CV[]>([]);
   const [defaultCV, setDefaultCV] = useState<CV | null>(null);
 
-  // Convert API data to CV format
+  // Convert API data to CV format AND sync to Zustand store
   useEffect(() => {
     if (!loading && !error) {
       const uploadedCVsConverted = resumesToCVsSync(uploadedResumes, userId);
@@ -66,20 +71,30 @@ const CVManagementPage = () => {
       setBuiltCVs(builtCVsConverted);
       setDraftCVs(draftCVsConverted);
 
+      // ✅ Sync ALL CVs to Zustand store
+      const allCVs = [
+        ...uploadedCVsConverted,
+        ...builtCVsConverted,
+        ...draftCVsConverted,
+      ];
+      
+      console.log('🔄 Syncing CVs to Zustand store:', allCVs);
+      setCVs(allCVs);
+
       // Set default CV if there's an active resume
       if (activeResume) {
-        const allCVs = [
-          ...uploadedCVsConverted,
-          ...builtCVsConverted,
-          ...draftCVsConverted,
-        ];
         const activeCV = allCVs.find((cv) => cv.id === activeResume.resumeId.toString());
-        setDefaultCV(activeCV || null);
+        if (activeCV) {
+          setDefaultCV(activeCV);
+          // ✅ Also sync to Zustand store
+          setDefaultCvInStore(activeCV.id);
+          console.log('⭐ Active CV set as default:', activeCV.id);
+        }
       } else {
         setDefaultCV(null);
       }
     }
-  }, [webResumes, uploadedResumes, draftResumes, activeResume, loading, error, userId]);
+  }, [webResumes, uploadedResumes, draftResumes, activeResume, loading, error, userId, setCVs, setDefaultCvInStore]);
 
   // Custom Hooks
   const uploadHook = useCVUpload(uploadedCVs, setUploadedCVs, defaultCV, setDefaultCV);
