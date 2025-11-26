@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, Menu, X, User, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/store/use-auth-store";
 import { useClientAuth } from "@/hooks/useClientAuth";
