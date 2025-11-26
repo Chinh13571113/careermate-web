@@ -1,6 +1,16 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
+// Constants for storage paths
+const CV_ROOT = 'careermate-files/candidates';
+
+/**
+ * Generate CV storage path
+ */
+function getCvStoragePath(candidateId: string, filename: string): string {
+  return `${CV_ROOT}/${candidateId}/cv/${filename}`;
+}
+
 /**
  * Upload avatar to Firebase Storage (public)
  * Path: /careermate-files/candidates/{userId}/profile/{fileName}
@@ -86,5 +96,45 @@ export async function deleteFile(fileUrl: string): Promise<void> {
   } catch (error) {
     console.error("Error deleting file:", error);
     throw new Error("Failed to delete file");
+  }
+}
+
+/**
+ * Upload CV file to Firebase Storage with metadata
+ * Path: careermate-files/candidates/{candidateId}/cv/{generatedFilename}
+ * @param candidateId - The candidate's ID
+ * @param file - The CV file to upload
+ * @returns Metadata object (does NOT include File/Blob)
+ */
+export async function uploadCvFile(candidateId: string, file: File) {
+  try {
+    // Extract file extension
+    const ext = file.name.split('.').pop() || 'pdf';
+    
+    // Generate unique filename using crypto.randomUUID()
+    const filename = crypto.randomUUID() + '.' + ext;
+    
+    // Build storage path using helper function
+    const path = getCvStoragePath(candidateId, filename);
+    
+    // Upload to Firebase Storage
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
+    
+    // Return ONLY metadata (no File/Blob)
+    return {
+      id: filename,
+      candidateId,
+      storagePath: path,
+      downloadUrl,
+      type: 'UPLOADED' as const,
+      status: 'READY' as const,
+      isDefault: false,
+      updatedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error uploading CV file:", error);
+    throw new Error("Failed to upload CV file");
   }
 }
