@@ -128,6 +128,9 @@ export function middleware(request: NextRequest) {
     }
 
     if (!isAdmin(refreshToken!)) {
+      safeLog.middleware('❌ [MIDDLEWARE] Not an admin', {
+        path: request.nextUrl.pathname,
+      });
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
@@ -152,7 +155,20 @@ export function middleware(request: NextRequest) {
       );
     }
 
+    // 🚫 Explicitly reject non-recruiter roles
+    if (isAdmin(refreshToken!) || isCandidate(refreshToken!)) {
+      safeLog.middleware('❌ [MIDDLEWARE] Wrong role accessing recruiter route', {
+        path: request.nextUrl.pathname,
+        isAdmin: isAdmin(refreshToken!),
+        isCandidate: isCandidate(refreshToken!),
+      });
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+
     if (!isRecruiter(refreshToken!)) {
+      safeLog.middleware('❌ [MIDDLEWARE] Not a recruiter', {
+        path: request.nextUrl.pathname,
+      });
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
@@ -185,7 +201,20 @@ export function middleware(request: NextRequest) {
       );
     }
 
+    // 🚫 Explicitly reject non-candidate roles
+    if (isAdmin(refreshToken!) || isRecruiter(refreshToken!)) {
+      safeLog.middleware('❌ [MIDDLEWARE] Wrong role accessing candidate route', {
+        path: request.nextUrl.pathname,
+        isAdmin: isAdmin(refreshToken!),
+        isRecruiter: isRecruiter(refreshToken!),
+      });
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+
     if (!isCandidate(refreshToken!)) {
+      safeLog.middleware('❌ [MIDDLEWARE] Not a candidate', {
+        path: request.nextUrl.pathname,
+      });
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 

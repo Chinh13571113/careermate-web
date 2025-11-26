@@ -6,6 +6,7 @@ import { ProfileDropdown } from "@/components/profile/ProfileDropdown";
 import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT } from "@/lib/auth-admin";
 import { getCurrentUser } from "@/lib/user-api";
+import { NotificationBell } from "@/components/notifications";
 
 interface AdminHeaderProps {
   sidebarOpen?: boolean;
@@ -14,17 +15,20 @@ interface AdminHeaderProps {
 export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
   const { user } = useAuthStore();
   const { isAuthenticated, accessToken, logout, role } = useAuthStore();
-  const [isOpen, setIsOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("admin-sidebar-open") === "true";
-    }
-    return sidebarOpen;
-  });
+  const [isOpen, setIsOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<{
     name: string;
     email: string;
     username?: string;
   } | null>(null);
+
+  // Load sidebar state from localStorage after mount
+  useEffect(() => {
+    const savedState = localStorage.getItem("admin-sidebar-open");
+    if (savedState) {
+      setIsOpen(savedState === "true");
+    }
+  }, []);
 
   // Fetch current user info from API
   useEffect(() => {
@@ -107,11 +111,7 @@ export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
   };
 
   return (
-    <header
-      className={`sticky top-0 z-50 bg-[#1b1b20f5] text-[#ffffff] transition-all duration-300 ${
-        isOpen ? "ml-64" : "ml-16"
-      }`}
-    >
+    <header className="sticky top-0 z-50 bg-[#1b1b20f5] text-[#ffffff] w-full">
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-6">
           {/* Menu button */}

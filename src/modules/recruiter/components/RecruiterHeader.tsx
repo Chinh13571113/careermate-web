@@ -6,6 +6,7 @@ import { ProfileDropdown } from "@/components/profile/ProfileDropdown";
 import { useAuthStore } from "@/store/use-auth-store";
 import { decodeJWT } from "@/lib/auth-admin";
 import { getCurrentUser } from "@/lib/user-api";
+import { NotificationBell } from "@/components/notifications";
 
 interface RecruiterHeaderProps {
   sidebarOpen?: boolean;
@@ -110,11 +111,7 @@ export function RecruiterHeader({ sidebarOpen = false }: RecruiterHeaderProps) {
   };
 
   return (
-    <header
-      className={`sticky top-0 z-50 bg-[#1b1b20f5] text-[#ffffff] transition-all duration-300 ${
-        isOpen ? "ml-64" : "ml-16"
-      }`}
-    >
+    <header className="sticky top-0 z-50 bg-[#1b1b20f5] text-[#ffffff] w-full">
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-6">
           {/* Nút menu */}
