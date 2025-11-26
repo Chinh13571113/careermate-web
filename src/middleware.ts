@@ -194,6 +194,34 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // 💳 Payment pages - allow access for both candidate and recruiter
+  if (request.nextUrl.pathname.startsWith('/payment')) {
+    safeLog.middleware('🔍 [MIDDLEWARE] Payment route accessed:', {
+      path: request.nextUrl.pathname,
+    });
+
+    // Allow access without authentication for success/failure pages
+    // These pages don't contain sensitive data and need to be accessible after payment redirect
+    if (
+      request.nextUrl.pathname.startsWith('/payment/success') ||
+      request.nextUrl.pathname.startsWith('/payment/failure')
+    ) {
+      safeLog.middleware('✅ [MIDDLEWARE] Payment result page - allowing access', {
+        path: request.nextUrl.pathname,
+      });
+      return NextResponse.next();
+    }
+
+    // For other payment routes, check if user has valid token
+    if (!validateToken(refreshToken)) {
+      return NextResponse.redirect(new URL('/sign-in', request.url));
+    }
+
+    if (DEBUG.MIDDLEWARE) {
+      safeLog.middleware('✅ [MIDDLEWARE] Payment access granted', {});
+    }
+  }
+
   return NextResponse.next();
 }
 
@@ -206,5 +234,6 @@ export const config = {
     '/candidate/:path*',
     '/recruiter/:path*',
     '/recruiter2/:path*',
+    '/payment/:path*',
   ],
 };

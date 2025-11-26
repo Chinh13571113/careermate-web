@@ -20,6 +20,8 @@ import {
   FileText,
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
+import { getMyInvoice } from "@/lib/invoice-api";
+import { PremiumAvatar } from "@/components/ui/premium-avatar";
 
 interface ProfileDropdownProps {
   userName?: string;
@@ -40,6 +42,24 @@ export function ProfileDropdown({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { isAuthenticated, accessToken, logout, isLoading } = useAuthStore();
   const router = useRouter();
+  const [isPremium, setIsPremium] = useState(false);
+
+  // Check if user has PREMIUM package
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      try {
+        const invoice = await getMyInvoice();
+        setIsPremium(invoice.packageName === 'PREMIUM');
+      } catch (error) {
+        // User doesn't have any active package
+        setIsPremium(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      checkPremiumStatus();
+    }
+  }, [isAuthenticated]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -145,19 +165,14 @@ export function ProfileDropdown({
             <>
               {/* Avatar */}
               <div className="relative">
-                {userAvatar ? (
-                  <img
-                    src="https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcTPMg7sLIhRN7k0UrPxSsHzujqgLqdTq67Pj4uVqKmr4sFR0eH4h4h-sWjxVvi3vKOl47pyShZMal8qcNuipNE4fbSfblUL99EfUtDrBto"
-                    alt={userName}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                )}
+                <PremiumAvatar
+                  src={userAvatar}
+                  alt={userName || 'User'}
+                  size="sm"
+                  isPremium={isPremium}
+                />
                 {/* Online indicator */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white z-10"></div>
               </div>
 
               {/* User Name */}
@@ -181,18 +196,13 @@ export function ProfileDropdown({
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  {userAvatar ? (
-                    <img
-                      src={userAvatar}
-                      alt={userName}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-500" />
-                    </div>
-                  )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                  <PremiumAvatar
+                    src={userAvatar}
+                    alt={userName || 'User'}
+                    size="md"
+                    isPremium={isPremium}
+                  />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white z-10"></div>
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">{userName || userEmail || "User"}</p>
