@@ -1,7 +1,13 @@
+"use client";
+
 import { FiEdit } from "react-icons/fi";
 import { FaEnvelope, FaPhone, FaCalendar, FaMapMarkerAlt, FaLink, FaGenderless } from "react-icons/fa";
 import { BsGenderMale, BsGenderFemale } from "react-icons/bs";
 import { Link2 } from "lucide-react";
+import { PremiumAvatar } from "@/components/ui/premium-avatar";
+import { useEffect, useState } from "react";
+import { getMyInvoice } from "@/lib/invoice-api";
+import { User } from "lucide-react";
 
 interface ProfileHeaderCardProps {
     profileName: string;
@@ -28,6 +34,22 @@ export default function ProfileHeaderCard({
     email,
     onEditPersonalDetails
 }: ProfileHeaderCardProps) {
+    const [isPremium, setIsPremium] = useState(false);
+
+    // Check if user has PREMIUM package
+    useEffect(() => {
+        const checkPremiumStatus = async () => {
+            try {
+                const invoice = await getMyInvoice();
+                setIsPremium(invoice.packageName === 'PREMIUM');
+            } catch (error) {
+                setIsPremium(false);
+            }
+        };
+
+        checkPremiumStatus();
+    }, []);
+
     // Determine gender icon based on profileGender value
     const getGenderIcon = () => {
         const gender = profileGender?.toLowerCase();
@@ -45,15 +67,12 @@ export default function ProfileHeaderCard({
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                        {profileImage ? (
-                            <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-2xl font-semibold text-gray-600">
-                                {profileName ? profileName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'LA'}
-                            </span>
-                        )}
-                    </div>
+                    <PremiumAvatar
+                        src={profileImage}
+                        alt={profileName || 'User'}
+                        size="xl"
+                        isPremium={isPremium}
+                    />
                     <div>
                         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
                             {profileName || 'Your full name'}

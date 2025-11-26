@@ -183,6 +183,12 @@ export default function CandidateHeader() {
             >
               CV Templates
             </Link>
+            <Link
+              href="/candidate/pricing"
+              className="text-[#ffffff] hover:text-[#c8c8c8]"
+            >
+              Upgrade Package
+            </Link>
           </nav>
 
           {/* Bên phải header */}
