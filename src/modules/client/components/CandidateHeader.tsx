@@ -151,7 +151,7 @@ export default function CandidateHeader() {
                   className="h-14 w-auto"
                 />
                 <span className="text-xl font-bold text-[#ffffff]">
-                  Home Header
+                  CareerMate
                 </span>
               </Link>
             </div>
