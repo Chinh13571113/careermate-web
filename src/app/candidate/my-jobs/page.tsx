@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, lazy, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { ClientHeader, ClientFooter } from "@/modules/client/components";
 import CVSidebar from "@/components/layout/CVSidebar";
 import Link from "next/link";
@@ -8,8 +9,6 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { useAuthStore } from "@/store/use-auth-store";
 import {
   fetchMyJobApplications,
-  getStatusColor,
-  getStatusText,
   formatApplicationDate,
   type JobApplication
 } from "@/lib/my-jobs-api";
@@ -18,8 +17,12 @@ import {
   fetchViewedJobs,
   type SavedJobFeedback
 } from "@/lib/job-api";
+import { updateJobApplicationStatus } from "@/lib/recruiter-api";
 import { getDaysDiff } from "@/lib/my-jobs-utils";
 import { ClockIcon, BriefcaseIcon, ChevronDownIcon } from "@/components/ui/icons";
+import { StatusBadgeFull } from "@/components/shared/StatusBadge";
+import { getCandidateActions, requiresCandidateAction } from "@/lib/status-utils";
+import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
 // Lazy load tab components for better code splitting
@@ -50,6 +53,7 @@ const MyJobsPage = () => {
   // Get candidateId from global auth store
   const { candidateId, fetchCandidateProfile } = useAuthStore();
   const { headerHeight } = useLayout();
+  const router = useRouter();
 
   // State để quản lý tab hiện tại
   const [activeTab, setActiveTab] = useState<TabType>("applied");
@@ -137,6 +141,82 @@ const MyJobsPage = () => {
 
   const toggleJobDetails = (jobId: number) => {
     setExpandedJobId(expandedJobId === jobId ? null : jobId);
+  };
+
+  // Handle candidate actions
+  const handleCandidateAction = async (action: string, applicationId: number) => {
+    console.log(`Action: ${action}, Application ID: ${applicationId}`);
+    
+    try {
+      switch (action) {
+        case 'withdraw':
+          if (confirm('Are you sure you want to withdraw your application? This action cannot be undone.')) {
+            await updateJobApplicationStatus(applicationId, 'WITHDRAWN');
+            toast.success('Application withdrawn successfully');
+            // Refresh the job applications list
+            const updatedApplications = await fetchMyJobApplications(candidateId!);
+            setJobApplications(updatedApplications);
+          }
+          break;
+          
+        case 'confirm_interview':
+          router.push(`/candidate/interviews?action=confirm&id=${applicationId}`);
+          break;
+          
+        case 'request_reschedule':
+          router.push(`/candidate/interviews?action=reschedule&id=${applicationId}`);
+          break;
+          
+        case 'view_interview':
+          router.push('/candidate/interviews');
+          break;
+          
+        case 'accept_offer':
+          if (confirm('Are you sure you want to accept this job offer?')) {
+            await updateJobApplicationStatus(applicationId, 'WORKING');
+            toast.success('Job offer accepted! Congratulations!');
+            const updatedApplications = await fetchMyJobApplications(candidateId!);
+            setJobApplications(updatedApplications);
+          }
+          break;
+          
+        case 'decline_offer':
+          if (confirm('Are you sure you want to decline this job offer?')) {
+            await updateJobApplicationStatus(applicationId, 'REJECTED');
+            toast.success('Job offer declined');
+            const updatedApplications = await fetchMyJobApplications(candidateId!);
+            setJobApplications(updatedApplications);
+          }
+          break;
+          
+        case 'submit_review':
+          router.push(`/candidate/reviews/submit?jobApplyId=${applicationId}`);
+          break;
+          
+        case 'view_employment':
+          router.push('/candidate/employments');
+          break;
+          
+        case 'appeal_ban':
+          toast.error('Ban appeal process not yet implemented');
+          break;
+          
+        case 'contact_support':
+          // Open support contact (could be email or support page)
+          window.location.href = 'mailto:support@careermate.com?subject=Support Request';
+          break;
+          
+        case 'contact':
+          toast.error('Company contact feature not yet implemented');
+          break;
+          
+        default:
+          toast.error('Unknown action');
+      }
+    } catch (error: any) {
+      console.error('Action failed:', error);
+      toast.error(error.response?.data?.message || 'Action failed. Please try again.');
+    }
   };
 
   // Show loading state if still checking auth
@@ -274,9 +354,15 @@ const MyJobsPage = () => {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 mt-2">
-                                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(application.status)}`}>
-                                      {getStatusText(application.status)}
-                                    </span>
+                                    <StatusBadgeFull 
+                                      status={application.status} 
+                                      size="md"
+                                    />
+                                    {requiresCandidateAction(application.status) && (
+                                      <span className="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                                        Action Required
+                                      </span>
+                                    )}
                                     {new Date(application.expirationDate) < new Date() && (
                                       <span className="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
                                         Expired
@@ -318,6 +404,85 @@ const MyJobsPage = () => {
                                     </p>
                                   </div>
                                 </div>
+                                
+                                {/* Contact Information - Only visible when status >= APPROVED */}
+                                {['APPROVED', 'ACCEPTED', 'WORKING'].includes(application.status) && application.companyEmail ? (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                      </svg>
+                                      Company Contact Information
+                                    </h4>
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                        {application.companyName && (
+                                          <p className="text-gray-700">
+                                            <span className="font-medium text-gray-900">Company:</span> {application.companyName}
+                                          </p>
+                                        )}
+                                        {application.contactPerson && (
+                                          <p className="text-gray-700">
+                                            <span className="font-medium text-gray-900">Contact Person:</span> {application.contactPerson}
+                                          </p>
+                                        )}
+                                        {application.companyEmail && (
+                                          <p className="text-gray-700">
+                                            <span className="font-medium text-gray-900">Email:</span>{' '}
+                                            <a href={`mailto:${application.companyEmail}`} className="text-blue-600 hover:underline">
+                                              {application.companyEmail}
+                                            </a>
+                                          </p>
+                                        )}
+                                        {application.recruiterPhone && (
+                                          <p className="text-gray-700">
+                                            <span className="font-medium text-gray-900">Phone:</span>{' '}
+                                            <a href={`tel:${application.recruiterPhone}`} className="text-blue-600 hover:underline">
+                                              {application.recruiterPhone}
+                                            </a>
+                                          </p>
+                                        )}
+                                        {application.companyAddress && (
+                                          <p className="text-gray-700 md:col-span-2">
+                                            <span className="font-medium text-gray-900">Address:</span> {application.companyAddress}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : !['APPROVED', 'ACCEPTED', 'WORKING'].includes(application.status) && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+                                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                      </svg>
+                                      <p className="text-sm text-gray-600">
+                                        Contact information will be available after your application is approved.
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Action Buttons */}
+                                {getCandidateActions(application.status).length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <h4 className="font-semibold text-gray-900 mb-3 text-sm">Available Actions</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                      {getCandidateActions(application.status).map((statusAction) => (
+                                        <Button
+                                          key={statusAction.action}
+                                          variant={statusAction.variant as any}
+                                          size="sm"
+                                          onClick={() => handleCandidateAction(statusAction.action, application.id)}
+                                          className="text-sm"
+                                        >
+                                          {statusAction.label}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
                                 <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3">
                                   <Link
                                     href={`/jobs-detail?id=${application.jobPostingId}`}
