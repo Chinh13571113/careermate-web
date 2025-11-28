@@ -28,7 +28,7 @@ export default function AICVResult() {
     if (storedResult) {
       setResult(JSON.parse(storedResult));
     } else {
-      toast.error("Không tìm thấy kết quả phân tích");
+      toast.error("Analysis result not found");
       router.push('/candidate/ai-cv-checker');
     }
   }, [router]);
@@ -38,7 +38,7 @@ export default function AICVResult() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải kết quả...</p>
+          <p className="text-gray-600">Loading results...</p>
         </div>
       </div>
     );
@@ -74,14 +74,14 @@ export default function AICVResult() {
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                Quay lại
+                Back
               </button>
               
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                      Kết quả phân tích CV
+                      CV Analysis Results
                     </h1>
                     <p className="text-gray-600">{result.overall_comment}</p>
                   </div>
@@ -90,7 +90,7 @@ export default function AICVResult() {
                       {result.overall_score}
                     </div>
                     <div className="text-sm font-semibold text-gray-600 mt-1">
-                      Điểm tổng thể
+                      Overall Score
                     </div>
                   </div>
                 </div>
@@ -101,7 +101,7 @@ export default function AICVResult() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
               <div className="flex items-center gap-3 mb-6">
                 <Target className="w-6 h-6 text-green-600" />
-                <h2 className="text-2xl font-bold text-gray-900">Tổng quan</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
@@ -109,7 +109,7 @@ export default function AICVResult() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <h3 className="font-bold text-gray-900">Điểm mạnh</h3>
+                    <h3 className="font-bold text-gray-900">Strengths</h3>
                   </div>
                   <ul className="space-y-2">
                     {result.summary.strengths.map((strength, idx) => (
@@ -125,7 +125,7 @@ export default function AICVResult() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <TrendingUp className="w-5 h-5 text-orange-600" />
-                    <h3 className="font-bold text-gray-900">Cần cải thiện</h3>
+                    <h3 className="font-bold text-gray-900">Areas for Improvement</h3>
                   </div>
                   <ul className="space-y-2">
                     {result.summary.improvements.map((improvement, idx) => (
@@ -144,22 +144,22 @@ export default function AICVResult() {
               {/* Content Score */}
               <ScoreCard
                 icon={<FileText className="w-6 h-6" />}
-                title="Nội dung"
+                title="Content"
                 score={result.content.score}
                 description={result.content.description}
               >
                 <DetailSection
-                  title="Kết quả đo lường được"
+                  title="Measurable Results"
                   items={result.content.measurable_results}
                   type="success"
                 />
                 <DetailSection
-                  title="Lỗi ngữ pháp"
+                  title="Grammar Issues"
                   items={result.content.grammar_issues}
                   type="error"
                 />
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.content.tips}
                   type="tip"
                 />
@@ -168,35 +168,35 @@ export default function AICVResult() {
               {/* Skills Score */}
               <ScoreCard
                 icon={<Award className="w-6 h-6" />}
-                title="Kỹ năng"
+                title="Skills"
                 score={result.skills.score}
                 description={result.skills.description}
               >
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Kỹ năng kỹ thuật</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">Technical Skills</h4>
                     <DetailSection
-                      title="Đã có"
+                      title="Matched"
                       items={result.skills.technical.matched}
                       type="success"
                     />
                     <DetailSection
-                      title="Còn thiếu"
+                      title="Missing"
                       items={result.skills.technical.missing}
                       type="error"
                     />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Kỹ năng mềm</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">Soft Skills</h4>
                     <DetailSection
-                      title="Còn thiếu"
+                      title="Missing"
                       items={result.skills.soft.missing}
                       type="error"
                     />
                   </div>
                 </div>
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.skills.tips}
                   type="tip"
                 />
@@ -205,20 +205,20 @@ export default function AICVResult() {
               {/* Format Score */}
               <ScoreCard
                 icon={<Layout className="w-6 h-6" />}
-                title="Định dạng"
+                title="Format"
                 score={result.format.score}
                 description={result.format.description}
               >
                 <div className="mb-4">
-                  <h4 className="font-semibold text-gray-900 mb-3">Kiểm tra định dạng</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">Format Checks</h4>
                   <div className="space-y-2">
-                    <FormatCheck label="Định dạng ngày" status={result.format.checks.date_format} />
-                    <FormatCheck label="Độ dài" status={result.format.checks.length} />
-                    <FormatCheck label="Bullet points" status={result.format.checks.bullet_points} />
+                    <FormatCheck label="Date Format" status={result.format.checks.date_format} />
+                    <FormatCheck label="Length" status={result.format.checks.length} />
+                    <FormatCheck label="Bullet Points" status={result.format.checks.bullet_points} />
                   </div>
                 </div>
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.format.tips}
                   type="tip"
                 />
@@ -227,17 +227,17 @@ export default function AICVResult() {
               {/* Sections Score */}
               <ScoreCard
                 icon={<BookOpen className="w-6 h-6" />}
-                title="Các mục"
+                title="Sections"
                 score={result.sections.score}
                 description={result.sections.description}
               >
                 <DetailSection
-                  title="Các mục còn thiếu"
+                  title="Missing Sections"
                   items={result.sections.missing}
                   type="error"
                 />
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.sections.tips}
                   type="tip"
                 />
@@ -246,22 +246,22 @@ export default function AICVResult() {
               {/* Style Score */}
               <ScoreCard
                 icon={<Palette className="w-6 h-6" />}
-                title="Phong cách"
+                title="Style"
                 score={result.style.score}
                 description={result.style.description}
               >
                 <DetailSection
-                  title="Giọng văn"
+                  title="Tone"
                   items={result.style.tone}
                   type="warning"
                 />
                 <DetailSection
-                  title="Từ khóa thông dụng"
+                  title="Buzzwords"
                   items={result.style.buzzwords}
                   type="info"
                 />
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.style.tips}
                   type="tip"
                 />
@@ -295,13 +295,13 @@ export default function AICVResult() {
                 onClick={() => router.push('/candidate/ai-cv-checker')}
                 className="px-6 py-3 border-2 border-green-600 text-green-600 rounded-xl hover:bg-green-50 transition-colors font-semibold"
               >
-                Phân tích CV khác
+                Analyze Another CV
               </button>
               <button
                 onClick={() => router.push('/candidate/cm-profile')}
                 className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
               >
-                Cải thiện CV của bạn
+                Improve Your CV
               </button>
             </div>
           </div>
