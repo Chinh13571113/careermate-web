@@ -51,6 +51,12 @@ export const useCVUpload = (
   };
 
   const handleFileUpload = async (file: File) => {
+    console.log("📤 CV Upload Flow Start:", {
+      fileName: file.name,
+      fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB",
+      fileType: file.type,
+    });
+
     // Validation
     const maxSize = 3 * 1024 * 1024; // 3MB
     const allowedTypes = [
@@ -60,11 +66,13 @@ export const useCVUpload = (
     ];
 
     if (!allowedTypes.includes(file.type)) {
+      console.error("❌ Invalid file type:", file.type);
       toast.error("Only .pdf, .doc, .docx files are supported");
       return;
     }
 
     if (file.size > maxSize) {
+      console.error("❌ File too large:", file.size, "bytes");
       toast.error("File size must not exceed 3MB");
       return;
     }
@@ -74,40 +82,93 @@ export const useCVUpload = (
     const uid = candidateId ?? user?.id; // fallback to user.id if candidateId not loaded yet
 
     if (!uid) {
+      console.error("❌ Authentication error: No candidateId found");
       toast.error("Authentication error: No candidateId found");
       return;
     }
+
+    console.log("✅ Validation passed. CandidateId:", uid);
 
     setIsUploading(true);
 
     try {
       // 🚀 STEP 1: Upload to Firebase Storage
+      console.log("🚀 STEP 1: Uploading to Firebase Storage...");
       const uploadedCv = await uploadCvFile(String(uid), file);
 
-      // 🚀 STEP 2: Create resume entry in backend
-      const isActive = uploadedCVs.length === 0 && !defaultCV;
-      await createResume({
-        aboutMe: "",
-        resumeUrl: uploadedCv.downloadUrl,
-        type: "UPLOAD",
-        isActive: isActive,
+      console.log("✅ Firebase upload result:", {
+        id: uploadedCv.id,
+        name: uploadedCv.name,
+        downloadUrl: uploadedCv.downloadUrl,
+        storagePath: uploadedCv.storagePath,
+        size: uploadedCv.fileSize,
       });
 
+      // �️ CRITICAL: Validate downloadUrl before proceeding
+      if (!uploadedCv.downloadUrl) {
+        console.error("❌ CRITICAL ERROR: uploadedCv.downloadUrl is undefined!");
+        console.error("Full uploadedCv object:", uploadedCv);
+        throw new Error(
+          "Firebase upload succeeded but downloadUrl is missing. This should never happen. Check uploadCvFile() implementation."
+        );
+      }
+
+      console.log("✅ downloadUrl validation passed:", uploadedCv.downloadUrl);
+
+      // �🚀 STEP 2: Create resume entry in backend
+      const isActive = uploadedCVs.length === 0 && !defaultCV;
+      
+      const payload = {
+        aboutMe: "",
+        resumeUrl: uploadedCv.downloadUrl, // GUARANTEED to be defined
+        type: "UPLOAD",
+        isActive: isActive,
+      };
+
+      console.log("🚀 STEP 2: Creating resume in backend...");
+      console.log("Resume payload:", payload);
+
+      await createResume(payload);
+
+      console.log("✅ Backend resume created successfully");
+
       // 🚀 STEP 3: Update CV list in frontend
+      console.log("🚀 STEP 3: Updating frontend state...");
       setUploadedCVs(prev => [uploadedCv, ...prev]);
 
       // Auto set default if this is the first CV
       if (isActive) {
         setDefaultCV(uploadedCv);
+        console.log("✅ Set as default CV (first upload)");
       }
 
+      console.log("✅ CV Upload Flow Complete!");
       toast.success("CV uploaded successfully!");
 
-    } catch (error) {
-      console.error("CV upload error:", error);
-      toast.error("CV upload failed. Please try again");
+    } catch (error: any) {
+      console.error("❌ CV upload error:", {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+      });
+
+      // Provide user-friendly error messages based on error type
+      let errorMessage = "CV upload failed. Please try again";
+
+      if (error?.message?.includes("Firebase Storage")) {
+        errorMessage = "Failed to upload file to storage. Please check your internet connection.";
+      } else if (error?.message?.includes("downloadUrl")) {
+        errorMessage = "File uploaded but URL retrieval failed. Please contact support.";
+      } else if (error?.message?.includes("Permission denied")) {
+        errorMessage = "Storage permission error. Please contact support.";
+      } else if (error?.message?.includes("Backend resume creation")) {
+        errorMessage = "File uploaded but failed to save to database. Please try again.";
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
+      console.log("🔚 Upload process ended (isUploading set to false)");
     }
   };
 

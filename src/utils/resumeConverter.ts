@@ -1,5 +1,6 @@
 import { Resume, ResumeType } from "@/services/resumeService";
 import { CV, CVSource } from "@/services/cvService";
+import { extractOriginalName } from "./cvFileNameHelper";
 
 /**
  * Convert Resume type to CV source
@@ -52,14 +53,14 @@ function formatFileSize(bytes: number): string {
 /**
  * Extract file name from URL
  */
-function getFileNameFromUrl(url: string, defaultName: string): string {
+function getFileNameFromUrl(url: string): string {
   try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    const fileName = pathname.split("/").pop();
-    return fileName || defaultName;
+    const pathname = new URL(url).pathname;
+    const encodedName = pathname.split("%2F").pop(); // lấy phần sau ký tự %2F cuối cùng
+    const decoded = decodeURIComponent(encodedName || "");
+    return extractOriginalName(decoded); // bỏ _CM_timestamp
   } catch {
-    return defaultName;
+    return "Unknown.pdf";
   }
 }
 

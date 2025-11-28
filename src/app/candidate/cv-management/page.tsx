@@ -16,7 +16,6 @@ import { getMyInvoice, type Invoice } from "@/lib/invoice-api";
 import { Lock, X, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 import {
-  CVCard,
   CVCardHorizontal,
   CVTabs,
   CVGrid,
@@ -148,6 +147,112 @@ const CVManagementPage = () => {
   const currentCVs = activeTab === "uploaded" ? uploadedCVs : activeTab === "built" ? builtCVs : draftCVs;
   const hasAnyResumes = uploadedCVs.length > 0 || builtCVs.length > 0 || draftCVs.length > 0;
 
+  // ========== DEBUG: Detect overlapping elements over Sync button ==========
+  useEffect(() => {
+    const debugOverlap = () => {
+      console.log("🔍 ========== OVERLAP DETECTION START ==========");
+      
+      // Find all Sync buttons
+      const syncButtons = document.querySelectorAll('button[id^="sync-btn-"]');
+      console.log(`🔍 Found ${syncButtons.length} Sync buttons`);
+      
+      if (syncButtons.length === 0) {
+        console.warn("⚠️ No Sync buttons found in DOM");
+        return;
+      }
+
+      syncButtons.forEach((btn, index) => {
+        const btnRect = btn.getBoundingClientRect();
+        console.log(`\n📍 Sync Button ${index + 1}:`, {
+          id: btn.id,
+          bounds: btnRect,
+          visible: btnRect.width > 0 && btnRect.height > 0
+        });
+
+        // Check what's at the center of the button
+        const centerX = btnRect.left + btnRect.width / 2;
+        const centerY = btnRect.top + btnRect.height / 2;
+        const topElement = document.elementFromPoint(centerX, centerY);
+        
+        console.log(`🎯 Element at button center:`, topElement);
+        console.log(`🎯 Is it the button?`, topElement === btn || btn.contains(topElement as Node));
+
+        if (topElement && topElement !== btn && !btn.contains(topElement as Node)) {
+          console.error(`❌ OVERLAP DETECTED on Button ${index + 1}!`);
+          console.error(`❌ Blocking element:`, topElement);
+          console.error(`❌ Blocking element tag:`, topElement.tagName);
+          console.error(`❌ Blocking element class:`, (topElement as HTMLElement).className);
+          
+          const blockingStyle = window.getComputedStyle(topElement);
+          console.error(`❌ Blocking element styles:`, {
+            position: blockingStyle.position,
+            zIndex: blockingStyle.zIndex,
+            pointerEvents: blockingStyle.pointerEvents,
+            width: blockingStyle.width,
+            height: blockingStyle.height,
+            display: blockingStyle.display
+          });
+        }
+      });
+
+      // Scan for positioned elements that might overlap
+      console.log("\n🔍 Scanning for positioned elements...");
+      const positionedElements = document.querySelectorAll('*');
+      const overlappingElements: Element[] = [];
+
+      positionedElements.forEach((el) => {
+        const style = window.getComputedStyle(el);
+        const position = style.position;
+        
+        if (['absolute', 'fixed', 'sticky'].includes(position)) {
+          const rect = el.getBoundingClientRect();
+          
+          // Skip invisible elements
+          if (rect.width === 0 || rect.height === 0) return;
+          
+          syncButtons.forEach((btn) => {
+            const btnRect = btn.getBoundingClientRect();
+            
+            // Check overlap
+            const overlaps = !(
+              rect.right < btnRect.left ||
+              rect.left > btnRect.right ||
+              rect.bottom < btnRect.top ||
+              rect.top > btnRect.bottom
+            );
+            
+            if (overlaps && el !== btn && !btn.contains(el as Node) && !el.contains(btn)) {
+              overlappingElements.push(el);
+              console.warn("⚠️ Positioned element overlaps Sync button:", {
+                element: el,
+                tagName: el.tagName,
+                className: (el as HTMLElement).className,
+                position: position,
+                zIndex: style.zIndex,
+                pointerEvents: style.pointerEvents,
+                bounds: rect,
+                buttonBounds: btnRect
+              });
+            }
+          });
+        }
+      });
+
+      if (overlappingElements.length === 0) {
+        console.log("✅ No overlapping positioned elements detected");
+      } else {
+        console.error(`❌ Found ${overlappingElements.length} overlapping elements!`);
+      }
+
+      console.log("🔍 ========== OVERLAP DETECTION END ==========\n");
+    };
+
+    // Run detection after a delay to ensure DOM is ready
+    const timeoutId = setTimeout(debugOverlap, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [currentCVs, activeTab]); // Re-run when CVs or tab changes
+
   // Handler for Create CV button
   const handleCreateCV = async () => {
     // Check package limits
@@ -224,19 +329,19 @@ const CVManagementPage = () => {
     <>
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
         <div
-          className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)] gap-6 items-start transition-all duration-300"
+          className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)] gap-6 items-start transition-all duration-300 isolate"
           style={{
             ["--sticky-offset" as any]: `${headerH}px`,
             ["--content-pad" as any]: "24px"
           }}
         >
           {/* Sidebar */}
-          <aside className="hidden lg:block sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start transition-all duration-300">
+          <aside className="hidden lg:block sticky [top:calc(var(--sticky-offset)+var(--content-pad))] self-start transition-all duration-300 pointer-events-auto z-[1]">
             <CVSidebar activePage="cv-management" />
           </aside>
 
           {/* Main Content */}
-          <section className="space-y-6 min-w-0 lg:mt-[var(--sticky-offset)] transition-all duration-300">
+          <section className="space-y-6 min-w-0 lg:mt-[var(--sticky-offset)] transition-all duration-300 relative z-[2] pointer-events-auto">
             {/* Header */}
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">CV Management</h1>
@@ -297,7 +402,7 @@ const CVManagementPage = () => {
             />
 
             {/* CV Grid or Empty State */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 relative z-[3] isolate pointer-events-auto">
               {currentCVs.length > 0 ? (
                 <CVGrid
                   cvs={currentCVs}
