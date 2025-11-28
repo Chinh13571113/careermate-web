@@ -305,7 +305,8 @@ export default function JobsDetailPage() {
       setShowLoginModal(true);
       return;
     }
-    router.push(`/candidate/jobs/${selectedJobId}/apply`);
+    // Navigate directly to the apply page (skip redirect stub)
+    router.push(`/jobs-detail/${selectedJobId}/apply`);
   };
 
   const handleToggleSave = async () => {
@@ -402,10 +403,7 @@ export default function JobsDetailPage() {
     setShowLoginModal(false);
     // Save the intended destination to localStorage
     if (selectedJobId) {
-      localStorage.setItem(
-        "redirectAfterLogin",
-        `/candidate/jobs/${selectedJobId}/apply`
-      );
+      localStorage.setItem('redirectAfterLogin', `/jobs-detail/${selectedJobId}/apply`);
     }
     router.push("/sign-in");
   };
