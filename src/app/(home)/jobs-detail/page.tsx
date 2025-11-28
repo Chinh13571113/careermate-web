@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import JobCard from "../../../components/JobCard";
+import JobRecommendModal from "../../../components/JobRecommendModal";
 import { RiMoneyDollarCircleLine } from "react-icons/ri";
 import { FiMapPin, FiSearch, FiX, FiStar } from "react-icons/fi";
 import { IoFilterOutline } from "react-icons/io5";
@@ -237,6 +238,7 @@ export default function JobsDetailPage() {
   const [searchLocation, setSearchLocation] = useState<string>("All Cities");
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showJobRecommendModal, setShowJobRecommendModal] = useState<boolean>(false);
 
   // ✅ Fetch candidateId if authenticated but missing
   useEffect(() => {
@@ -617,7 +619,7 @@ export default function JobsDetailPage() {
                     </h2>
 
                     <button
-                      onClick={() => router.push('/job-recommendation')}
+                      onClick={() => setShowJobRecommendModal(true)}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 rounded-lg text-sm font-medium transition-all duration-200"
                     >
                       {/* Icon Sparkles */}
@@ -1183,6 +1185,12 @@ export default function JobsDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Job Recommend Modal */}
+      <JobRecommendModal
+        isOpen={showJobRecommendModal}
+        onClose={() => setShowJobRecommendModal(false)}
+      />
     </>
   );
 }
