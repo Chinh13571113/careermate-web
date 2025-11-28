@@ -184,19 +184,62 @@ class ResumeService {
     type: string;
     isActive: boolean;
   }): Promise<Resume> {
+    // 🛡️ Validate payload before sending to backend
+    if (!payload.resumeUrl) {
+      console.error("❌ CRITICAL: createResume called with empty resumeUrl!");
+      console.error("Invalid payload:", payload);
+      throw new Error("Cannot create resume: resumeUrl is required but was undefined or empty.");
+    }
+
+    // Validate URL format
+    if (!payload.resumeUrl.startsWith('http://') && !payload.resumeUrl.startsWith('https://')) {
+      console.error("❌ Invalid resumeUrl format:", payload.resumeUrl);
+      throw new Error(`Invalid resumeUrl format. Expected http/https URL, got: ${payload.resumeUrl}`);
+    }
+
+    console.log("📤 Creating resume in backend...");
+    console.log("Payload:", {
+      ...payload,
+      resumeUrl: payload.resumeUrl.substring(0, 100) + '...', // Truncate for readability
+    });
+
     try {
       const response = await api.post<{ code: number; message: string; result: Resume }>(
         "/api/resume",
         payload
       );
 
+      console.log("✅ Backend response:", {
+        code: response.data?.code,
+        message: response.data?.message,
+        hasResult: !!response.data?.result,
+      });
+
       if (response.data && response.data.result) {
+        console.log("✅ Resume created successfully:", {
+          resumeId: response.data.result.resumeId,
+          type: response.data.result.type,
+          isActive: response.data.result.isActive,
+        });
         return response.data.result;
       }
 
-      throw new Error(response.data?.message || "Failed to create resume");
-    } catch (error) {
-      console.error("Error creating resume:", error);
+      const errorMsg = response.data?.message || "Failed to create resume";
+      console.error("❌ Backend returned error:", errorMsg);
+      throw new Error(errorMsg);
+    } catch (error: any) {
+      console.error("❌ Error creating resume:", {
+        error,
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+      });
+
+      // Enhance error message with backend response if available
+      if (error?.response?.data?.message) {
+        throw new Error(`Backend resume creation failed: ${error.response.data.message}`);
+      }
+
       throw error;
     }
   }
