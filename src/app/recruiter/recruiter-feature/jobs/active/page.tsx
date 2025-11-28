@@ -18,6 +18,7 @@ import {
   RecruiterJobPosting, 
   extendJobPosting,
   getJobPostingStats,
+  getRecruiterStats,
   JobPostingStats,
   getJobRecommendations,
   CandidateRecommendation,
@@ -341,18 +342,34 @@ export default function ActiveJobsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-blue-50 p-3 rounded-md">
-                      <p className="text-sm text-gray-500 mb-1">Applicants</p>
+                      <p className="text-sm text-gray-500 mb-1">Total Applications</p>
                       <p className="text-2xl font-bold text-blue-600">
-                        {jobStats?.applicants ?? 0}
+                        {jobStats?.totalApplications ?? jobStats?.applicants ?? 0}
                       </p>
                     </div>
                     <div className="bg-green-50 p-3 rounded-md">
-                      <p className="text-sm text-gray-500 mb-1">Views</p>
+                      <p className="text-sm text-gray-500 mb-1">Active Jobs</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {jobStats?.views ?? 0}
+                        {jobStats?.activeJobPostings ?? jobStats?.views ?? 0}
                       </p>
                     </div>
                   </div>
+                  {jobStats?.submittedApplications !== undefined && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-yellow-50 p-2 rounded-md text-center">
+                        <p className="text-xs text-gray-500">Submitted</p>
+                        <p className="text-lg font-bold text-yellow-600">{jobStats.submittedApplications}</p>
+                      </div>
+                      <div className="bg-purple-50 p-2 rounded-md text-center">
+                        <p className="text-xs text-gray-500">Reviewing</p>
+                        <p className="text-lg font-bold text-purple-600">{jobStats.reviewingApplications ?? 0}</p>
+                      </div>
+                      <div className="bg-emerald-50 p-2 rounded-md text-center">
+                        <p className="text-xs text-gray-500">Hired</p>
+                        <p className="text-lg font-bold text-emerald-600">{jobStats.hiredApplications ?? 0}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="bg-amber-50 p-3 rounded-md">
                     <p className="text-sm text-gray-500">Expires In</p>
                     <p className="font-medium text-amber-800">

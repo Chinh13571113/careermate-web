@@ -195,6 +195,51 @@ export function NotificationBell() {
         redirectUrl = '/candidate/my-jobs';
         console.log('✅ [Candidate] Application status changed -> /candidate/my-jobs');
       }
+      else if (eventType === 'AUTO_WITHDRAW' || eventType === 'APPLICATION_AUTO_WITHDRAWN') {
+        // Application auto-withdrawn because candidate was hired elsewhere
+        redirectUrl = '/candidate/my-jobs';
+        console.log('✅ [Candidate] Auto-withdraw notification -> /candidate/my-jobs');
+      }
+      else if (eventType === 'INTERVIEW_SCHEDULED') {
+        // Interview has been scheduled
+        redirectUrl = '/candidate/interviews';
+        console.log('✅ [Candidate] Interview scheduled -> /candidate/interviews');
+      }
+      else if (eventType === 'INTERVIEW_REMINDER' || eventType === 'INTERVIEW_REMINDER_24H' || eventType === 'INTERVIEW_REMINDER_2H') {
+        // Interview reminder (24h or 2h before)
+        redirectUrl = '/candidate/interviews';
+        console.log('✅ [Candidate] Interview reminder -> /candidate/interviews');
+      }
+      else if (eventType === 'INTERVIEW_CANCELLED') {
+        // Interview cancelled
+        redirectUrl = '/candidate/interviews';
+        console.log('✅ [Candidate] Interview cancelled -> /candidate/interviews');
+      }
+      else if (eventType === 'INTERVIEW_RESCHEDULED' || eventType === 'RESCHEDULE_REQUEST_RESPONDED') {
+        // Interview rescheduled or reschedule request responded
+        redirectUrl = '/candidate/interviews';
+        console.log('✅ [Candidate] Interview rescheduled -> /candidate/interviews');
+      }
+      else if (eventType === 'EMPLOYMENT_30_DAY_VERIFICATION' || eventType === 'EMPLOYMENT_90_DAY_VERIFICATION') {
+        // Employment verification reminder
+        redirectUrl = '/candidate/employments';
+        console.log('✅ [Candidate] Employment verification -> /candidate/employments');
+      }
+      else if (eventType === 'EMPLOYMENT_TERMINATED') {
+        // Employment terminated by recruiter
+        redirectUrl = '/candidate/employments';
+        console.log('✅ [Candidate] Employment terminated -> /candidate/employments');
+      }
+      else if (eventType === 'REVIEW_ELIGIBLE') {
+        // Now eligible to submit review
+        const jobApplyId = metadata.jobApplyId;
+        if (jobApplyId) {
+          redirectUrl = `/candidate/reviews/submit?jobApplyId=${jobApplyId}`;
+        } else {
+          redirectUrl = '/candidate/employments';
+        }
+        console.log('✅ [Candidate] Review eligible -> ', redirectUrl);
+      }
       else if (eventType === 'DAILY_REMINDER') {
         // Daily tips (9 AM)
         redirectUrl = '/candidate/jobs';

@@ -35,6 +35,7 @@ type DecodedJWT = {
   roles?: string[];
   authorities?: string[];
   sub?: string;
+  userId?: number;  // Numeric user ID from backend
   email?: string;
   name?: string;
   [k: string]: any;
@@ -188,9 +189,22 @@ function getInitialAuthState() {
       const decoded = decodeJwt(accessToken);
       if (decoded) {
         // Extract user info
+        // Try to get numeric userId first, fallback to parsing sub
+        let numericId: number | null = null;
+        
+        if (decoded.userId && typeof decoded.userId === 'number') {
+          numericId = decoded.userId;
+        } else if (decoded.sub) {
+          // Try to parse sub as number if it's a numeric string
+          const parsed = parseInt(decoded.sub);
+          if (!isNaN(parsed)) {
+            numericId = parsed;
+          }
+        }
+        
         userInfo = {
-          id: decoded.sub ?? null,
-          email: decoded.email ?? null,
+          id: numericId,
+          email: decoded.email ?? decoded.sub ?? null,
           name: decoded.name ?? decoded.email ?? null,
           username: decoded.username ?? null,
         };

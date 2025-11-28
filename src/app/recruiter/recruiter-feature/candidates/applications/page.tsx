@@ -2,7 +2,11 @@
 
 import { Search, Filter, Download, FileText, Calendar, MapPin, Clock, CheckCircle, XCircle, Eye, RefreshCw, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getJobApplications, approveJobApplication, rejectJobApplication, setReviewingJobApplication, JobApplication } from "@/lib/recruiter-api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getJobApplications, getRecruiterApplications, getRecruiterApplicationsFiltered, approveJobApplication, rejectJobApplication, setReviewingJobApplication, JobApplication, updateJobApplicationStatus } from "@/lib/recruiter-api";
+import { StatusBadgeFull } from "@/components/shared/StatusBadge";
+import { getRecruiterActions, sortStatuses } from "@/lib/status-utils";
+import { JobApplicationStatus } from "@/types/status";
 import toast from "react-hot-toast";
 import {
   Dialog,
@@ -16,12 +20,18 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function CandidateApplicationsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [jobPostingId, setJobPostingId] = useState<number>(43);
+  // Get jobPostingId from URL params if provided, otherwise fetch all
+  const jobPostingIdParam = searchParams.get('jobPostingId');
+  const [jobPostingId, setJobPostingId] = useState<number | null>(
+    jobPostingIdParam ? parseInt(jobPostingIdParam) : null
+  );
 
   // Dialog states
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
@@ -29,18 +39,143 @@ export default function CandidateApplicationsPage() {
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
   const [isReviewingDialogOpen, setIsReviewingDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [banReason, setBanReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Available statuses for filtering (13 statuses)
+  const availableStatuses: Array<JobApplicationStatus | 'ALL'> = [
+    'ALL',
+    'SUBMITTED',
+    'REVIEWING',
+    'INTERVIEW_SCHEDULED',
+    'INTERVIEWED',
+    'APPROVED',
+    'WORKING',
+    'REJECTED',
+    'PROBATION_FAILED',
+    'TERMINATED',
+    'NO_RESPONSE',
+    'WITHDRAWN',
+    'BANNED'
+  ];
+
+  // Handle recruiter actions
+  const handleRecruiterAction = async (action: string, applicationId: number) => {
+    console.log(`Recruiter Action: ${action}, Application ID: ${applicationId}`);
+    const application = applications.find(app => app.id === applicationId);
+    
+    try {
+      switch (action) {
+        case 'review':
+          setSelectedApplication(application || null);
+          setIsReviewingDialogOpen(true);
+          break;
+          
+        case 'schedule_interview':
+          // Navigate to interview scheduling page or open modal
+          router.push(`/recruiter/interviews/schedule?applicationId=${applicationId}`);
+          break;
+          
+        case 'approve':
+          setSelectedApplication(application || null);
+          setIsApproveDialogOpen(true);
+          break;
+          
+        case 'reject':
+          setSelectedApplication(application || null);
+          setIsRejectDialogOpen(true);
+          break;
+          
+        case 'ban':
+          if (confirm('Are you sure you want to ban this candidate? This will prevent them from applying to future positions.')) {
+            setSelectedApplication(application || null);
+            setIsBanDialogOpen(true);
+          }
+          break;
+          
+        case 'view_interview':
+          router.push('/recruiter/interviews');
+          break;
+          
+        case 'reschedule':
+          router.push(`/recruiter/interviews/schedule?applicationId=${applicationId}&action=reschedule`);
+          break;
+          
+        case 'cancel_interview':
+          if (confirm('Are you sure you want to cancel this interview?')) {
+            toast.error('Cancel interview API not yet implemented');
+          }
+          break;
+          
+        case 'create_employment':
+          router.push(`/recruiter/employments/create?applicationId=${applicationId}`);
+          break;
+          
+        case 'send_offer':
+          toast.error('Send offer feature not yet implemented');
+          break;
+          
+        case 'terminate':
+          router.push('/recruiter/employments');
+          break;
+          
+        case 'probation_failed':
+          if (confirm('Are you sure you want to mark this employee as probation failed?')) {
+            await updateJobApplicationStatus(applicationId, 'PROBATION_FAILED');
+            toast.success('Marked as probation failed');
+            await fetchApplications();
+          }
+          break;
+          
+        case 'view_employment':
+          router.push('/recruiter/employments');
+          break;
+          
+        case 'unban':
+          if (confirm('Are you sure you want to unban this candidate?')) {
+            // Update status from BANNED to previous status or REJECTED
+            await updateJobApplicationStatus(applicationId, 'REJECTED');
+            toast.success('Candidate unbanned');
+            await fetchApplications();
+          }
+          break;
+          
+        case 'edit_ban':
+          setSelectedApplication(application || null);
+          setIsBanDialogOpen(true);
+          break;
+          
+        default:
+          toast.error('Unknown action');
+      }
+    } catch (error: any) {
+      console.error('Recruiter action failed:', error);
+      toast.error(error.response?.data?.message || 'Action failed. Please try again.');
+    }
+  };
 
   // Fetch applications
   const fetchApplications = async () => {
-    if (!jobPostingId) return;
-
     try {
       setIsLoading(true);
-      const response = await getJobApplications(jobPostingId);
+      
+      let response;
+      if (jobPostingId) {
+        // Fetch applications for specific job posting
+        response = await getJobApplications(jobPostingId);
+      } else {
+        // Fetch all applications for this recruiter
+        response = await getRecruiterApplications();
+      }
 
-      if (response.code === 0 && response.result) {
+      if (response.code === 200 && response.result) {
+        setApplications(response.result);
+        setFilteredApplications(response.result);
+      } else if (response.code === 0 && response.result) {
+        // Legacy response format
         setApplications(response.result);
         setFilteredApplications(response.result);
       } else {
@@ -49,6 +184,8 @@ export default function CandidateApplicationsPage() {
     } catch (error: any) {
       console.error("Error fetching applications:", error);
       toast.error(error.message || "Failed to fetch applications");
+      setApplications([]);
+      setFilteredApplications([]);
     } finally {
       setIsLoading(false);
     }
@@ -126,21 +263,7 @@ export default function CandidateApplicationsPage() {
     }
   };
 
-  // Badge
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, { bg: string; text: string; label: string }> = {
-      SUBMITTED: { bg: "bg-blue-100", text: "text-blue-700", label: "Submitted" },
-      APPROVED: { bg: "bg-green-100", text: "text-green-700", label: "Approved" },
-      REJECTED: { bg: "bg-red-100", text: "text-red-700", label: "Rejected" },
-      REVIEWING: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Reviewing" },
-    };
-    const badge = badges[status] || badges.SUBMITTED;
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
-        {badge.label}
-      </span>
-    );
-  };
+  // Badge - removed, now using StatusBadgeFull component
 
   const getStatusCount = (status: string) => {
     if (status === "ALL") return applications.length;
@@ -159,10 +282,10 @@ export default function CandidateApplicationsPage() {
             <label className="text-sm text-gray-600">Job Posting ID:</label>
             <input
               type="number"
-              value={jobPostingId}
-              onChange={(e) => setJobPostingId(Number(e.target.value))}
+              value={jobPostingId ?? ''}
+              onChange={(e) => setJobPostingId(e.target.value ? Number(e.target.value) : null)}
               className="w-24 rounded-md border px-3 py-2 text-sm"
-              placeholder="ID"
+              placeholder="All"
             />
           </div>
           <button
@@ -194,19 +317,19 @@ export default function CandidateApplicationsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 border-b">
-          {["ALL", "SUBMITTED", "REVIEWING", "APPROVED", "REJECTED"].map(status => (
+        <div className="flex items-center gap-1 border-b overflow-x-auto">
+          {availableStatuses.map(status => (
             <button
               key={status}
               onClick={() => setSelectedStatus(status)}
-              className={`px-4 py-2 text-sm font-medium ${
+              className={`px-4 py-2 text-sm font-medium whitespace-nowrap ${
                 selectedStatus === status
                   ? "border-b-2 border-sky-600 text-sky-700"
                   : "text-slate-600 hover:text-slate-800"
               }`}
             >
-              {status === "ALL" ? "All candidates" : status.charAt(0) + status.slice(1).toLowerCase()}{" "}
-              <span className="ml-1 text-xs">{getStatusCount(status)}</span>
+              {status === "ALL" ? "All" : status.replace(/_/g, ' ')}{" "}
+              <span className="ml-1 text-xs">({getStatusCount(status)})</span>
             </button>
           ))}
         </div>
@@ -274,11 +397,14 @@ export default function CandidateApplicationsPage() {
                         {new Date(application.createAt).toLocaleDateString('vi-VN')}
                       </div>
                     </td>
-                    <td className="px-4 py-4">{getStatusBadge(application.status)}</td>
-
-                    {/* ✅ ACTION ICONS ONLY */}
                     <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <StatusBadgeFull status={application.status} size="sm" />
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {/* View Details Button */}
                         <button
                           onClick={() => {
                             setSelectedApplication(application);
@@ -290,68 +416,18 @@ export default function CandidateApplicationsPage() {
                           <Eye className="h-4 w-4" />
                         </button>
 
-                        {application.status === "SUBMITTED" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setIsReviewingDialogOpen(true);
-                              }}
-                              className="p-2 rounded-full hover:bg-yellow-100 text-yellow-600 transition"
-                              title="Set to Reviewing"
-                            >
-                              <AlertCircle className="h-4 w-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setIsApproveDialogOpen(true);
-                              }}
-                              className="p-2 rounded-full hover:bg-green-100 text-green-600 transition"
-                              title="Approve"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setIsRejectDialogOpen(true);
-                              }}
-                              className="p-2 rounded-full hover:bg-red-100 text-red-600 transition"
-                              title="Reject"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                        
-                        {application.status === "REVIEWING" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setIsApproveDialogOpen(true);
-                              }}
-                              className="p-2 rounded-full hover:bg-green-100 text-green-600 transition"
-                              title="Approve"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setIsRejectDialogOpen(true);
-                              }}
-                              className="p-2 rounded-full hover:bg-red-100 text-red-600 transition"
-                              title="Reject"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
+                        {/* Dynamic Action Buttons based on status */}
+                        {getRecruiterActions(application.status).slice(0, 3).map((statusAction) => (
+                          <Button
+                            key={statusAction.action}
+                            variant={statusAction.variant as any}
+                            size="sm"
+                            onClick={() => handleRecruiterAction(statusAction.action, application.id)}
+                            className="text-xs px-2 py-1 h-7"
+                          >
+                            {statusAction.label}
+                          </Button>
+                        ))}
                       </div>
                     </td>
                   </tr>
@@ -362,7 +438,7 @@ export default function CandidateApplicationsPage() {
         )}
       </div>
 
-      {/* Detail / Approve / Reject Dialogs giữ nguyên */}
+      {/* Detail / Approve / Reject Dialogs */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -390,7 +466,7 @@ export default function CandidateApplicationsPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">Status</p>
-                  {getStatusBadge(selectedApplication.status)}
+                  <StatusBadgeFull status={selectedApplication.status} size="sm" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">Applied Date</p>
@@ -545,6 +621,82 @@ export default function CandidateApplicationsPage() {
                 <>
                   <AlertCircle className="mr-2 h-4 w-4" />
                   Set to Reviewing
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ban Dialog */}
+      <Dialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ban Candidate</DialogTitle>
+            <DialogDescription>
+              This will prevent the candidate from applying to future positions. Please provide a reason.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedApplication && (
+            <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
+              <p className="font-medium text-gray-900">{selectedApplication.fullName}</p>
+              <p className="text-sm text-gray-600">{selectedApplication.jobTitle}</p>
+            </div>
+          )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Ban Reason <span className="text-red-500">*</span>
+            </label>
+            <Textarea
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="Explain why this candidate is being banned (e.g., policy violation, fraudulent information)..."
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsBanDialogOpen(false);
+                setBanReason("");
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!selectedApplication || !banReason.trim()) {
+                  toast.error("Please provide a ban reason");
+                  return;
+                }
+                try {
+                  setActionLoading(true);
+                  await updateJobApplicationStatus(selectedApplication.id, 'BANNED');
+                  toast.success("Candidate banned successfully");
+                  setIsBanDialogOpen(false);
+                  setBanReason("");
+                  await fetchApplications();
+                } catch (error: any) {
+                  console.error("Failed to ban candidate:", error);
+                  toast.error(error.response?.data?.message || "Failed to ban candidate");
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
+              disabled={actionLoading || !banReason.trim()}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {actionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Banning...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Confirm Ban
                 </>
               )}
             </Button>
