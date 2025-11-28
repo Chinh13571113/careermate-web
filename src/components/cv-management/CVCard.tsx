@@ -26,14 +26,14 @@ export const CVCard = ({
       builder: { label: "Builder", color: "bg-purple-100 text-purple-700" },
       draft: { label: "Draft", color: "bg-orange-100 text-orange-700" }
     };
-    return sources[cv.source];
+    return sources[cv.source ?? "upload"];
   };
 
   const source = getSourceBadge();
 
   return (
     <div
-      className={`w-[240px] rounded-xl overflow-hidden hover:shadow-xl hover:border-[#3a4660] transition-all hover:scale-[1.01] shadow-md ${
+      className={`w-full max-w-[280px] mx-auto relative z-10 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:border-[#3a4660] transition-shadow duration-200 ${
         isDefault ? "ring-2 ring-[#3a4660] border-[#3a4660]" : "border border-gray-300"
       } bg-white flex flex-col`}
     >
@@ -238,7 +238,6 @@ export const CVCard = ({
                   </button>
 
                   <hr className="my-0.5" />
-
                   {onDelete && (
                     <button
                       onClick={(e) => {

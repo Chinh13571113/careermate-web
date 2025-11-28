@@ -6,3 +6,5 @@ export { EmptyState } from "./EmptyState";
 export { PreviewModal } from "./PreviewModal";
 export { NoActiveCV } from "./NoActiveCV";
 export { CVSkeleton, CVGridSkeleton, CVPageSkeleton } from "./CVSkeleton";
+export { CVParsedPreviewModal } from "./CVParsedPreviewModal";
+export { CVSyncStatusModal } from "./CVSyncStatusModal";

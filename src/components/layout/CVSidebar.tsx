@@ -34,7 +34,7 @@ const CVSidebar: React.FC<CVSidebarProps> = memo(({ activePage }) => {
   };
 
   return (
-    <aside className="lg:w-64 bg-white shadow-sm rounded-xl border border-gray-200 flex flex-col max-h-[calc(100vh-var(--sticky-offset,80px)-var(--content-pad,24px)*2)] overflow-hidden">
+    <aside className="lg:w-64 bg-white shadow-sm rounded-xl border border-gray-200 flex flex-col max-h-[calc(100vh-var(--sticky-offset,80px)-var(--content-pad,24px)*2)] overflow-hidden isolate pointer-events-auto">
       <div className="p-6 flex-shrink-0 border-b border-gray-100">
         <div className="flex items-center space-x-2 mb-1">
           <PiHandWavingLight className="w-5 h-5 text-gray-500" />
@@ -45,7 +45,7 @@ const CVSidebar: React.FC<CVSidebarProps> = memo(({ activePage }) => {
         </div>
       </div>
 
-      <nav className="space-y-1 px-3 py-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
+      <nav className="space-y-1 px-3 py-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 pointer-events-auto">
         {items.map((item) => {
           const active = isActive(item.href, item.key);
           return (
