@@ -3,11 +3,12 @@
 import { FiEdit } from "react-icons/fi";
 import { FaEnvelope, FaPhone, FaCalendar, FaMapMarkerAlt, FaLink, FaGenderless } from "react-icons/fa";
 import { BsGenderMale, BsGenderFemale } from "react-icons/bs";
-import { Link2 } from "lucide-react";
+import { Link2, Sparkles } from "lucide-react";
 import { PremiumAvatar } from "@/components/ui/premium-avatar";
 import { useEffect, useState } from "react";
 import { getMyInvoice } from "@/lib/invoice-api";
 import { User } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ProfileHeaderCardProps {
     profileName: string;
@@ -34,6 +35,7 @@ export default function ProfileHeaderCard({
     email,
     onEditPersonalDetails
 }: ProfileHeaderCardProps) {
+    const router = useRouter();
     const [isPremium, setIsPremium] = useState(false);
 
     // Check if user has PREMIUM package
@@ -82,13 +84,23 @@ export default function ProfileHeaderCard({
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={onEditPersonalDetails}
-                    className="text-gray-600 hover:text-gray-700 p-2"
-                    title="Edit Personal Details"
-                >
-                    <FiEdit className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => router.push('/candidate/ai-cv-checker')}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg transition-all font-semibold shadow-lg hover:shadow-xl"
+                        title="AI CV Checker"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        AI CV Checker
+                    </button>
+                    <button
+                        onClick={onEditPersonalDetails}
+                        className="text-gray-600 hover:text-gray-700 p-2"
+                        title="Edit Personal Details"
+                    >
+                        <FiEdit className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* Contact Information Grid */}
