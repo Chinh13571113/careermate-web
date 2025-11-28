@@ -10,6 +10,7 @@ interface CVTabsProps {
   isUploading: boolean;
   onTabChange: (tab: TabType) => void;
   onUploadClick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onCreateCVClick: () => void;
 }
 
 export const CVTabs: React.FC<CVTabsProps> = ({
@@ -19,7 +20,8 @@ export const CVTabs: React.FC<CVTabsProps> = ({
   draftCount,
   isUploading,
   onTabChange,
-  onUploadClick
+  onUploadClick,
+  onCreateCVClick
 }) => {
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200">
@@ -57,8 +59,20 @@ export const CVTabs: React.FC<CVTabsProps> = ({
           </button>
         </nav>
 
-        {/* Upload Button - Always visible on the right */}
-        <div className="py-2">
+        {/* Action Buttons - Always visible on the right */}
+        <div className="py-2 flex items-center gap-3">
+          {/* Create CV Builder Button */}
+          <button
+            onClick={onCreateCVClick}
+            className="inline-flex items-center justify-center w-10 h-10 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-md hover:shadow-xl transition-all"
+            title="Create new CV with builder"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+
+          {/* Upload Button */}
           <label className="cursor-pointer">
             <input
               type="file"
