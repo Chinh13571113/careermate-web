@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import CVSidebar from "@/components/layout/CVSidebar";
 import Link from "next/link";
-import { FileText, Briefcase, Mail } from "lucide-react";
+import { FileText, Briefcase, Mail, Receipt } from "lucide-react";
 import { useLayout } from "@/contexts/LayoutContext";
 
 export default function CandidateDashboard() {
@@ -192,9 +192,12 @@ export default function CandidateDashboard() {
                 Your Activities
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Applied Jobs */}
-                <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 overflow-hidden">
+                <Link
+                  href="/candidate/my-jobs"
+                  className="relative bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                >
                   <div className="absolute top-0 right-0 opacity-10">
                     <Briefcase className="w-32 h-32 text-blue-600" />
                   </div>
@@ -207,7 +210,7 @@ export default function CandidateDashboard() {
                     </div>
                     <p className="text-sm text-gray-600">Total applications</p>
                   </div>
-                </div>
+                </Link>
 
                 {/* Saved Jobs */}
                 <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6 overflow-hidden">
@@ -248,6 +251,28 @@ export default function CandidateDashboard() {
                     <p className="text-sm text-gray-600">Pending invitations</p>
                   </div>
                 </div>
+
+                {/* Transaction History */}
+                <Link
+                  href="/candidate/transaction-history"
+                  className="relative bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                >
+                  <div className="absolute top-0 right-0 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Receipt className="w-32 h-32 text-purple-600" />
+                  </div>
+                  <div className="relative z-10">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">
+                      Transaction History
+                    </h3>
+                    <div className="text-3xl font-bold text-purple-600 mb-2">
+                      View
+                    </div>
+                    <p className="text-sm text-gray-600">Package purchases</p>
+                  </div>
+                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-purple-600 text-xl">→</span>
+                  </div>
+                </Link>
               </div>
             </div>
           </section>

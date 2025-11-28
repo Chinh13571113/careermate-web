@@ -27,6 +27,7 @@ interface PersonalDetailDialogProps {
     onProfileLinkChange: (value: string) => void;
     onProfileImageChange: (value: string) => void;
     onSave: () => void;
+    onGetRecommendRole?: () => void;
 }
 
 export default function PersonalDetailDialog({
@@ -48,7 +49,8 @@ export default function PersonalDetailDialog({
     onProfileAddressChange,
     onProfileLinkChange,
     onProfileImageChange,
-    onSave
+    onSave,
+    onGetRecommendRole
 }: PersonalDetailDialogProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [previewImage, setPreviewImage] = useState<string>(profileImage);
@@ -187,9 +189,20 @@ export default function PersonalDetailDialog({
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Professional Title
-                            </label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Professional Title
+                                </label>
+                                {onGetRecommendRole && (
+                                    <button
+                                        type="button"
+                                        onClick={onGetRecommendRole}
+                                        className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                                    >
+                                        Get Recommend Role
+                                    </button>
+                                )}
+                            </div>
                             <Input
                                 value={profileTitle}
                                 onChange={(e) => onProfileTitleChange(e.target.value)}
