@@ -375,8 +375,18 @@ export const getDailyCalendar = async (
       `/api/calendar/recruiter/daily`,
       { params: { date } }
     );
-    console.log('✅ [GET DAILY CALENDAR] Response:', response.data);
-    return response.data.result;
+    console.log('✅ [GET DAILY CALENDAR] Raw Response:', JSON.stringify(response.data, null, 2));
+    
+    // Handle both wrapped (result) and direct response formats
+    const data = response.data.result || response.data;
+    console.log('✅ [GET DAILY CALENDAR] Parsed Data:', {
+      date: (data as any).date,
+      interviewsCount: (data as any).interviews?.length || 0,
+      totalInterviews: (data as any).totalInterviews,
+      isWorkingDay: (data as any).isWorkingDay,
+    });
+    
+    return data as DailyCalendarResponse;
   } catch (error: any) {
     console.error('❌ [GET DAILY CALENDAR] Error:', error.response?.data || error);
     throw new Error(error.response?.data?.message || 'Failed to fetch daily calendar');
@@ -422,8 +432,16 @@ export const getMonthlyCalendar = async (
       `/api/calendar/recruiter/monthly`,
       { params: { year, month } }
     );
-    console.log('✅ [GET MONTHLY CALENDAR] Response:', response.data);
-    return response.data.result;
+    console.log('✅ [GET MONTHLY CALENDAR] Raw Response:', JSON.stringify(response.data, null, 2));
+    
+    // Handle both wrapped (result) and direct response formats
+    const data = response.data.result || response.data;
+    console.log('✅ [GET MONTHLY CALENDAR] Parsed Data:', {
+      totalInterviews: (data as any).totalInterviews,
+      interviewCountByDate: (data as any).interviewCountByDate,
+    });
+    
+    return data as MonthlyCalendarResponse;
   } catch (error: any) {
     console.error('❌ [GET MONTHLY CALENDAR] Error:', error.response?.data || error);
     throw new Error(error.response?.data?.message || 'Failed to fetch monthly calendar');

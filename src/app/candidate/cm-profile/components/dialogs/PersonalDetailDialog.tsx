@@ -55,7 +55,7 @@ export default function PersonalDetailDialog({
     const [isUploading, setIsUploading] = useState(false);
     const [previewImage, setPreviewImage] = useState<string>(profileImage);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { user } = useAuthStore();
+    const { candidateId } = useAuthStore();
 
     // Update preview when profileImage prop changes
     useEffect(() => {
@@ -82,13 +82,19 @@ export default function PersonalDetailDialog({
         try {
             setIsUploading(true);
 
-            // Upload to Firebase Storage
-            const userId = user?.id?.toString() || 'anonymous';
-            const downloadURL = await uploadAvatar(userId, file);
+            // Upload to Firebase Storage using candidateId instead of email
+            if (!candidateId) {
+                toast.error('Unable to get candidate ID. Please try again later.');
+                return;
+            }
+            
+            // Upload returns both storagePath and downloadUrl
+            // We use downloadUrl for immediate display, but could store storagePath for future
+            const result = await uploadAvatar(candidateId.toString(), file);
 
-            // Update preview and form state
-            setPreviewImage(downloadURL);
-            onProfileImageChange(downloadURL);
+            // Update preview and form state with the download URL
+            setPreviewImage(result.downloadUrl);
+            onProfileImageChange(result.downloadUrl);
 
             toast.success('Avatar uploaded successfully!');
         } catch (error) {
@@ -223,7 +229,7 @@ export default function PersonalDetailDialog({
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Date of Birth
+                                Date of Birth <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 type="date"
@@ -250,7 +256,7 @@ export default function PersonalDetailDialog({
 
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Current Province/City <span className="text-red-500">*</span>
+                                Current Province/City
                             </label>
                             <Input
                                 value={profileAddress}

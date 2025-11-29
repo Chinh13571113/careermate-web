@@ -4,6 +4,10 @@ import { notFound } from 'next/navigation';
 // TYPES
 // ========================================
 
+/**
+ * Normalized CVData interface for print templates
+ * This handles data coming from CVPreview which may have different structures
+ */
 interface CVData {
   // Personal Info
   fullName: string;
@@ -13,6 +17,8 @@ interface CVData {
   address?: string;
   website?: string;
   photoUrl?: string;
+  dob?: string;
+  gender?: string;
   
   // Summary
   summary?: string;
@@ -31,13 +37,17 @@ interface CVData {
     institution: string;
     period: string;
     description?: string;
+    major?: string;
   }>;
   
-  // Skills
+  // Skills - normalized to string arrays
   skills?: Array<{
     category: string;
     items: string[];
   }>;
+  
+  // Soft Skills - separate array
+  softSkills?: string[];
   
   // Languages
   languages?: Array<{
@@ -56,7 +66,140 @@ interface CVData {
     name: string;
     description: string;
     period: string;
+    url?: string;
   }>;
+  
+  awards?: Array<{
+    name: string;
+    organization: string;
+    date: string;
+    description?: string;
+  }>;
+}
+
+// ========================================
+// DATA NORMALIZATION
+// ========================================
+
+/**
+ * Normalize skill items - handles both string[] and {id, skill}[] formats
+ */
+function normalizeSkillItems(items: any[]): string[] {
+  if (!items || !Array.isArray(items)) return [];
+  
+  return items.map(item => {
+    if (typeof item === 'string') return item;
+    if (typeof item === 'object' && item !== null) {
+      // Handle {id, skill} format from CVPreview
+      return item.skill || item.name || String(item);
+    }
+    return String(item);
+  }).filter(Boolean);
+}
+
+/**
+ * Normalize skills array from CVPreview format
+ */
+function normalizeSkills(skills: any[]): Array<{ category: string; items: string[] }> {
+  if (!skills || !Array.isArray(skills)) return [];
+  
+  return skills.map(group => ({
+    category: group.category || group.name || 'Skills',
+    items: normalizeSkillItems(group.items || [])
+  }));
+}
+
+/**
+ * Normalize soft skills - handles both string[] and {id, skill}[] formats
+ */
+function normalizeSoftSkills(softSkills: any): string[] {
+  if (!softSkills) return [];
+  if (!Array.isArray(softSkills)) return [];
+  
+  return softSkills.map((skill: any) => {
+    if (typeof skill === 'string') return skill;
+    if (typeof skill === 'object' && skill !== null) {
+      return skill.skill || skill.name || String(skill);
+    }
+    return String(skill);
+  }).filter(Boolean);
+}
+
+/**
+ * Normalize CV data from various sources (CVPreview, API, etc.)
+ * Handles the nested personalInfo structure from CVPreview
+ */
+function normalizeCVData(rawData: any): CVData {
+  // Check if data has nested personalInfo (from CVPreview)
+  const hasPersonalInfo = rawData.personalInfo && typeof rawData.personalInfo === 'object';
+  
+  const personalInfo = hasPersonalInfo ? rawData.personalInfo : rawData;
+  
+  return {
+    // Personal Info - handle both flat and nested structures
+    fullName: personalInfo.fullName || rawData.fullName || '',
+    title: personalInfo.position || personalInfo.title || rawData.title || '',
+    email: personalInfo.email || rawData.email || '',
+    phone: personalInfo.phone || rawData.phone || '',
+    address: personalInfo.location || personalInfo.address || rawData.address || '',
+    website: personalInfo.website || personalInfo.link || rawData.website || '',
+    photoUrl: personalInfo.photoUrl || rawData.photoUrl || '',
+    dob: personalInfo.dob || rawData.dob || '',
+    gender: personalInfo.gender || rawData.gender || '',
+    summary: personalInfo.summary || rawData.summary || '',
+    
+    // Experience - normalize from CVPreview format
+    experience: (rawData.experience || []).map((exp: any) => ({
+      position: exp.position || exp.jobTitle || '',
+      company: exp.company || '',
+      period: exp.period || '',
+      description: exp.description || ''
+    })),
+    
+    // Education - normalize from CVPreview format
+    education: (rawData.education || []).map((edu: any) => ({
+      degree: edu.degree || '',
+      institution: edu.institution || edu.school || '',
+      period: edu.period || '',
+      description: edu.description || '',
+      major: edu.major || ''
+    })),
+    
+    // Skills - normalize items to strings
+    skills: normalizeSkills(rawData.skills || []),
+    
+    // Soft Skills
+    softSkills: normalizeSoftSkills(rawData.softSkills || []),
+    
+    // Languages
+    languages: (rawData.languages || []).map((lang: any) => ({
+      name: lang.name || lang.language || '',
+      level: lang.level || ''
+    })),
+    
+    // Certifications
+    certifications: (rawData.certifications || []).map((cert: any) => ({
+      name: cert.name || '',
+      issuer: cert.issuer || cert.org || cert.organization || '',
+      date: cert.date || ''
+    })),
+    
+    // Projects
+    projects: (rawData.projects || []).map((proj: any) => ({
+      name: proj.name || '',
+      description: proj.description || '',
+      period: proj.period || '',
+      url: proj.url || ''
+    })),
+    
+    // Awards
+    awards: (rawData.awards || []).map((award: any) => ({
+      name: award.name || '',
+      organization: award.organization || '',
+      date: award.date || '',
+      description: award.description || ''
+    }))
+  };
 }
 
 // ========================================
@@ -68,7 +211,9 @@ function parseBase64Data(encodedData?: string): CVData | null {
   
   try {
     const jsonString = Buffer.from(encodedData, 'base64').toString('utf-8');
-    return JSON.parse(jsonString);
+    const rawData = JSON.parse(jsonString);
+    // Normalize the data to handle different formats
+    return normalizeCVData(rawData);
   } catch (error) {
     console.error('Failed to parse CV data:', error);
     return null;
@@ -252,6 +397,14 @@ function ClassicTemplate({ data }: { data: CVData }) {
                 <p className="skill-items">{skillGroup.items.join(' • ')}</p>
               </div>
             ))}
+            
+            {/* Soft Skills */}
+            {data.softSkills && data.softSkills.length > 0 && (
+              <div className="skill-group">
+                <h3 className="skill-category">Soft Skills</h3>
+                <p className="skill-items">{data.softSkills.join(' • ')}</p>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -319,6 +472,16 @@ function ModernTemplate({ data }: { data: CVData }) {
                 ))}
               </div>
             ))}
+            
+            {/* Soft Skills */}
+            {data.softSkills && data.softSkills.length > 0 && (
+              <div className="sidebar-skill-group">
+                <h3 className="sidebar-skill-category">Soft Skills</h3>
+                {data.softSkills.map((skill, idx) => (
+                  <p key={idx} className="sidebar-skill-item">{skill}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -446,6 +609,14 @@ function VintageTemplate({ data }: { data: CVData }) {
                 <p className="vintage-skill-items">{skillGroup.items.join(', ')}</p>
               </div>
             ))}
+            
+            {/* Soft Skills */}
+            {data.softSkills && data.softSkills.length > 0 && (
+              <div className="vintage-skill-group">
+                <h3 className="vintage-skill-category">Soft Skills</h3>
+                <p className="vintage-skill-items">{data.softSkills.join(', ')}</p>
+              </div>
+            )}
           </section>
         )}
       </div>
@@ -580,6 +751,18 @@ function ProfessionalTemplate({ data }: { data: CVData }) {
                   </ul>
                 </div>
               ))}
+              
+              {/* Soft Skills */}
+              {data.softSkills && data.softSkills.length > 0 && (
+                <div className="skill-group">
+                  <h3 className="skill-category">Soft Skills</h3>
+                  <ul className="skill-list">
+                    {data.softSkills.map((skill, idx) => (
+                      <li key={idx}>{skill}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
           )}
 

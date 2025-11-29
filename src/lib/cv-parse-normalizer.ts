@@ -91,6 +91,7 @@ export interface NormalizedCVData {
     phone: string;
     title: string;
   };
+  summary?: string; // About Me / Professional Summary
   educations: JavaBackendEducation[];
   workExperiences: JavaBackendWorkExperience[];
   highlightProjects: JavaBackendHighlightProject[];
@@ -337,6 +338,10 @@ export function normalizeParsedCVData(parsedCV: ParsedCV): NormalizedCVData {
   // Extract personal info from either top-level or nested structure
   const personalInfo = parsedCV.personal_info || {};
   
+  // Extract summary/aboutMe from various possible fields
+  const summary = parsedCV.summary || parsedCV.aboutMe || parsedCV.about_me || 
+                  personalInfo.summary || personalInfo.aboutMe || personalInfo.about_me || '';
+  
   return {
     personalInfo: {
       fullName: parsedCV.name || personalInfo.name || '',
@@ -344,6 +349,7 @@ export function normalizeParsedCVData(parsedCV: ParsedCV): NormalizedCVData {
       phone: parsedCV.phone || personalInfo.phone || '',
       title: parsedCV.title || personalInfo.title || '',
     },
+    summary,
     educations: normalizeEducations(parsedCV.education),
     workExperiences: normalizeWorkExperiences(parsedCV.experience),
     highlightProjects: normalizeHighlightProjects(parsedCV.projects),
@@ -367,7 +373,8 @@ export function hasDataToSync(data: NormalizedCVData): boolean {
     data.certificates.length > 0 ||
     data.awards.length > 0 ||
     !!data.personalInfo.fullName ||
-    !!data.personalInfo.title
+    !!data.personalInfo.title ||
+    !!data.summary
   );
 }
 
@@ -379,10 +386,10 @@ export function getSyncSummary(data: NormalizedCVData): {
   count: number;
   items: string[];
 }[] {
-  const summary: { category: string; count: number; items: string[] }[] = [];
+  const summaryList: { category: string; count: number; items: string[] }[] = [];
   
   if (data.personalInfo.fullName || data.personalInfo.title) {
-    summary.push({
+    summaryList.push({
       category: 'Personal Info',
       count: 1,
       items: [
@@ -394,8 +401,16 @@ export function getSyncSummary(data: NormalizedCVData): {
     });
   }
   
+  if (data.summary) {
+    summaryList.push({
+      category: 'About Me',
+      count: 1,
+      items: [data.summary.length > 100 ? data.summary.slice(0, 100) + '...' : data.summary],
+    });
+  }
+  
   if (data.educations.length > 0) {
-    summary.push({
+    summaryList.push({
       category: 'Education',
       count: data.educations.length,
       items: data.educations.map(e => `${e.degree} - ${e.school}`),
@@ -403,7 +418,7 @@ export function getSyncSummary(data: NormalizedCVData): {
   }
   
   if (data.workExperiences.length > 0) {
-    summary.push({
+    summaryList.push({
       category: 'Work Experience',
       count: data.workExperiences.length,
       items: data.workExperiences.map(w => `${w.jobTitle} at ${w.company}`),
@@ -411,7 +426,7 @@ export function getSyncSummary(data: NormalizedCVData): {
   }
   
   if (data.highlightProjects.length > 0) {
-    summary.push({
+    summaryList.push({
       category: 'Projects',
       count: data.highlightProjects.length,
       items: data.highlightProjects.map(p => p.name),
@@ -423,7 +438,7 @@ export function getSyncSummary(data: NormalizedCVData): {
     const softSkills = data.skills.filter(s => s.skillType === 'soft');
     
     if (coreSkills.length > 0) {
-      summary.push({
+      summaryList.push({
         category: 'Technical Skills',
         count: coreSkills.length,
         items: coreSkills.slice(0, 5).map(s => s.skillName),
@@ -431,7 +446,7 @@ export function getSyncSummary(data: NormalizedCVData): {
     }
     
     if (softSkills.length > 0) {
-      summary.push({
+      summaryList.push({
         category: 'Soft Skills',
         count: softSkills.length,
         items: softSkills.slice(0, 5).map(s => s.skillName),
@@ -440,7 +455,7 @@ export function getSyncSummary(data: NormalizedCVData): {
   }
   
   if (data.foreignLanguages.length > 0) {
-    summary.push({
+    summaryList.push({
       category: 'Languages',
       count: data.foreignLanguages.length,
       items: data.foreignLanguages.map(l => `${l.language} (${l.level})`),
@@ -448,7 +463,7 @@ export function getSyncSummary(data: NormalizedCVData): {
   }
   
   if (data.certificates.length > 0) {
-    summary.push({
+    summaryList.push({
       category: 'Certificates',
       count: data.certificates.length,
       items: data.certificates.map(c => c.name),
@@ -456,12 +471,12 @@ export function getSyncSummary(data: NormalizedCVData): {
   }
   
   if (data.awards.length > 0) {
-    summary.push({
+    summaryList.push({
       category: 'Awards',
       count: data.awards.length,
       items: data.awards.map(a => a.name),
     });
   }
   
-  return summary;
+  return summaryList;
 }

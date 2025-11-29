@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { FiUpload, FiFile, FiEye } from "react-icons/fi";
-import { submitJobApplication, uploadCV } from "@/lib/job-apply-api";
+import { FiUpload, FiFile, FiChevronDown, FiCheck } from "react-icons/fi";
+import { submitJobApplication } from "@/lib/job-apply-api";
 import { fetchJobPostingById, transformJobPosting } from "@/lib/job-api";
 import { useAuthStore } from "@/store/use-auth-store";
+import { uploadJobApplicationCV } from "@/lib/firebase-upload";
+import { resumeService, Resume } from "@/services/resumeService";
 import toast from "react-hot-toast";
 
 interface JobDetails {
@@ -17,6 +19,15 @@ interface JobDetails {
   jobType: string;
 }
 
+interface CVOption {
+  id: string;
+  name: string;
+  url: string;
+  isDefault: boolean;
+  type: "UPLOAD" | "WEB" | "DRAFT";
+  updatedAt?: string;
+}
+
 export default function JobApplicationPage() {
   const router = useRouter();
   const params = useParams();
@@ -25,13 +36,14 @@ export default function JobApplicationPage() {
 
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
   const [showConfirmQuit, setShowConfirmQuit] = useState(false);
-  const [cvOption, setCvOption] = useState<"current" | "upload" | "sample">("current");
+  
+  // CV selection state
+  const [cvOptions, setCvOptions] = useState<CVOption[]>([]);
+  const [selectedCvId, setSelectedCvId] = useState<string>("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUploadMode, setIsUploadMode] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
-  const [currentCvName, setCurrentCvName] = useState("TuanKhang_CV.pdf");
-  const [currentCvDate, setCurrentCvDate] = useState("21-10-2025");
-
-  // Sample CV path for testing
-  const SAMPLE_CV_PATH = "sample/test-cv.pdf";
+  const [isLoadingCVs, setIsLoadingCVs] = useState(true);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -94,6 +106,52 @@ export default function JobApplicationPage() {
     fetchJobDetails();
   }, [jobId]);
 
+  // Fetch user's CVs
+  useEffect(() => {
+    const fetchUserCVs = async () => {
+      if (!user) return;
+
+      setIsLoadingCVs(true);
+      try {
+        console.log("📄 Fetching user CVs...");
+        const resumes = await resumeService.fetchResumes();
+        
+        // Convert resumes to CV options
+        const options: CVOption[] = resumes
+          .filter((r: Resume) => r.resumeUrl && r.type !== "DRAFT") // Only show CVs with URL and not draft
+          .map((r: Resume) => ({
+            id: r.resumeId.toString(),
+            name: r.type === "WEB" 
+              ? `CareerMate CV #${r.resumeId}` 
+              : `Uploaded CV #${r.resumeId}`,
+            url: r.resumeUrl,
+            isDefault: r.isActive,
+            type: r.type,
+            updatedAt: r.createdAt,
+          }));
+
+        setCvOptions(options);
+        
+        // Auto-select default CV
+        const defaultCV = options.find(cv => cv.isDefault);
+        if (defaultCV) {
+          setSelectedCvId(defaultCV.id);
+        } else if (options.length > 0) {
+          setSelectedCvId(options[0].id);
+        }
+
+        console.log("✅ CVs loaded:", options);
+      } catch (error) {
+        console.error("❌ Error fetching CVs:", error);
+        // Don't show error toast, just let user upload new CV
+      } finally {
+        setIsLoadingCVs(false);
+      }
+    };
+
+    fetchUserCVs();
+  }, [user]);
+
   // Auto-fill user info when user data is available
   useEffect(() => {
     if (user) {
@@ -103,15 +161,6 @@ export default function JobApplicationPage() {
         preferredLocation: "",
         coverLetter: "",
       });
-
-      // Check if user has CV in profile
-      if (user.cvPath && user.cvPath.trim() !== "") {
-        setCurrentCvName(user.cvPath.split("/").pop() || "Your CV");
-        setCvOption("current");
-      } else {
-        // No CV in profile, default to sample for testing
-        setCvOption("sample");
-      }
     }
 
     // Fetch candidate profile if not already loaded
@@ -127,19 +176,45 @@ export default function JobApplicationPage() {
       // Validate file
       const maxSize = 3 * 1024 * 1024; // 3MB
       if (file.size > maxSize) {
-        alert("File size must not exceed 3MB");
+        toast.error("File size must not exceed 3MB");
         return;
       }
 
       const allowedTypes = [".doc", ".docx", ".pdf"];
       const fileExtension = file.name.substring(file.name.lastIndexOf("."));
       if (!allowedTypes.includes(fileExtension.toLowerCase())) {
-        alert("Please upload .doc, .docx, or .pdf file");
+        toast.error("Please upload .doc, .docx, or .pdf file");
         return;
       }
 
       setCvFile(file);
+      setIsUploadMode(true);
+      setSelectedCvId(""); // Clear selected CV when uploading new
     }
+  };
+
+  const handleSelectCV = (cvId: string) => {
+    setSelectedCvId(cvId);
+    setIsUploadMode(false);
+    setCvFile(null);
+    setIsDropdownOpen(false);
+  };
+
+  const handleUploadNewClick = () => {
+    setIsUploadMode(true);
+    setSelectedCvId("");
+    setIsDropdownOpen(false);
+  };
+
+  const getSelectedCVName = () => {
+    if (isUploadMode && cvFile) {
+      return cvFile.name;
+    }
+    const selected = cvOptions.find(cv => cv.id === selectedCvId);
+    if (selected) {
+      return selected.isDefault ? `${selected.name} (Default)` : selected.name;
+    }
+    return "Select a CV";
   };
 
   const validateForm = () => {
@@ -181,19 +256,15 @@ export default function JobApplicationPage() {
     }
 
     // Validate CV is provided
-    if (cvOption === "current") {
-      if (!user?.cvPath || user.cvPath.trim() === "") {
-        toast.error("No CV found in your profile. Please upload a new CV or use sample CV.");
-        setCvOption("sample");
-        return;
-      }
-    } else if (cvOption === "upload") {
-      if (!cvFile) {
-        toast.error("Please upload your CV");
-        return;
-      }
+    if (!isUploadMode && !selectedCvId) {
+      toast.error("Please select a CV or upload a new one");
+      return;
     }
-    // cvOption === 'sample' doesn't need validation
+
+    if (isUploadMode && !cvFile) {
+      toast.error("Please upload your CV");
+      return;
+    }
 
     if (!user?.id) {
       toast.error("User information not found. Please login again.");
@@ -206,35 +277,32 @@ export default function JobApplicationPage() {
     try {
       let cvFilePath = "";
 
-      // Handle different CV options
-      if (cvOption === "upload" && cvFile) {
-        // Upload new CV file
+      // Handle CV path
+      if (isUploadMode && cvFile) {
+        // Upload new CV to Firebase Storage
         toast.loading("Uploading CV...", { id: "upload-cv" });
         try {
-          cvFilePath = await uploadCV(cvFile);
+          const uploadResult = await uploadJobApplicationCV(jobId, cvFile);
+          cvFilePath = uploadResult.downloadUrl;
           toast.success("CV uploaded successfully", { id: "upload-cv" });
+          console.log("✅ CV uploaded to:", uploadResult.storagePath);
         } catch (uploadError) {
           toast.error("Failed to upload CV. Please try again.", { id: "upload-cv" });
           throw uploadError;
         }
-      } else if (cvOption === "current") {
-        // Use current CV path from user profile
-        cvFilePath = user.cvPath || "";
-
-        // Validate CV path exists
-        if (!cvFilePath || cvFilePath.trim() === "") {
-          toast.error("No CV found in your profile. Please upload a new CV.");
+      } else {
+        // Use selected CV URL
+        const selectedCV = cvOptions.find(cv => cv.id === selectedCvId);
+        if (!selectedCV) {
+          toast.error("Selected CV not found. Please try again.");
           setIsSubmitting(false);
           return;
         }
-      } else if (cvOption === "sample") {
-        // Use sample CV for testing
-        cvFilePath = SAMPLE_CV_PATH;
-        console.log("🧪 Using sample CV for testing:", cvFilePath);
+        cvFilePath = selectedCV.url;
       }
 
-      // Prepare application data with explicit type and validation
-      const finalCandidateId = candidateId || 1; // Fallback if not loaded
+      // Prepare application data
+      const finalCandidateId = candidateId || 1;
 
       if (!candidateId) {
         console.warn("⚠️  CandidateId not loaded from profile, using fallback value 1");
@@ -251,17 +319,12 @@ export default function JobApplicationPage() {
         status: "PENDING",
       };
 
-      // Log data before submission for debugging
+      // Log data before submission
       console.log("🔍 ===== PREPARING TO SUBMIT APPLICATION =====");
       console.log("🔍 Job ID:", jobId);
       console.log("🔍 User ID (from JWT):", user.id);
       console.log("🔍 Candidate ID (from profile API):", finalCandidateId);
-      console.log("🔍 Application Data:", {
-        ...applicationData,
-        coverLetter: applicationData.coverLetter
-          ? `${applicationData.coverLetter.substring(0, 30)}...`
-          : "Empty",
-      });
+      console.log("🔍 CV File Path:", cvFilePath);
 
       // Validate required fields
       if (!applicationData.jobPostingId || isNaN(applicationData.jobPostingId)) {
@@ -269,15 +332,6 @@ export default function JobApplicationPage() {
       }
       if (!applicationData.candidateId) {
         throw new Error("Invalid candidate ID");
-      }
-      if (!applicationData.fullName) {
-        throw new Error("Full name is required");
-      }
-      if (!applicationData.phoneNumber) {
-        throw new Error("Phone number is required");
-      }
-      if (!applicationData.preferredWorkLocation) {
-        throw new Error("Preferred work location is required");
       }
       if (!applicationData.cvFilePath) {
         throw new Error("CV file path is required");
@@ -289,7 +343,7 @@ export default function JobApplicationPage() {
 
       toast.success("Application submitted successfully!", { id: "submit-app" });
 
-      // Navigate to success page under jobs-detail nested route
+      // Navigate to success page
       router.push(`/jobs-detail/${jobId}/apply/success?applicationId=${response.result.id}`);
     } catch (error) {
       console.error("Error submitting application:", error);
@@ -303,14 +357,12 @@ export default function JobApplicationPage() {
 
   if (isLoadingJob || !jobDetails) {
     return (
-      <>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading job details...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading job details...</p>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -328,7 +380,7 @@ export default function JobApplicationPage() {
           Back
         </button>
 
-        {/* Single-card Application Form with title */}
+        {/* Single-card Application Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-lg p-6 shadow-sm">
           {/* Title and meta inside the same card */}
           <div className="mb-6 pb-6 border-b border-gray-200">
@@ -361,123 +413,134 @@ export default function JobApplicationPage() {
               </div>
             </div>
           </div>
-          {/* CV Upload Section */}
+
+          {/* CV Selection Section */}
           <div className="mb-6">
             <label className="block text-gray-900 font-semibold mb-3">
-              Your CV <span className="text-gray-500">*</span>
+              Your CV <span className="text-red-500">*</span>
             </label>
 
-            {/* Use Current CV Option */}
-            <div className="mb-4">
-              <label
-                className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                  !user?.cvPath || user.cvPath.trim() === ""
-                    ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-                    : cvOption === "current"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-500"
-                }`}
+            {/* CV Dropdown */}
+            <div className="relative mb-4">
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                disabled={isLoadingCVs}
+                className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg transition-colors ${
+                  isDropdownOpen ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-300 hover:border-gray-400"
+                } ${isLoadingCVs ? "bg-gray-50 cursor-not-allowed" : "bg-white cursor-pointer"}`}
               >
-                <input
-                  type="radio"
-                  name="cvOption"
-                  checked={cvOption === "current"}
-                  onChange={() => setCvOption("current")}
-                  disabled={!user?.cvPath || user.cvPath.trim() === ""}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 mb-1">
-                    Use your current CV
-                    {(!user?.cvPath || user.cvPath.trim() === "") && (
-                      <span className="ml-2 text-xs text-red-600">(No CV in profile)</span>
-                    )}
-                  </div>
-                  {user?.cvPath && user.cvPath.trim() !== "" ? (
-                    <>
-                      <div className="flex items-center gap-2 text-sm text-blue-600">
-                        <FiFile />
-                        <span>{currentCvName}</span>
-                        <button type="button" className="ml-2 text-gray-400 hover:text-gray-600">
-                          <FiEye />
-                        </button>
+                <div className="flex items-center gap-3">
+                  <FiFile className="text-gray-500" />
+                  <span className={selectedCvId || (isUploadMode && cvFile) ? "text-gray-900" : "text-gray-500"}>
+                    {isLoadingCVs ? "Loading CVs..." : getSelectedCVName()}
+                  </span>
+                </div>
+                <FiChevronDown className={`text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                  {/* Existing CVs */}
+                  {cvOptions.length > 0 && (
+                    <div className="py-2">
+                      <div className="px-4 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Your CVs
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">Upload date: {currentCvDate}</div>
-                    </>
-                  ) : (
-                    <div className="text-sm text-gray-500">
-                      No CV found. Please upload your CV to your profile first or use options below.
+                      {cvOptions.map((cv) => (
+                        <button
+                          key={cv.id}
+                          type="button"
+                          onClick={() => handleSelectCV(cv.id)}
+                          className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors ${
+                            selectedCvId === cv.id && !isUploadMode ? "bg-blue-50" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <FiFile className={cv.isDefault ? "text-blue-600" : "text-gray-400"} />
+                            <div className="text-left">
+                              <div className="text-sm font-medium text-gray-900">
+                                {cv.name}
+                                {cv.isDefault && (
+                                  <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {cv.type === "WEB" ? "Created on CareerMate" : "Uploaded"} 
+                                {cv.updatedAt && ` • ${new Date(cv.updatedAt).toLocaleDateString()}`}
+                              </div>
+                            </div>
+                          </div>
+                          {selectedCvId === cv.id && !isUploadMode && (
+                            <FiCheck className="text-blue-600" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  {cvOptions.length > 0 && <div className="border-t border-gray-200" />}
+
+                  {/* Upload New Option */}
+                  <button
+                    type="button"
+                    onClick={handleUploadNewClick}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
+                      isUploadMode ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    <FiUpload className="text-blue-600" />
+                    <span className="text-sm font-medium text-blue-600">Upload a new CV</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Upload Section - Show when upload mode is active */}
+            {isUploadMode && (
+              <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50/50">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    id="cvFile"
+                    accept=".doc,.docx,.pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="cvFile"
+                    className="px-4 py-2 bg-white border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <FiUpload />
+                    {cvFile ? "Change file" : "Choose file"}
+                  </label>
+                  {cvFile && (
+                    <div className="flex items-center gap-2">
+                      <FiFile className="text-blue-600" />
+                      <span className="text-sm text-gray-700 font-medium">{cvFile.name}</span>
+                      <span className="text-xs text-gray-500">
+                        ({(cvFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
                     </div>
                   )}
                 </div>
-              </label>
-            </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Upload .doc, .docx, or .pdf file (max 3MB). This CV will be saved to:{" "}
+                  <span className="font-mono text-blue-600">job-applications/{jobId}/</span>
+                </p>
+              </div>
+            )}
 
-            {/* Use Sample CV for Testing */}
-            <div className="mb-4">
-              <label
-                className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                  cvOption === "sample" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-500"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="cvOption"
-                  checked={cvOption === "sample"}
-                  onChange={() => setCvOption("sample")}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 mb-1 flex items-center gap-2">
-                    Use sample CV for testing
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">🧪 Test Mode</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <FiFile />
-                    <span>sample/test-cv.pdf</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Perfect for testing job application without uploading a real CV
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            {/* Upload New CV Option */}
-            <div>
-              <label
-                className={`flex items-start gap-3 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                  cvOption === "upload" ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-500"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="cvOption"
-                  checked={cvOption === "upload"}
-                  onChange={() => setCvOption("upload")}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 mb-2">Upload a new CV</div>
-                  <div className="flex items-center gap-3">
-                    <input type="file" id="cvFile" accept=".doc,.docx,.pdf" onChange={handleFileChange} disabled={cvOption !== "upload"} className="hidden" />
-                    <label
-                      htmlFor="cvFile"
-                      className={`px-4 py-2 border border-gray-500 text-gray-500 rounded hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                        cvOption !== "upload" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                      }`}
-                    >
-                      <FiUpload />
-                      Choose file
-                    </label>
-                    <span className="text-sm text-gray-500">{cvFile ? cvFile.name : "No file chosen"}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Please upload .doc, .docx, or .pdf file, maximum 3MB and no password protection.
-                  </p>
-                </div>
-              </label>
-            </div>
+            {/* No CVs Message */}
+            {!isLoadingCVs && cvOptions.length === 0 && !isUploadMode && (
+              <div className="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 rounded-lg">
+                You don&apos;t have any CVs yet. Please upload one to apply.
+              </div>
+            )}
           </div>
 
           {/* Personal Information */}
@@ -488,47 +551,47 @@ export default function JobApplicationPage() {
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full name <span className="text-gray-500">*</span>
+                  Full name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 ${
-                    errors.fullName ? "border-gray-500" : "border-gray-300"
+                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.fullName ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Your name"
                 />
-                {errors.fullName && <p className="text-sm text-gray-500 mt-1">{errors.fullName}</p>}
+                {errors.fullName && <p className="text-sm text-red-500 mt-1">{errors.fullName}</p>}
               </div>
 
               {/* Phone Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone number <span className="text-gray-500">*</span>
+                  Phone number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 ${
-                    errors.phoneNumber ? "border-gray-500" : "border-gray-300"
+                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.phoneNumber ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="0123456789"
                 />
-                {errors.phoneNumber && <p className="text-sm text-gray-500 mt-1">{errors.phoneNumber}</p>}
+                {errors.phoneNumber && <p className="text-sm text-red-500 mt-1">{errors.phoneNumber}</p>}
               </div>
 
               {/* Preferred Work Location */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Preferred work location <span className="text-gray-500">*</span>
+                  Preferred work location <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.preferredLocation}
                   onChange={(e) => setFormData({ ...formData, preferredLocation: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 ${
-                    errors.preferredLocation ? "border-gray-500" : "border-gray-300"
+                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.preferredLocation ? "border-red-500" : "border-gray-300"
                   }`}
                 >
                   <option value="">Select location</option>
@@ -538,8 +601,7 @@ export default function JobApplicationPage() {
                   <option value="Cần Thơ">Cần Thơ</option>
                   <option value="Other">Other</option>
                 </select>
-                {errors.preferredLocation && <p className="text-sm text-gray-500 mt-1">{errors.preferredLocation}</p>}
-                <p className="text-xs text-gray-500 mt-1">1/3 locations</p>
+                {errors.preferredLocation && <p className="text-sm text-red-500 mt-1">{errors.preferredLocation}</p>}
               </div>
             </div>
           </div>
@@ -557,19 +619,19 @@ export default function JobApplicationPage() {
               onChange={(e) => setFormData({ ...formData, coverLetter: e.target.value })}
               rows={6}
               maxLength={500}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Details and specific examples will make your application stronger..."
             />
-            <p className="text-xs text-gray-500 mt-1">{formData.coverLetter.length} of 500 characters remaining</p>
+            <p className="text-xs text-gray-500 mt-1">{formData.coverLetter.length} of 500 characters</p>
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-gray-500 text-white py-3 rounded-md font-semibold hover:bg-gray-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isSubmitting || (!selectedCvId && !cvFile)}
+            className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Sending..." : "Send my CV"}
+            {isSubmitting ? "Submitting..." : "Send Application"}
           </button>
         </form>
       </div>
@@ -593,7 +655,7 @@ export default function JobApplicationPage() {
               <button onClick={() => setShowConfirmQuit(false)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
                 Continue applying
               </button>
-              <button onClick={() => router.back()} className="px-4 py-2 rounded-md bg-gray-500 text-white hover:bg-gray-600">
+              <button onClick={() => router.back()} className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600">
                 Confirm
               </button>
             </div>
