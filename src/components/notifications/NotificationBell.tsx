@@ -25,8 +25,55 @@ export function NotificationBell() {
   const [isConnected, setIsConnected] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Fetch initial unread count on mount
+  useEffect(() => {
+    const fetchInitialUnreadCount = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      
+      try {
+        console.log('🔔 [Bell] Fetching initial unread count...');
+        const response = await fetch(`${apiUrl}/api/notifications/unread-count`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🔔 [Bell] Raw unread count response:', JSON.stringify(data));
+          // Handle multiple response formats:
+          // { count: N } or { result: N } or { result: { count: N } } or just N
+          let count = 0;
+          if (typeof data === 'number') {
+            count = data;
+          } else if (typeof data.result === 'number') {
+            count = data.result;
+          } else if (data.result?.count !== undefined) {
+            count = data.result.count;
+          } else if (data.count !== undefined) {
+            count = data.count;
+          }
+          console.log('🔔 [Bell] Parsed unread count:', count);
+          setUnreadCount(count);
+        } else {
+          console.warn('⚠️ [Bell] Failed to fetch unread count:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ [Bell] Error fetching unread count:', error);
+      } finally {
+        setInitialLoadDone(true);
+      }
+    };
+
+    fetchInitialUnreadCount();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -45,10 +92,11 @@ export function NotificationBell() {
 
   // Fetch recent notifications when opening dropdown
   useEffect(() => {
-    if (isOpen && notifications.length === 0) {
+    if (isOpen) {
       const token = localStorage.getItem('access_token');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       
+      // Always refresh notifications when dropdown opens
       fetch(`${apiUrl}/api/notifications?page=0&size=10`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -58,11 +106,14 @@ export function NotificationBell() {
         .then(data => {
           if (data.result?.content) {
             setNotifications(data.result.content);
+            // Also sync unread count based on fetched notifications
+            const unread = data.result.content.filter((n: Notification) => !n.isRead).length;
+            console.log('🔔 [Bell] Synced unread from notifications:', unread);
           }
         })
         .catch(err => console.error('Failed to fetch notifications:', err));
     }
-  }, [isOpen, notifications.length]);
+  }, [isOpen]);
 
   // Mark notification as read
   const markAsRead = async (notificationId: number) => {
