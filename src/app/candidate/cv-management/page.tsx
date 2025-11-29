@@ -433,6 +433,7 @@ const CVManagementPage = () => {
         parsedData={actionsHook.parsedCVData}
         onConfirm={actionsHook.handleConfirmSync}
         isLoading={actionsHook.isSyncing}
+        cvUrl={actionsHook.syncingCV?.downloadUrl}
       />
 
       {/* Sync Confirm Dialog - For converting WEB CV to DRAFT */}

@@ -1,7 +1,11 @@
+"use client";
+
 import React from 'react';
 import { User } from 'lucide-react';
+import { useFileUrl } from '@/lib/firebase-file';
 
 interface PremiumAvatarProps {
+  /** Storage path or download URL */
   src?: string;
   alt?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -30,6 +34,9 @@ export function PremiumAvatar({
   isPremium = false,
   className = '',
 }: PremiumAvatarProps) {
+  // Use the hook to resolve storage paths to download URLs
+  const resolvedUrl = useFileUrl(src);
+  
   const baseSize = sizeClasses[size];
   const iconSize = iconSizes[size];
 
@@ -63,9 +70,9 @@ export function PremiumAvatar({
       
       {/* Avatar Image */}
       <div className={`relative ${baseSize} rounded-full overflow-hidden ${isPremium ? 'border-2 border-transparent' : ''}`}>
-        {src ? (
+        {resolvedUrl ? (
           <img
-            src={src}
+            src={resolvedUrl}
             alt={alt}
             className="w-full h-full object-cover"
           />
