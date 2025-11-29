@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   FiUser, FiBook, FiBriefcase, FiCode, FiAward, FiFolder, 
-  FiFileText, FiChevronDown, FiChevronUp, FiTrash2, FiPlus, FiStar, FiGlobe
+  FiFileText, FiChevronDown, FiChevronUp, FiTrash2, FiPlus, FiStar, FiGlobe, FiEye, FiEyeOff
 } from "react-icons/fi";
 import { ParsedCV, Education, Experience, Project, Certification, Language } from "@/types/parsedCV";
 
@@ -34,6 +34,7 @@ interface SyncCVSummaryDialogProps {
   parsedData: ParsedCV | null;
   onConfirm: (editedData: ParsedCV) => Promise<void>;
   isLoading?: boolean;
+  cvUrl?: string; // URL to the original CV file for preview
 }
 
 interface SectionProps {
@@ -105,10 +106,12 @@ export default function SyncCVSummaryDialog({
   onOpenChange,
   parsedData,
   onConfirm,
-  isLoading = false
+  isLoading = false,
+  cvUrl
 }: SyncCVSummaryDialogProps) {
   const [editedData, setEditedData] = useState<ExtendedParsedCV | null>(parsedData as ExtendedParsedCV);
   const [saving, setSaving] = useState(false);
+  const [showCVPreview, setShowCVPreview] = useState(false);
 
   // Update editedData when parsedData changes
   // Transform Python API format to internal format
@@ -257,27 +260,46 @@ export default function SyncCVSummaryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className={`${showCVPreview ? 'max-w-[95vw]' : 'max-w-4xl'} max-h-[90vh] overflow-hidden bg-white transition-all duration-300`}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <FiFileText className="text-blue-600" />
-            Review Parsed CV Data
-          </DialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
-            Review and edit the parsed data before syncing to your profile
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <FiFileText className="text-blue-600" />
+                Review Parsed CV Data
+              </DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Review and edit the parsed data before syncing to your profile
+              </p>
+            </div>
+            {cvUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCVPreview(!showCVPreview)}
+                className="flex items-center gap-2 text-blue-600 border-blue-600 hover:bg-blue-50"
+              >
+                {showCVPreview ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                {showCVPreview ? 'Hide CV' : 'Check with your CV'}
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className={`flex gap-4 ${showCVPreview ? 'flex-row' : 'flex-col'}`}>
+          {/* Main Content - Form */}
+          <div className={`space-y-4 py-4 overflow-y-auto ${showCVPreview ? 'w-1/2 max-h-[calc(90vh-180px)]' : 'w-full max-h-[calc(90vh-180px)]'}`}>
           {/* About Me Section */}
           <CollapsibleSection 
             title="About Me" 
             icon={<FiUser className="w-4 h-4" />}
           >
             <Textarea
-              value={editedData.summary || editedData.about_me || ''}
+              value={editedData.summary || editedData.aboutMe || editedData.about_me || ''}
               onChange={(e) => {
                 updateField('summary', e.target.value);
+                updateField('aboutMe', e.target.value);
                 updateField('about_me', e.target.value);
               }}
               placeholder="Professional summary..."
@@ -1068,6 +1090,26 @@ export default function SyncCVSummaryDialog({
               </div>
             )}
           </CollapsibleSection>
+          </div>
+
+          {/* CV Preview Panel */}
+          {showCVPreview && cvUrl && (
+            <div className="w-1/2 border-l border-gray-200 pl-4">
+              <div className="sticky top-0 bg-white pb-2 mb-2 border-b border-gray-200">
+                <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <FiFileText className="w-4 h-4" />
+                  Original CV Preview
+                </h3>
+              </div>
+              <div className="h-[calc(90vh-220px)] overflow-hidden rounded-lg border border-gray-200">
+                <iframe
+                  src={`${cvUrl}#toolbar=0&navpanes=0`}
+                  className="w-full h-full"
+                  title="CV Preview"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2 border-t pt-4">

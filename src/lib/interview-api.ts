@@ -60,6 +60,8 @@ export interface InterviewScheduleResponse {
   interviewCompletedAt?: string;
   interviewerNotes?: string;
   outcome?: 'PASS' | 'FAIL' | 'PENDING' | 'NEEDS_SECOND_ROUND';
+  result?: 'PASS' | 'FAIL' | 'PENDING' | 'NEEDS_SECOND_ROUND'; // Alias for outcome
+  feedback?: string;              // Interviewer feedback after completion
   createdByRecruiterId: number;
   createdAt: string;
   updatedAt: string;
@@ -213,7 +215,7 @@ export const getInterviewByJobApplyId = async (
     const status = error.response?.status;
     const errorData = error.response?.data;
     
-    console.log('🔍 [GET INTERVIEW BY JOB APPLY ID] Caught error:', { status, errorData });
+    console.log('🔍 [GET INTERVIEW BY JOB APPLY ID] Caught error:', { status, errorData, error: error.message });
     
     // 404 means no interview exists for this application - this is expected
     if (status === 404) {
@@ -221,14 +223,40 @@ export const getInterviewByJobApplyId = async (
       return { found: false };
     }
     
-    // All other errors should be thrown so caller knows something went wrong
+    // 403 means candidate is trying to access another candidate's interview (ownership validation)
+    if (status === 403) {
+      console.warn('⚠️ [GET INTERVIEW BY JOB APPLY ID] No permission (403) for jobApplyId:', jobApplyId, 
+        '- Candidate can only view their own interviews');
+      return { found: false };
+    }
+    
+    // 401 means not authenticated - treat as no data to prevent page crash
+    if (status === 401) {
+      console.warn('⚠️ [GET INTERVIEW BY JOB APPLY ID] Not authenticated (401) for jobApplyId:', jobApplyId);
+      return { found: false };
+    }
+    
+    // 500 or other server errors - treat as no data available
+    if (status >= 500) {
+      console.warn('⚠️ [GET INTERVIEW BY JOB APPLY ID] Server error (', status, ') for jobApplyId:', jobApplyId);
+      return { found: false };
+    }
+    
+    // Network error or no response - treat as no data available
+    if (!status) {
+      console.warn('⚠️ [GET INTERVIEW BY JOB APPLY ID] Network error or no response for jobApplyId:', jobApplyId);
+      return { found: false };
+    }
+    
+    // All other errors - log but don't crash the page
     console.error('❌ [GET INTERVIEW BY JOB APPLY ID] Unexpected error:', {
       status,
       message: errorData?.message,
       code: errorData?.code,
       data: errorData
     });
-    throw new Error(errorData?.message || `Failed to check interview for job application ${jobApplyId}`);
+    // Return found: false instead of throwing to prevent page crash
+    return { found: false };
   }
 };
 

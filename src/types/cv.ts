@@ -23,6 +23,7 @@ export interface CVData {
     summary: string;
     photoUrl?: string;
     dob?: string;
+    gender?: string;
     nationality?: string;
   };
   experience: Array<{

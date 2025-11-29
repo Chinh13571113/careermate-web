@@ -21,10 +21,40 @@ interface CVStoreState {
   cvs: CV[];
   defaultCvId: string | null;
   activeCvId: string | null;
+  
+  /**
+   * TEMPORARY: Client-side state to track the current editing resume.
+   * 
+   * This is used to maintain context when navigating between cv-management and cm-profile pages.
+   * When user selects a resume to sync/edit in cv-management, this ID is set so that
+   * cm-profile knows which resume to display.
+   * 
+   * NOTE: This is a temporary solution. In the future, this will be replaced by
+   * a backend-driven currentResumeId that persists across sessions.
+   * 
+   * Behavior:
+   * - Resets on full page reload (expected - no localStorage)
+   * - Persists during SPA navigation within the same session
+   * - cm-profile uses this as fallback when no isActive resume is found
+   */
+  currentEditingResumeId: string | null;
+  
   setCVs: (cvs: CV[]) => void;
   upsertCv: (cv: CV) => void;
   setDefaultCv: (cvId: string) => void;
   setActiveCv: (cvId: string | null) => void;
+  
+  /**
+   * TEMPORARY: Set the current editing resume ID.
+   * 
+   * Call this when:
+   * - User selects a resume to sync in cv-management
+   * - User creates a new resume from UPLOAD
+   * - User switches between resume types
+   * 
+   * @param resumeId - The resume ID to set as current, or null to clear
+   */
+  setCurrentEditingResume: (resumeId: string | null) => void;
 }
 
 // Create the Zustand store
@@ -34,6 +64,7 @@ export const useCVStore = create<CVStoreState>()(
       cvs: [],
       defaultCvId: null,
       activeCvId: null,
+      currentEditingResumeId: null,
 
       /**
        * Replace the entire CV list and detect the default CV
@@ -115,6 +146,17 @@ export const useCVStore = create<CVStoreState>()(
       setActiveCv: (cvId: string | null) => {
         console.log('👆 setActiveCv called with:', cvId);
         set({ activeCvId: cvId }, false, 'setActiveCv');
+      },
+
+      /**
+       * TEMPORARY: Set the current editing resume ID.
+       * 
+       * This maintains context when navigating from cv-management to cm-profile.
+       * Will be replaced by backend-driven state in the future.
+       */
+      setCurrentEditingResume: (resumeId: string | null) => {
+        console.log('📝 setCurrentEditingResume called with:', resumeId);
+        set({ currentEditingResumeId: resumeId }, false, 'setCurrentEditingResume');
       },
     }),
     {

@@ -173,7 +173,10 @@ export default function RecruiterCalendarPage() {
       const dateStr = formatDateForAPI(currentDate);
 
       if (viewMode === "day") {
+        // Direct daily API call
+        console.log(`📅 [DAY VIEW] Loading daily calendar for: ${dateStr}`);
         const data = await getDailyCalendar(dateStr);
+        console.log(`📅 [DAY VIEW] Received data:`, data);
         setDailyCalendar(data);
       } else if (viewMode === "week") {
         // Weekly calendar needs week start date (Monday)
@@ -185,7 +188,9 @@ export default function RecruiterCalendarPage() {
         // Monthly calendar needs year and month separately
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth() + 1; // 1-indexed
+        console.log(`📅 [MONTH VIEW] Loading monthly calendar for: ${year}-${month}`);
         const data = await getMonthlyCalendar(year, month);
+        console.log(`📅 [MONTH VIEW] Received data:`, data);
         setMonthlyCalendar(data);
       }
     } catch (error) {
@@ -316,9 +321,9 @@ function MonthView({ currentDate, monthlyCalendar, setCurrentDate, setViewMode }
   // Current month days
   for (let day = 1; day <= daysInMonth; day++) {
     const cellDate = new Date(year, month, day);
-    cellDate.setHours(0, 0, 0, 0);
+    cellDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
     const isPast = cellDate < today;
-    const isToday = cellDate.getTime() === today.getTime();
+    const isToday = cellDate.toDateString() === today.toDateString();
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const interviews = monthlyCalendar?.interviewCountByDate?.[dateStr] || 0;
 
@@ -330,7 +335,13 @@ function MonthView({ currentDate, monthlyCalendar, setCurrentDate, setViewMode }
         } ${isToday ? "ring-2 ring-inset ring-blue-500 z-10 relative" : ""}`}
         onClick={() => {
           if (!isPast) {
-            setCurrentDate(cellDate);
+            // Create date string directly to avoid timezone issues
+            const targetDateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            console.log(`📅 [MONTH CLICK] Day ${day} clicked, target date: ${targetDateStr}`);
+            // Parse as local date
+            const targetDate = new Date(year, month, day, 12, 0, 0);
+            console.log(`📅 [MONTH CLICK] Created date object: ${targetDate.toISOString()}, local: ${targetDate.toLocaleDateString()}`);
+            setCurrentDate(targetDate);
             setViewMode("day");
           }
         }}
@@ -373,19 +384,24 @@ function MonthView({ currentDate, monthlyCalendar, setCurrentDate, setViewMode }
 // Week View Component (like image 2)
 function WeekView({ currentDate, weeklyCalendar }: any) {
   const [workingHoursMap, setWorkingHoursMap] = useState<Map<string, TimeSlotConfig>>(new Map());
+  const [workingHoursLoaded, setWorkingHoursLoaded] = useState(false);
 
   useEffect(() => {
-    const loadWorkingHours = async () => {
-      try {
-        const hours = await getWorkingHours();
-        const map = buildWorkingHoursMap(hours);
-        setWorkingHoursMap(map);
-      } catch (error) {
-        console.error('Failed to load working hours:', error);
-      }
-    };
-    loadWorkingHours();
-  }, []);
+    // Only load once
+    if (!workingHoursLoaded) {
+      const loadWorkingHours = async () => {
+        try {
+          const hours = await getWorkingHours();
+          const map = buildWorkingHoursMap(hours);
+          setWorkingHoursMap(map);
+          setWorkingHoursLoaded(true);
+        } catch (error) {
+          console.error('Failed to load working hours:', error);
+        }
+      };
+      loadWorkingHours();
+    }
+  }, [workingHoursLoaded]);
 
   const getWeekDays = () => {
     // Start from Monday to match backend API
@@ -393,6 +409,7 @@ function WeekView({ currentDate, weeklyCalendar }: any) {
     const day = start.getDay();
     const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Monday
     start.setDate(diff);
+    start.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
     
     return Array.from({ length: 7 }, (_, i) => {
       const date = new Date(start);
@@ -403,38 +420,62 @@ function WeekView({ currentDate, weeklyCalendar }: any) {
 
   // Helper to get interviews for a specific day and hour
   const getInterviewsForSlot = (date: Date, hour: number) => {
-    if (!weeklyCalendar?.allInterviews || weeklyCalendar.allInterviews.length === 0) return [];
+    // Check both allInterviews and dailyCalendars for interview data
+    let interviews: any[] = [];
     
-    const dateStr = date.toISOString().split('T')[0];
+    // Format date string
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     
-    return weeklyCalendar.allInterviews.filter((interview: any) => {
-      // Try multiple possible field names for the date
-      const dateTimeStr = interview.scheduledDate || interview.interviewDateTime || interview.startTime;
-      if (!dateTimeStr) {
-        return false;
-      }
-      const interviewDate = new Date(dateTimeStr);
-      if (isNaN(interviewDate.getTime())) {
-        return false;
-      }
-      const interviewDateStr = interviewDate.toISOString().split('T')[0];
-      const interviewHour = interviewDate.getHours();
-      
-      return interviewDateStr === dateStr && interviewHour === hour;
-    });
+    // Try allInterviews first
+    if (weeklyCalendar?.allInterviews && weeklyCalendar.allInterviews.length > 0) {
+      interviews = weeklyCalendar.allInterviews.filter((interview: any) => {
+        const dateTimeStr = interview.scheduledDate || interview.interviewDateTime || interview.startTime;
+        if (!dateTimeStr) return false;
+        const interviewDate = new Date(dateTimeStr);
+        if (isNaN(interviewDate.getTime())) return false;
+        const interviewDateStr = `${interviewDate.getFullYear()}-${String(interviewDate.getMonth() + 1).padStart(2, '0')}-${String(interviewDate.getDate()).padStart(2, '0')}`;
+        const interviewHour = interviewDate.getHours();
+        return interviewDateStr === dateStr && interviewHour === hour;
+      });
+    }
+    
+    // Also check dailyCalendars if no interviews found in allInterviews
+    if (interviews.length === 0 && weeklyCalendar?.dailyCalendars?.[dateStr]?.interviews) {
+      const dayData = weeklyCalendar.dailyCalendars[dateStr];
+      interviews = dayData.interviews.filter((interview: any) => {
+        const dateTimeStr = interview.scheduledDate || interview.interviewDateTime;
+        if (!dateTimeStr) return false;
+        const interviewDate = new Date(dateTimeStr);
+        if (isNaN(interviewDate.getTime())) return false;
+        return interviewDate.getHours() === hour;
+      });
+    }
+    
+    return interviews;
   };
   
   // Debug: Log when weekly calendar changes
   useEffect(() => {
-    if (weeklyCalendar?.allInterviews?.length > 0) {
-      const firstInterview = weeklyCalendar.allInterviews[0];
-      console.log('🔍 [WEEK VIEW] Interview data:', {
-        count: weeklyCalendar.allInterviews.length,
-        firstInterview,
-        scheduledDate: firstInterview?.scheduledDate,
-        interviewDateTime: firstInterview?.interviewDateTime,
-        allKeys: Object.keys(firstInterview || {}),
+    if (weeklyCalendar) {
+      console.log('🔍 [WEEK VIEW] Calendar data received:', {
+        allInterviewsCount: weeklyCalendar.allInterviews?.length || 0,
+        dailyCalendarsKeys: Object.keys(weeklyCalendar.dailyCalendars || {}),
+        weekStart: weeklyCalendar.weekStartDate,
+        weekEnd: weeklyCalendar.weekEndDate,
       });
+      
+      // Check each day in dailyCalendars for interviews
+      if (weeklyCalendar.dailyCalendars) {
+        Object.entries(weeklyCalendar.dailyCalendars).forEach(([dateKey, dayData]: [string, any]) => {
+          if (dayData.interviews?.length > 0) {
+            console.log(`🔍 [WEEK VIEW] Day ${dateKey} has ${dayData.interviews.length} interviews:`, dayData.interviews);
+          }
+        });
+      }
+      
+      if (weeklyCalendar.allInterviews?.length > 0) {
+        console.log('🔍 [WEEK VIEW] All interviews:', weeklyCalendar.allInterviews);
+      }
     }
   }, [weeklyCalendar]);
 
@@ -515,43 +556,51 @@ function WeekView({ currentDate, weeklyCalendar }: any) {
 // Day View Component (like image 3)
 function DayView({ currentDate, dailyCalendar }: any) {
   const [workingHoursMap, setWorkingHoursMap] = useState<Map<string, TimeSlotConfig>>(new Map());
+  const [workingHoursLoaded, setWorkingHoursLoaded] = useState(false);
 
   useEffect(() => {
-    const loadWorkingHours = async () => {
-      try {
-        const hours = await getWorkingHours();
-        const map = buildWorkingHoursMap(hours);
-        setWorkingHoursMap(map);
-      } catch (error) {
-        console.error('Failed to load working hours:', error);
-      }
-    };
-    loadWorkingHours();
-  }, []);
+    // Only load once
+    if (!workingHoursLoaded) {
+      const loadWorkingHours = async () => {
+        try {
+          const hours = await getWorkingHours();
+          const map = buildWorkingHoursMap(hours);
+          setWorkingHoursMap(map);
+          setWorkingHoursLoaded(true);
+        } catch (error) {
+          console.error('Failed to load working hours:', error);
+        }
+      };
+      loadWorkingHours();
+    }
+  }, [workingHoursLoaded]);
   
   // Debug: Log daily calendar data
   useEffect(() => {
+    console.log('🔍 [DAY VIEW] Daily calendar received:', {
+      date: dailyCalendar?.date,
+      currentDateLocal: currentDate?.toLocaleDateString(),
+      interviewsCount: dailyCalendar?.interviews?.length || 0,
+      totalInterviews: dailyCalendar?.totalInterviews || 0,
+      isWorkingDay: dailyCalendar?.isWorkingDay,
+    });
+    
     if (dailyCalendar?.interviews?.length > 0) {
-      console.log('🔍 [DAY VIEW] Interview data:', {
-        date: dailyCalendar.date,
-        count: dailyCalendar.interviews.length,
-        interviews: dailyCalendar.interviews,
-        firstInterview: dailyCalendar.interviews[0],
-        allKeys: Object.keys(dailyCalendar.interviews[0] || {}),
-      });
+      console.log('🔍 [DAY VIEW] Interview data:', dailyCalendar.interviews);
     }
-  }, [dailyCalendar]);
+  }, [dailyCalendar, currentDate]);
 
   // Helper to get interviews for a specific hour
   const getInterviewsForHour = (hour: number) => {
-    if (!dailyCalendar?.interviews) return [];
+    if (!dailyCalendar?.interviews || dailyCalendar.interviews.length === 0) return [];
     
     return dailyCalendar.interviews.filter((interview: any) => {
       const dateTimeStr = interview.scheduledDate || interview.interviewDateTime;
       if (!dateTimeStr) return false;
       const interviewDate = new Date(dateTimeStr);
       if (isNaN(interviewDate.getTime())) return false;
-      return interviewDate.getHours() === hour;
+      const interviewHour = interviewDate.getHours();
+      return interviewHour === hour;
     });
   };
 
@@ -576,6 +625,7 @@ function DayView({ currentDate, dailyCalendar }: any) {
                           (currentDate.toDateString() === now.toDateString() && hour < now.getHours());
             const status = getTimeSlotStatus(currentDate, hour, workingHoursMap);
             const classes = getTimeSlotClasses(status, isPast).replace('min-h-[60px]', 'min-h-[70px]');
+            const hourInterviews = getInterviewsForHour(hour);
             
             return (
               <React.Fragment key={`hour-${hour}`}>
@@ -601,7 +651,7 @@ function DayView({ currentDate, dailyCalendar }: any) {
                     <div className="text-xs text-gray-400">Day off</div>
                   )}
                   {/* Display scheduled interviews */}
-                  {getInterviewsForHour(hour).map((interview: any, idx: number) => (
+                  {hourInterviews.map((interview: any, idx: number) => (
                     <div
                       key={interview.id || idx}
                       className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-2 rounded mb-1 cursor-pointer hover:bg-blue-200"

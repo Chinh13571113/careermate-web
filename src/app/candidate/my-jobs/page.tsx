@@ -23,7 +23,23 @@ import { ClockIcon, BriefcaseIcon, ChevronDownIcon } from "@/components/ui/icons
 import { StatusBadgeFull } from "@/components/shared/StatusBadge";
 import { getCandidateActions, requiresCandidateAction } from "@/lib/status-utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import toast from "react-hot-toast";
+import {
+  getInterviewByJobApplyId,
+  formatInterviewDateTime,
+  getInterviewDateTimeStr,
+  getInterviewTypeText,
+  type InterviewScheduleResponse
+} from "@/lib/interview-api";
+import { Calendar, Video, MapPin, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 // Lazy load tab components for better code splitting
 const SavedJobsTab = lazy(() => import("./SavedJobsTab"));
@@ -72,6 +88,11 @@ const MyJobsPage = () => {
   const [viewedLoaded, setViewedLoaded] = useState(false);
 
   const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
+
+  // Interview states
+  const [interviewsMap, setInterviewsMap] = useState<Record<number, InterviewScheduleResponse>>({});
+  const [interviewDetailOpen, setInterviewDetailOpen] = useState(false);
+  const [selectedInterviewDetail, setSelectedInterviewDetail] = useState<InterviewScheduleResponse | null>(null);
 
   // Check and fetch candidateId if needed - run once on mount
   useEffect(() => {
@@ -135,12 +156,48 @@ const MyJobsPage = () => {
     loadAllData();
   }, [candidateId, isAuthLoading]);
 
+  // Fetch interview details for applications with interview scheduled
+  useEffect(() => {
+    const fetchInterviews = async () => {
+      const interviewApplications = jobApplications.filter(
+        app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEWED'
+      );
+      
+      const newInterviewsMap: Record<number, InterviewScheduleResponse> = {};
+      
+      await Promise.all(
+        interviewApplications.map(async (app) => {
+          try {
+            const result = await getInterviewByJobApplyId(app.id);
+            if (result.found) {
+              newInterviewsMap[app.id] = result.interview;
+            }
+          } catch (error) {
+            console.error(`Failed to fetch interview for application ${app.id}:`, error);
+          }
+        })
+      );
+      
+      setInterviewsMap(newInterviewsMap);
+    };
+
+    if (jobApplications.length > 0) {
+      fetchInterviews();
+    }
+  }, [jobApplications]);
+
   const handleJobUnsaved = (jobId: number) => {
     setSavedJobs(prev => prev.filter(job => job.jobId !== jobId));
   };
 
   const toggleJobDetails = (jobId: number) => {
     setExpandedJobId(expandedJobId === jobId ? null : jobId);
+  };
+
+  // Open interview detail popup
+  const openInterviewDetail = (interview: InterviewScheduleResponse) => {
+    setSelectedInterviewDetail(interview);
+    setInterviewDetailOpen(true);
   };
 
   // Handle candidate actions
@@ -172,9 +229,9 @@ const MyJobsPage = () => {
           break;
           
         case 'accept_offer':
-          if (confirm('Are you sure you want to accept this job offer?')) {
-            await updateJobApplicationStatus(applicationId, 'WORKING');
-            toast.success('Job offer accepted! Congratulations!');
+          if (confirm('Are you sure you want to accept this job offer? The recruiter will be notified to proceed with onboarding.')) {
+            await updateJobApplicationStatus(applicationId, 'ACCEPTED');
+            toast.success('Job offer accepted! The company will contact you for next steps.');
             const updatedApplications = await fetchMyJobApplications(candidateId!);
             setJobApplications(updatedApplications);
           }
@@ -345,9 +402,12 @@ const MyJobsPage = () => {
                                       {application.jobTitle.charAt(0)}
                                     </div>
                                     <div>
-                                      <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 cursor-pointer">
+                                      <Link 
+                                        href={`/jobs-detail?id=${application.jobPostingId}`}
+                                        className="text-lg font-semibold text-gray-900 hover:text-blue-600 cursor-pointer transition-colors"
+                                      >
                                         {application.jobTitle}
-                                      </h3>
+                                      </Link>
                                       <p className="text-sm text-gray-600">
                                         Applied on {formatApplicationDate(application.createAt)}
                                       </p>
@@ -358,7 +418,17 @@ const MyJobsPage = () => {
                                       status={application.status} 
                                       size="md"
                                     />
-                                    {requiresCandidateAction(application.status) && (
+                                    {/* Action Required badge - for INTERVIEW_SCHEDULED, only show if interview not confirmed */}
+                                    {application.status === 'INTERVIEW_SCHEDULED' && interviewsMap[application.id] && !interviewsMap[application.id].candidateConfirmed && (
+                                      <button
+                                        onClick={() => router.push(`/candidate/interviews?action=confirm&id=${interviewsMap[application.id].id}`)}
+                                        className="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse hover:bg-amber-200 cursor-pointer transition-colors"
+                                      >
+                                        Action Required
+                                      </button>
+                                    )}
+                                    {/* Action Required badge - for APPROVED status (accept/decline offer) */}
+                                    {application.status === 'APPROVED' && (
                                       <span className="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
                                         Action Required
                                       </span>
@@ -404,6 +474,130 @@ const MyJobsPage = () => {
                                     </p>
                                   </div>
                                 </div>
+                                
+                                {/* Interview Schedule Info Box */}
+                                {(application.status === 'INTERVIEW_SCHEDULED' || application.status === 'INTERVIEWED') && interviewsMap[application.id] && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                          <div className="p-2 bg-purple-100 rounded-lg">
+                                            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                          </div>
+                                          <div>
+                                            <h4 className="font-semibold text-purple-900 text-sm">
+                                              {application.status === 'INTERVIEW_SCHEDULED' ? 'Upcoming Interview' : 'Interview Completed'}
+                                            </h4>
+                                            <p className="text-purple-700 text-sm">
+                                              {formatInterviewDateTime(getInterviewDateTimeStr(interviewsMap[application.id]))}
+                                            </p>
+                                            <p className="text-purple-600 text-xs mt-1">
+                                              {getInterviewTypeText(interviewsMap[application.id].interviewType)} • {interviewsMap[application.id].durationMinutes} min
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => openInterviewDetail(interviewsMap[application.id])}
+                                          className="text-purple-700 border-purple-300 hover:bg-purple-100"
+                                        >
+                                          View Details
+                                        </Button>
+                                      </div>
+                                      
+                                      {/* Quick info row */}
+                                      <div className="mt-3 pt-3 border-t border-purple-200 flex flex-wrap gap-4 text-xs text-purple-700">
+                                        {interviewsMap[application.id].location && (
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {interviewsMap[application.id].location}
+                                          </span>
+                                        )}
+                                        {interviewsMap[application.id].meetingLink && (
+                                          <a
+                                            href={interviewsMap[application.id].meetingLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 text-blue-600 hover:underline"
+                                          >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                            Join Meeting
+                                          </a>
+                                        )}
+                                        {interviewsMap[application.id].candidateConfirmed ? (
+                                          <span className="flex items-center gap-1 text-green-600">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Confirmed
+                                          </span>
+                                        ) : application.status === 'INTERVIEW_SCHEDULED' && (
+                                          <span className="flex items-center gap-1 text-amber-600">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Awaiting Confirmation
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Interview Action Buttons - Show when not confirmed */}
+                                      {application.status === 'INTERVIEW_SCHEDULED' && !interviewsMap[application.id].candidateConfirmed && (
+                                        <div className="mt-3 pt-3 border-t border-purple-200 flex flex-wrap gap-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => router.push(`/candidate/interviews?action=confirm&id=${interviewsMap[application.id].id}`)}
+                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                          >
+                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Confirm Interview
+                                          </Button>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Contact for Reschedule - Show interviewer contact info */}
+                                      {application.status === 'INTERVIEW_SCHEDULED' && interviewsMap[application.id] && (interviewsMap[application.id].interviewerEmail || interviewsMap[application.id].interviewerPhone) && (
+                                        <div className="mt-3 pt-3 border-t border-purple-200">
+                                          <p className="text-xs text-purple-700 mb-2 font-medium">Need to reschedule? Contact the interviewer:</p>
+                                          <div className="flex flex-wrap gap-2">
+                                            {interviewsMap[application.id].interviewerEmail && (
+                                              <a
+                                                href={`mailto:${interviewsMap[application.id].interviewerEmail}?subject=Interview Reschedule Request - ${application.jobTitle}`}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                              >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                                {interviewsMap[application.id].interviewerEmail}
+                                              </a>
+                                            )}
+                                            {interviewsMap[application.id].interviewerPhone && (
+                                              <a
+                                                href={`tel:${interviewsMap[application.id].interviewerPhone}`}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                                              >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                                {interviewsMap[application.id].interviewerPhone}
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                                 
                                 {/* Contact Information - Only visible when status >= APPROVED */}
                                 {['APPROVED', 'ACCEPTED', 'WORKING'].includes(application.status) && application.companyEmail ? (
@@ -554,6 +748,114 @@ const MyJobsPage = () => {
           </section>
         </div>
       </main>
+
+      {/* Interview Detail Dialog */}
+      <Dialog open={interviewDetailOpen} onOpenChange={setInterviewDetailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-500" />
+              Chi tiết lịch phỏng vấn
+            </DialogTitle>
+          </DialogHeader>
+          {selectedInterviewDetail && (
+            <div className="space-y-4 mt-4">
+              {/* Date & Time */}
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-blue-100 p-2">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Thời gian</p>
+                  <p className="text-base font-semibold">
+                    {formatInterviewDateTime(selectedInterviewDetail.scheduledTime)}
+                  </p>
+                  {selectedInterviewDetail.duration && (
+                    <p className="text-sm text-gray-500">
+                      Thời lượng: {selectedInterviewDetail.duration} phút
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Interview Type */}
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-purple-100 p-2">
+                  <Video className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Hình thức</p>
+                  <Badge variant={selectedInterviewDetail.interviewType === 0 ? "default" : "secondary"}>
+                    {getInterviewTypeText(selectedInterviewDetail.interviewType)}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Location/Meeting Link */}
+              {selectedInterviewDetail.interviewType === 0 && selectedInterviewDetail.meetingLink && (
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-green-100 p-2">
+                    <ExternalLink className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Link phỏng vấn</p>
+                    <a
+                      href={selectedInterviewDetail.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline text-sm break-all"
+                    >
+                      {selectedInterviewDetail.meetingLink}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {selectedInterviewDetail.interviewType === 1 && selectedInterviewDetail.location && (
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-orange-100 p-2">
+                    <MapPin className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Địa điểm</p>
+                    <p className="text-sm">{selectedInterviewDetail.location}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedInterviewDetail.notes && (
+                <div className="border-t pt-4 mt-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Ghi chú</p>
+                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                    {selectedInterviewDetail.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Status */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Trạng thái xác nhận</span>
+                  <Badge variant={selectedInterviewDetail.isConfirmed ? "default" : "outline"}>
+                    {selectedInterviewDetail.isConfirmed ? "Đã xác nhận" : "Chờ xác nhận"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-2">
+                <a
+                  href="/candidate/interviews"
+                  className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Quản lý lịch phỏng vấn
+                </a>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </>
   );

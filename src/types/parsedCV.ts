@@ -99,6 +99,9 @@ export interface ParsedCV {
   email?: string;
   phone?: string;
   title?: string;
+  aboutMe?: string;      // About me / Professional summary from Python API
+  about_me?: string;     // Alternative naming (snake_case)
+  summary?: string;      // Alternative naming
   
   // Nested structure
   personal_info?: PersonalInfo;

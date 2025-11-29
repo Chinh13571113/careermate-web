@@ -15,13 +15,11 @@ import {
 } from '@/types/status';
 
 /**
- * Normalize legacy ACCEPTED status to WORKING (v3.0)
+ * Normalize status from API (keep ACCEPTED as distinct status)
+ * Only normalizes formatting, no longer converts ACCEPTED to WORKING
  */
 export const normalizeStatus = (status: string): JobApplicationStatus => {
-  if (status === 'ACCEPTED') {
-    return 'WORKING';
-  }
-  return status as JobApplicationStatus;
+  return status.toUpperCase() as JobApplicationStatus;
 };
 
 /**
@@ -165,12 +163,9 @@ export const getActiveStatuses = (): JobApplicationStatus[] => {
 };
 
 /**
- * Get display status with legacy handling
+ * Get display status with user-friendly text
  */
 export const getDisplayStatus = (status: string): string => {
-  if (status === 'ACCEPTED') {
-    return 'Currently Employed (legacy: Accepted)';
-  }
   const normalized = normalizeStatus(status);
   return getStatusText(normalized);
 };
@@ -273,7 +268,7 @@ export const getStatusHelpText = (status: JobApplicationStatus): string => {
     INTERVIEWED: 'The interview has been completed. Waiting for the recruiter\'s decision.',
     APPROVED: 'Your application has been approved. You may receive an offer soon.',
     REJECTED: 'Unfortunately, your application was not successful at this time.',
-    ACCEPTED: 'Legacy status: You accepted the offer. This is now tracked as WORKING.',
+    ACCEPTED: 'You have accepted the offer. The company will contact you for onboarding.',
     WORKING: 'You are currently employed at this company.',
     PROBATION_FAILED: 'The probation period was not successfully completed.',
     TERMINATED: 'Your employment at this company has ended.',
