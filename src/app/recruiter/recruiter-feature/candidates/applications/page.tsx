@@ -113,6 +113,15 @@ export default function CandidateApplicationsPage() {
         case 'create_employment':
           router.push(`/recruiter/employments/create?applicationId=${applicationId}`);
           break;
+        
+        case 'start_employment':
+          // For ACCEPTED status - transition to WORKING
+          if (confirm('Are you sure you want to start this employee? This will mark them as currently working.')) {
+            await updateJobApplicationStatus(applicationId, 'WORKING');
+            toast.success('Employment started successfully!');
+            await fetchApplications();
+          }
+          break;
           
         case 'send_offer':
           toast.error('Send offer feature not yet implemented');
