@@ -159,12 +159,12 @@ export const STATUS_CONFIGS: Record<JobApplicationStatus, StatusConfig> = {
   },
   ACCEPTED: {
     status: 'ACCEPTED',
-    color: 'text-green-800',
-    bgColor: 'bg-green-100',
-    borderColor: 'border-green-300',
+    color: 'text-teal-800',
+    bgColor: 'bg-teal-100',
+    borderColor: 'border-teal-300',
     icon: '✅',
     lucideIcon: 'CheckCircle',
-    text: 'Offer accepted (legacy)',
+    text: 'Offer accepted - Pending onboarding',
     category: 'employment',
     isTerminal: false,
   },
@@ -249,8 +249,12 @@ export const STATUS_TRANSITIONS: StatusTransition[] = [
   { from: 'INTERVIEWED', to: ['APPROVED', 'REJECTED', 'INTERVIEW_SCHEDULED'], actor: 'recruiter' },
   
   // From APPROVED
-  { from: 'APPROVED', to: ['WORKING', 'REJECTED'], actor: 'recruiter' },
-  { from: 'APPROVED', to: ['REJECTED'], actor: 'candidate' },
+  { from: 'APPROVED', to: ['ACCEPTED', 'REJECTED'], actor: 'candidate' },
+  { from: 'APPROVED', to: ['REJECTED'], actor: 'recruiter' },
+  
+  // From ACCEPTED
+  { from: 'ACCEPTED', to: ['WORKING'], actor: 'recruiter' },
+  { from: 'ACCEPTED', to: ['WITHDRAWN'], actor: 'candidate' },
   
   // From WORKING
   { from: 'WORKING', to: ['PROBATION_FAILED', 'TERMINATED'], actor: 'recruiter' },
@@ -338,9 +342,11 @@ export const STATUS_ACTIONS: Record<JobApplicationStatus, StatusActions> = {
   },
   ACCEPTED: {
     candidate: [
-      { label: 'View Employment', action: 'view_employment', variant: 'outline', icon: 'Eye' },
+      { label: 'View Employment Details', action: 'view_employment', variant: 'outline', icon: 'Eye' },
+      { label: 'Withdraw', action: 'withdraw', variant: 'outline', icon: 'Undo2' },
     ],
     recruiter: [
+      { label: 'Start Employment', action: 'start_employment', variant: 'default', icon: 'Briefcase' },
       { label: 'View Details', action: 'view_employment', variant: 'outline', icon: 'Eye' },
     ],
   },
