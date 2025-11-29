@@ -1179,6 +1179,7 @@ import {
   useSkills,
   useAboutMe
 } from "./hooks";
+import { useCVStore } from "@/stores/cvStore";
 
 // Helper function to decode JWT token
 function decodeJwt(token: string): { email?: string; sub?: string;[key: string]: any } | null {
@@ -1198,6 +1199,19 @@ function decodeJwt(token: string): { email?: string; sub?: string;[key: string]:
 }
 
 export default function CMProfile() {
+  /**
+   * TEMPORARY: Get currentEditingResumeId from Zustand store
+   * This allows CV Management to set which resume should be displayed when navigating here after sync
+   * 
+   * Priority for selecting resume:
+   * 1. Resume with isActive === true (backend-driven)
+   * 2. currentEditingResumeId from Zustand (client-side fallback after sync)
+   * 3. First resume in the list (default fallback)
+   * 
+   * TODO: Remove once backend supports isActive flag properly
+   */
+  const { currentEditingResumeId, setCurrentEditingResume } = useCVStore();
+  
   // Resume ID state - will be fetched from API
   const [resumeId, setResumeId] = useState<number | null>(null);
   const [isLoadingResume, setIsLoadingResume] = useState(true);
@@ -1262,10 +1276,10 @@ export default function CMProfile() {
     let completion = 0;
 
     // 1. Awards, Certificates, Projects, Languages: +5% each if at least 1 item exists
-    if (awardsHook.awards.length > 0) completion += 30;
-    if (certificatesHook.certificates.length > 0) completion += 30;
-    if (projectsHook.projects.length > 0) completion += 30;
-    if (languagesHook.languages.length > 0) completion += 30;
+    if (awardsHook.awards.length > 0) completion += 5;
+    if (certificatesHook.certificates.length > 0) completion += 5;
+    if (projectsHook.projects.length > 0) completion += 5;
+    if (languagesHook.languages.length > 0) completion += 5;
 
     // 2. Education, About Me: +10% each if exists
     if (educationHook.educations.length > 0) completion += 10;
@@ -1457,7 +1471,38 @@ export default function CMProfile() {
       const response = await api.get("/api/resume");
 
       if (response.data?.result && response.data.result.length > 0) {
-        const resume = response.data.result[0]; // Get first resume
+        const resumes = response.data.result;
+        
+        /**
+         * TEMPORARY: Resume selection logic with fallback
+         * 
+         * Priority order:
+         * 1. Resume with isActive === true (backend-driven, future implementation)
+         * 2. Resume matching currentEditingResumeId from Zustand (set by CV Management after sync)
+         * 3. First resume in the list (default fallback)
+         * 
+         * TODO: Once backend supports isActive flag, this can be simplified
+         */
+        let selectedResume = resumes[0]; // Default fallback
+        
+        // Priority 1: Check for active resume (backend-driven)
+        const activeResume = resumes.find((r: any) => r.isActive === true);
+        if (activeResume) {
+          selectedResume = activeResume;
+        } 
+        // Priority 2: Check for currentEditingResumeId from Zustand (client-side)
+        else if (currentEditingResumeId) {
+          const editingResume = resumes.find((r: any) => 
+            String(r.resumeId) === currentEditingResumeId
+          );
+          if (editingResume) {
+            selectedResume = editingResume;
+            // Clear the temporary state after using it
+            setCurrentEditingResume(null);
+          }
+        }
+        
+        const resume = selectedResume;
         setResumeId(resume.resumeId);
 
         // Load About Me
@@ -1715,23 +1760,29 @@ export default function CMProfile() {
 
   // Personal Detail handlers
   const handleSavePersonalDetail = async () => {
-    if (!profileAddress) {
-      toast.error("Address is required");
+    // Only fullName and dob are required
+    if (!profileName || !profileName.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+    if (!profileDob) {
+      toast.error("Date of birth is required");
       return;
     }
 
     try {
       // ✅ Update profile via /api/candidates/profiles
       // Payload structure: { dob, title, fullName, phone, address, image, gender, link }
+      // Send empty string for optional fields if not provided
       const profileData = {
-        dob: profileDob || undefined,
-        title: profileTitle || undefined,
-        fullName: profileName || undefined,  // ✅ Use fullName (not username)
-        phone: profilePhone || undefined,
-        address: profileAddress,
-        image: profileImage || undefined,
-        gender: profileGender || undefined,
-        link: profileLink || undefined
+        dob: profileDob,
+        title: profileTitle || "",
+        fullName: profileName,
+        phone: profilePhone || "",
+        address: profileAddress || "",
+        image: profileImage || "",
+        gender: profileGender || "",
+        link: profileLink || ""
       };
 
       await api.put("/api/candidates/profiles", profileData);
@@ -1856,6 +1907,8 @@ export default function CMProfile() {
         website: profileLink || "",
         photoUrl: profileImage || "",
         summary: aboutMeHook.aboutMeText || "",
+        dob: profileDob || "", // Add date of birth
+        gender: profileGender || "", // Add gender
       },
       experience: workExpHook.workExperiences || [],
       education: educationHook.educations || [],

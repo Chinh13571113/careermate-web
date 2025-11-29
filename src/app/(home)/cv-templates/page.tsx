@@ -58,8 +58,19 @@ export default function CVTemplatesPage() {
         // Set CV data
         if (incomingCVData) {
           // Normalize awards to strings for CVPreview compatibility
+          // Also merge profile avatar into photoUrl as fallback
           const normalizedData = {
             ...incomingCVData,
+            personalInfo: {
+              ...incomingCVData.personalInfo,
+              // Use cvData photoUrl first, then fallback to profile avatar
+              photoUrl:
+                incomingCVData.personalInfo?.photoUrl ||
+                profile?.image || // candidate profile avatar
+                profile?.photoUrl || 
+                profile?.avatarUrl || 
+                ""
+            },
             awards: normalizeAwards(incomingCVData.awards),
           };
           setCVData(normalizedData);
