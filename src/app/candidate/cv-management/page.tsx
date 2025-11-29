@@ -22,7 +22,9 @@ import {
   EmptyState,
   PreviewModal,
   NoActiveCV,
-  CVPageSkeleton
+  CVPageSkeleton,
+  SyncCVSummaryDialog,
+  SyncConfirmDialog
 } from "@/components/cv-management";
 
 type TabType = "built" | "uploaded" | "draft";
@@ -57,7 +59,8 @@ const CVManagementPage = () => {
       try {
         const invoiceData = await getMyInvoice();
         setInvoice(invoiceData);
-        setCurrentPackage(invoiceData.packageName || "FREE");
+        // invoiceData can be null if no invoice found (404)
+        setCurrentPackage(invoiceData?.packageName || "FREE");
       } catch (error: any) {
         if (error.message === 'NO_INVOICE_FOUND') {
           setCurrentPackage("FREE");
@@ -147,112 +150,6 @@ const CVManagementPage = () => {
   const currentCVs = activeTab === "uploaded" ? uploadedCVs : activeTab === "built" ? builtCVs : draftCVs;
   const hasAnyResumes = uploadedCVs.length > 0 || builtCVs.length > 0 || draftCVs.length > 0;
 
-  // ========== DEBUG: Detect overlapping elements over Sync button ==========
-  useEffect(() => {
-    const debugOverlap = () => {
-      console.log("🔍 ========== OVERLAP DETECTION START ==========");
-      
-      // Find all Sync buttons
-      const syncButtons = document.querySelectorAll('button[id^="sync-btn-"]');
-      console.log(`🔍 Found ${syncButtons.length} Sync buttons`);
-      
-      if (syncButtons.length === 0) {
-        console.warn("⚠️ No Sync buttons found in DOM");
-        return;
-      }
-
-      syncButtons.forEach((btn, index) => {
-        const btnRect = btn.getBoundingClientRect();
-        console.log(`\n📍 Sync Button ${index + 1}:`, {
-          id: btn.id,
-          bounds: btnRect,
-          visible: btnRect.width > 0 && btnRect.height > 0
-        });
-
-        // Check what's at the center of the button
-        const centerX = btnRect.left + btnRect.width / 2;
-        const centerY = btnRect.top + btnRect.height / 2;
-        const topElement = document.elementFromPoint(centerX, centerY);
-        
-        console.log(`🎯 Element at button center:`, topElement);
-        console.log(`🎯 Is it the button?`, topElement === btn || btn.contains(topElement as Node));
-
-        if (topElement && topElement !== btn && !btn.contains(topElement as Node)) {
-          console.error(`❌ OVERLAP DETECTED on Button ${index + 1}!`);
-          console.error(`❌ Blocking element:`, topElement);
-          console.error(`❌ Blocking element tag:`, topElement.tagName);
-          console.error(`❌ Blocking element class:`, (topElement as HTMLElement).className);
-          
-          const blockingStyle = window.getComputedStyle(topElement);
-          console.error(`❌ Blocking element styles:`, {
-            position: blockingStyle.position,
-            zIndex: blockingStyle.zIndex,
-            pointerEvents: blockingStyle.pointerEvents,
-            width: blockingStyle.width,
-            height: blockingStyle.height,
-            display: blockingStyle.display
-          });
-        }
-      });
-
-      // Scan for positioned elements that might overlap
-      console.log("\n🔍 Scanning for positioned elements...");
-      const positionedElements = document.querySelectorAll('*');
-      const overlappingElements: Element[] = [];
-
-      positionedElements.forEach((el) => {
-        const style = window.getComputedStyle(el);
-        const position = style.position;
-        
-        if (['absolute', 'fixed', 'sticky'].includes(position)) {
-          const rect = el.getBoundingClientRect();
-          
-          // Skip invisible elements
-          if (rect.width === 0 || rect.height === 0) return;
-          
-          syncButtons.forEach((btn) => {
-            const btnRect = btn.getBoundingClientRect();
-            
-            // Check overlap
-            const overlaps = !(
-              rect.right < btnRect.left ||
-              rect.left > btnRect.right ||
-              rect.bottom < btnRect.top ||
-              rect.top > btnRect.bottom
-            );
-            
-            if (overlaps && el !== btn && !btn.contains(el as Node) && !el.contains(btn)) {
-              overlappingElements.push(el);
-              console.warn("⚠️ Positioned element overlaps Sync button:", {
-                element: el,
-                tagName: el.tagName,
-                className: (el as HTMLElement).className,
-                position: position,
-                zIndex: style.zIndex,
-                pointerEvents: style.pointerEvents,
-                bounds: rect,
-                buttonBounds: btnRect
-              });
-            }
-          });
-        }
-      });
-
-      if (overlappingElements.length === 0) {
-        console.log("✅ No overlapping positioned elements detected");
-      } else {
-        console.error(`❌ Found ${overlappingElements.length} overlapping elements!`);
-      }
-
-      console.log("🔍 ========== OVERLAP DETECTION END ==========\n");
-    };
-
-    // Run detection after a delay to ensure DOM is ready
-    const timeoutId = setTimeout(debugOverlap, 1000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [currentCVs, activeTab]); // Re-run when CVs or tab changes
-
   // Handler for Create CV button
   const handleCreateCV = async () => {
     // Check package limits
@@ -290,9 +187,9 @@ const CVManagementPage = () => {
       return;
     }
 
-    // If can create, navigate to CV builder
-    const cvBuilderUrl = `/cv-templates?data=%7B%22template%22%3A%22modern%22%2C%22cvData%22%3A%7B%22personalInfo%22%3A%7B%22fullName%22%3A%22Nhat%22%2C%22position%22%3A%22Frontend%20Developer%22%2C%22email%22%3A%22htqnhat1%40gmail.com%22%2C%22phone%22%3A%2209290987432%22%2C%22location%22%3A%22HCM%22%2C%22website%22%3A%22no%22%2C%22photoUrl%22%3A%22https%3A%2F%2Ffirebasestorage.googleapis.com%2Fv0%2Fb%2Fcm-storage-86d7d.firebasestorage.app%2Fo%2Fcareermate-files%252Fcandidates%252Fhtqnhat1%2540gmail.com%252Fprofile%252F1763976168166_FPT_logo_new.svg%3Falt%3Dmedia%26token%3D7ea6ed01-285e-4f57-aa47-11b1e2aa2b58%22%2C%22summary%22%3A%22abc%22%7D%2C%22experience%22%3A%5B%5D%2C%22education%22%3A%5B%7B%22id%22%3A%221%22%2C%22school%22%3A%22FPT%22%2C%22degree%22%3A%22Bachelor%20of%20Science%22%2C%22major%22%3A%22IT%22%2C%22startMonth%22%3A%2202%22%2C%22startYear%22%3A%222021%22%2C%22endMonth%22%3A%2207%22%2C%22endYear%22%3A%222025%22%7D%5D%2C%22skills%22%3A%5B%7B%22id%22%3A%22core-group-1%22%2C%22name%22%3A%22Core%20Skills%22%2C%22items%22%3A%5B%7B%22id%22%3A%221%22%2C%22skill%22%3A%22Java%22%2C%22experience%22%3A%222%22%7D%2C%7B%22id%22%3A%222%22%2C%22skill%22%3A%22HTML%22%2C%22experience%22%3A%226%22%7D%2C%7B%22id%22%3A%224%22%2C%22skill%22%3A%22Ruby%22%2C%22experience%22%3A%229%22%7D%2C%7B%22id%22%3A%225%22%2C%22skill%22%3A%22Css%22%2C%22experience%22%3A%2210%22%7D%5D%7D%5D%2C%22languages%22%3A%5B%7B%22id%22%3A%221%22%2C%22language%22%3A%22English%22%2C%22level%22%3A%22Beginner%22%7D%2C%7B%22id%22%3A%222%22%2C%22language%22%3A%22Japanese%22%2C%22level%22%3A%22Elementary%22%7D%5D%2C%22certifications%22%3A%5B%7B%22id%22%3A%221%22%2C%22name%22%3A%22No%22%2C%22org%22%3A%22No%22%2C%22month%22%3A%2202%22%2C%22year%22%3A%222020%22%2C%22url%22%3A%22No%22%2C%22desc%22%3A%22%20No%20have%20anything%22%7D%5D%2C%22projects%22%3A%5B%7B%22id%22%3A%221%22%2C%22name%22%3A%22NO%22%2C%22startMonth%22%3A%2202%22%2C%22startYear%22%3A%222023%22%2C%22endMonth%22%3A%2202%22%2C%22endYear%22%3A%222025%22%2C%22description%22%3A%22No%20have%22%2C%22url%22%3A%22No%20have%22%2C%22working%22%3Afalse%7D%5D%2C%22awards%22%3A%5B%7B%22id%22%3A%221%22%2C%22name%22%3A%22No%20have%22%2C%22organization%22%3A%22no%20have%22%2C%22month%22%3A%2202%22%2C%22year%22%3A%222023%22%2C%22description%22%3A%22no%20have%20anything%22%7D%5D%7D%2C%22profile%22%3A%7B%22fullName%22%3A%22Nhat%22%2C%22title%22%3A%22Frontend%20Developer%22%2C%22phone%22%3A%2209290987432%22%2C%22dob%22%3A%222002-11-23%22%2C%22gender%22%3A%22Male%22%2C%22address%22%3A%22HCM%22%2C%22link%22%3A%22no%22%2C%22image%22%3A%22https%3A%2F%2Ffirebasestorage.googleapis.com%2Fv0%2Fb%2Fcm-storage-86d7d.firebasestorage.app%2Fo%2Fcareermate-files%252Fcandidates%252Fhtqnhat1%2540gmail.com%252Fprofile%252F1763976168166_FPT_logo_new.svg%3Falt%3Dmedia%26token%3D7ea6ed01-285e-4f57-aa47-11b1e2aa2b58%22%7D%7D`;
-    router.push(cvBuilderUrl);
+    // If can create, navigate to CV builder with clean slate
+    // The cv-templates page will use SAMPLE_CV_DATA as default when no data is provided
+    router.push('/cv-templates');
   };
 
   // Loading state - use skeleton
@@ -528,6 +425,23 @@ const CVManagementPage = () => {
           </div>
         </div>
       )}
+
+      {/* Sync CV Summary Dialog - For reviewing parsed CV data before saving */}
+      <SyncCVSummaryDialog
+        open={actionsHook.showSyncSummaryDialog}
+        onOpenChange={actionsHook.handleCloseSyncSummaryDialog}
+        parsedData={actionsHook.parsedCVData}
+        onConfirm={actionsHook.handleConfirmSync}
+        isLoading={actionsHook.isSyncing}
+      />
+
+      {/* Sync Confirm Dialog - For converting WEB CV to DRAFT */}
+      <SyncConfirmDialog
+        open={actionsHook.showSyncConfirmDialog}
+        onOpenChange={actionsHook.handleCloseSyncConfirmDialog}
+        onConfirm={actionsHook.handleConfirmDraftConversion}
+        isLoading={actionsHook.isSyncing}
+      />
     </>
   );
 };

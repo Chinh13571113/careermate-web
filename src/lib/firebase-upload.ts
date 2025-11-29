@@ -13,12 +13,12 @@ function getCvStoragePath(candidateId: string, filename: string): string {
 
 /**
  * Upload avatar to Firebase Storage (public)
- * Path: /careermate-files/candidates/{userId}/profile/{fileName}
+ * Path: /careermate-files/candidates/{userId}/avatar/{fileName}
  */
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   try {
     const fileName = `${Date.now()}_${file.name}`;
-    const fileRef = ref(storage, `careermate-files/candidates/${userId}/profile/${fileName}`);
+    const fileRef = ref(storage, `careermate-files/candidates/${userId}/avatar/${fileName}`);
     
     await uploadBytes(fileRef, file);
     const downloadURL = await getDownloadURL(fileRef);

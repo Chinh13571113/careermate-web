@@ -250,8 +250,20 @@ export interface WorkExperienceResponse {
 }
 
 export const addWorkExperience = async (data: WorkExperienceData): Promise<any> => {
-  const response = await api.post("/api/work-exp", data);
-  return response.data.result || response.data;
+  console.log('📝 ===== ADD WORK EXPERIENCE API =====');
+  console.log('Endpoint: POST /api/work-exp');
+  console.log('Request Data:', JSON.stringify(data, null, 2));
+  
+  try {
+    const response = await api.post("/api/work-exp", data);
+    console.log('✅ Response:', response.data);
+    return response.data.result || response.data;
+  } catch (error: any) {
+    console.error('❌ Error adding work experience:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    throw error;
+  }
 };
 
 export const updateWorkExperience = async (resumeId: number, workExpId: number, data: Partial<WorkExperienceData>): Promise<any> => {
@@ -311,4 +323,137 @@ export const addSkill = async (data: SkillData): Promise<any> => {
 
 export const deleteSkill = async (resumeId: number, skillId: number): Promise<void> => {
   await api.delete(`/api/skill/${resumeId}/${skillId}`);
+};
+
+// ==================== RESUME STATUS API ====================
+
+export interface ResumeStatusRequest {
+  isActive: boolean;
+}
+
+export interface ResumeStatusResponse {
+  resumeId: number;
+  aboutMe: string;
+  resumeUrl: string;
+  type: "WEB" | "UPLOADED" | "DRAFT";
+  isActive: boolean;
+  createdAt: string;
+  candidateId: number;
+  certificates: any[];
+  educations: any[];
+  highlightProjects: any[];
+  workExperiences: any[];
+  skills: any[];
+  foreignLanguages: any[];
+  awards: any[];
+}
+
+/**
+ * Set resume active/default status
+ * PATCH /api/resume/{resumeId}/status
+ * 
+ * @param resumeId - The resume ID to update
+ * @param isActive - Whether to set this resume as active/default
+ * @returns The updated resume data
+ */
+export const setResumeStatus = async (
+  resumeId: number,
+  isActive: boolean
+): Promise<ResumeStatusResponse> => {
+  console.log('📝 ===== SET RESUME STATUS API =====');
+  console.log('Endpoint: PATCH /api/resume/' + resumeId + '/status');
+  console.log('Request Data:', { isActive });
+  console.log('Resume ID type:', typeof resumeId, 'value:', resumeId);
+
+  try {
+    // Use PATCH method as backend uses @PatchMapping
+    const response = await api.patch(`/api/resume/${resumeId}/status`, {
+      isActive,
+    });
+
+    console.log('✅ Set Resume Status Response:', response.data);
+
+    // Handle both direct response and wrapped response
+    return response.data.result || response.data;
+  } catch (error: any) {
+    console.error('❌ Set Resume Status Error:', error);
+    console.error('Error Response:', error.response?.data);
+    console.error('Error Status:', error.response?.status);
+    console.error('Error Message from server:', error.response?.data?.message);
+    console.error('Full error response body:', JSON.stringify(error.response?.data, null, 2));
+    console.error('Request URL:', error.config?.url);
+    console.error('Request Method:', error.config?.method);
+    console.error('Request Data:', error.config?.data);
+    throw error;
+  }
+};
+
+// ==================== RESUME TYPE API ====================
+
+export type ResumeType = "WEB" | "UPLOADED" | "DRAFT";
+
+/**
+ * Update resume type (convert to DRAFT, etc.)
+ * PATCH /api/resume/{resumeId}/type/{type}
+ * 
+ * @param resumeId - The resume ID to update
+ * @param type - The new type (WEB, UPLOADED, DRAFT)
+ * @returns The updated resume data
+ */
+export const updateResumeType = async (
+  resumeId: number,
+  type: ResumeType
+): Promise<ResumeStatusResponse> => {
+  console.log('📝 ===== UPDATE RESUME TYPE API =====');
+  console.log('Endpoint: PATCH /api/resume/' + resumeId + '/type/' + type);
+
+  try {
+    const response = await api.patch(`/api/resume/${resumeId}/type/${type}`);
+
+    console.log('✅ Update Resume Type Response:', response.data);
+
+    // Handle both direct response and wrapped response
+    return response.data.result || response.data;
+  } catch (error: any) {
+    console.error('❌ Update Resume Type Error:', error);
+    console.error('Error Response:', error.response?.data);
+    console.error('Error Status:', error.response?.status);
+    throw error;
+  }
+};
+
+// ==================== CREATE RESUME API ====================
+
+export interface CreateResumeRequest {
+  aboutMe?: string;
+  resumeUrl?: string;
+  type: ResumeType;
+  isActive?: boolean;
+}
+
+/**
+ * Create a new resume
+ * POST /api/resume
+ * 
+ * @param data - Resume creation data
+ * @returns The created resume data
+ */
+export const createResume = async (data: CreateResumeRequest): Promise<ResumeStatusResponse> => {
+  console.log('📝 ===== CREATE RESUME API =====');
+  console.log('Endpoint: POST /api/resume');
+  console.log('Request Data:', data);
+
+  try {
+    const response = await api.post('/api/resume', data);
+
+    console.log('✅ Create Resume Response:', response.data);
+
+    // Handle both direct response and wrapped response
+    return response.data.result || response.data;
+  } catch (error: any) {
+    console.error('❌ Create Resume Error:', error);
+    console.error('Error Response:', error.response?.data);
+    console.error('Error Status:', error.response?.status);
+    throw error;
+  }
 };
