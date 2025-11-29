@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
@@ -18,6 +18,131 @@ import {
 import { CVATSAnalyzeResponse } from "@/types/cv-ats";
 import CVSidebar from "@/components/layout/CVSidebar";
 import toast from "react-hot-toast";
+
+// Radar Chart Component
+function RadarChart({ 
+  data 
+}: { 
+  data: { label: string; value: number; color: string }[] 
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 60;
+    const angleStep = (Math.PI * 2) / data.length;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background circles
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 5; i++) {
+      ctx.beginPath();
+      const r = (radius * i) / 5;
+      for (let j = 0; j <= data.length; j++) {
+        const angle = j * angleStep - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * r;
+        const y = centerY + Math.sin(angle) * r;
+        if (j === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // Draw axis lines
+    ctx.strokeStyle = '#d1d5db';
+    data.forEach((_, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(
+        centerX + Math.cos(angle) * radius,
+        centerY + Math.sin(angle) * radius
+      );
+      ctx.stroke();
+    });
+
+    // Draw data polygon
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    data.forEach((item, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const r = (radius * item.value) / 100;
+      const x = centerX + Math.cos(angle) * r;
+      const y = centerY + Math.sin(angle) * r;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw data points
+    data.forEach((item, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const r = (radius * item.value) / 100;
+      const x = centerX + Math.cos(angle) * r;
+      const y = centerY + Math.sin(angle) * r;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    // Draw labels
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    data.forEach((item, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const labelRadius = radius + 35;
+      const x = centerX + Math.cos(angle) * labelRadius;
+      const y = centerY + Math.sin(angle) * labelRadius;
+      
+      // Draw colored dot
+      ctx.beginPath();
+      ctx.arc(x + 25, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      
+      // Draw label text
+      ctx.fillStyle = '#374151';
+      ctx.fillText(item.label, x, y);
+    });
+
+  }, [data]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      width={320} 
+      height={320}
+      className="mx-auto"
+    />
+  );
+}
 
 export default function AICVResult() {
   const router = useRouter();
@@ -97,44 +222,58 @@ export default function AICVResult() {
               </div>
             </div>
 
-            {/* Summary Section */}
+            {/* Summary Section - Overview with Radar Chart */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Target className="w-6 h-6 text-green-600" />
-                <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Tổng quan</h2>
+              <p className="mb-1">
+                <span className="text-gray-700">Mức độ phù hợp: </span>
+                <span className={`text-xl font-bold ${getScoreColor(result.overall_score)}`}>
+                  {result.overall_score}
+                </span>
+              </p>
+              <p className="text-gray-600 mb-6">{result.overall_comment}</p>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Strengths */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <h3 className="font-bold text-gray-900">Strengths</h3>
-                  </div>
-                  <ul className="space-y-2">
-                    {result.summary.strengths.map((strength, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-gray-700">
-                        <span className="text-green-600 mt-1">•</span>
-                        {strength}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Radar Chart */}
+                <div className="flex items-center justify-center">
+                  <RadarChart 
+                    data={[
+                      { label: "Nội dung", value: result.content.score, color: "#3b82f6" },
+                      { label: "Định dạng", value: result.format.score, color: "#f97316" },
+                      { label: "Phong cách", value: result.style.score, color: "#8b5cf6" },
+                      { label: "Các mục", value: result.sections.score, color: "#ef4444" },
+                      { label: "Kỹ năng", value: result.skills.score, color: "#22c55e" },
+                    ]}
+                  />
                 </div>
 
-                {/* Improvements */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <TrendingUp className="w-5 h-5 text-orange-600" />
-                    <h3 className="font-bold text-gray-900">Areas for Improvement</h3>
+                {/* Strengths & Improvements */}
+                <div className="space-y-6">
+                  {/* Điểm nổi bật */}
+                  <div className="bg-green-50 rounded-xl p-5 border border-green-200">
+                    <h3 className="font-bold text-gray-900 mb-3">Điểm nổi bật</h3>
+                    <ul className="space-y-2">
+                      {result.summary.strengths.map((strength, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-gray-700">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-2">
-                    {result.summary.improvements.map((improvement, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-gray-700">
-                        <span className="text-orange-600 mt-1">•</span>
-                        {improvement}
-                      </li>
-                    ))}
-                  </ul>
+
+                  {/* Cải thiện */}
+                  <div className="bg-amber-50 rounded-xl p-5 border border-amber-200">
+                    <h3 className="font-bold text-gray-900 mb-3">Cải thiện</h3>
+                    <ul className="space-y-2">
+                      {result.summary.improvements.map((improvement, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-gray-700">
+                          <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">{improvement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>

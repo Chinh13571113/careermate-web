@@ -642,10 +642,12 @@ export default function RoadmapCoursesPage() {
   }, [roadmapName]);
 
   const fetchAllTopicDetails = async (topics: Topic[]) => {
+    console.log('🔵 fetchAllTopicDetails - topics:', topics);
     const detailsMap = new Map();
     const subtopicDetailsMap = new Map();
     
     for (const topic of topics) {
+      console.log(`🔵 Processing topic ${topic.id}: ${topic.name}, subtopics:`, topic.subtopics);
       try {
         const detail = await getTopicDetail(topic.id);
         detailsMap.set(topic.id, {
@@ -654,21 +656,30 @@ export default function RoadmapCoursesPage() {
         });
         
         // Fetch subtopic details
-        for (const subtopic of topic.subtopics) {
-          try {
-            const subDetail = await getSubtopicDetail(subtopic.id);
-            subtopicDetailsMap.set(subtopic.id, {
-              description: subDetail.description,
-              resources: subDetail.resourceResponses.map(r => r.url).filter(url => url),
-            });
-          } catch (error) {
-            console.error(`Error fetching detail for subtopic ${subtopic.id}:`, error);
+        if (topic.subtopics && topic.subtopics.length > 0) {
+          for (const subtopic of topic.subtopics) {
+            console.log(`🔵 Fetching subtopic ${subtopic.id}: ${subtopic.name}`);
+            try {
+              const subDetail = await getSubtopicDetail(subtopic.id);
+              console.log(`✅ Subtopic ${subtopic.id} detail:`, subDetail);
+              subtopicDetailsMap.set(subtopic.id, {
+                description: subDetail.description,
+                resources: subDetail.resourceResponses.map(r => r.url).filter(url => url),
+              });
+            } catch (error) {
+              console.error(`Error fetching detail for subtopic ${subtopic.id}:`, error);
+            }
           }
+        } else {
+          console.log(`⚠️ Topic ${topic.id} has no subtopics`);
         }
       } catch (error) {
         console.error(`Error fetching detail for topic ${topic.id}:`, error);
       }
     }
+    
+    console.log('🔵 Final detailsMap size:', detailsMap.size);
+    console.log('🔵 Final subtopicDetailsMap size:', subtopicDetailsMap.size);
     
     setTopicDetails(detailsMap);
     setSubtopicDetails(subtopicDetailsMap);
@@ -701,14 +712,24 @@ export default function RoadmapCoursesPage() {
   }, []);
 
   const handleCourseClick = useCallback((topic: Topic, duration?: string) => {
+    console.log('🔵 handleCourseClick - Topic:', topic);
+    console.log('🔵 handleCourseClick - Topic subtopics:', topic.subtopics);
+    console.log('🔵 handleCourseClick - subtopicDetails map size:', subtopicDetails.size);
+    
     const details = topicDetails.get(topic.id);
     const tags = topic.tags ? [topic.tags] : [];
     
     // Add resources to subtopics
-    const subtopicsWithResources = (topic.subtopics || []).map(subtopic => ({
-      ...subtopic,
-      resources: subtopicDetails.get(subtopic.id)?.resources || [],
-    }));
+    const subtopicsWithResources = (topic.subtopics || []).map(subtopic => {
+      const subDetails = subtopicDetails.get(subtopic.id);
+      console.log(`🔵 Subtopic ${subtopic.id} (${subtopic.name}):`, subDetails);
+      return {
+        ...subtopic,
+        resources: subDetails?.resources || [],
+      };
+    });
+    
+    console.log('🔵 subtopicsWithResources:', subtopicsWithResources);
     
     setSelectedCourse({
       name: topic.name,
@@ -872,7 +893,7 @@ export default function RoadmapCoursesPage() {
           onCourseClick={(courseId) => {
             const topic = roadmapData.topics.find(t => t.id === courseId);
             if (topic) {
-              const course = courses.find(c => c.id === courseId);
+              handleCourseClick(topic);
             }
           }}
           coursesResources={topicDetails}
