@@ -17,11 +17,12 @@ import jsPDF from "jspdf";
 import { uploadCVPDF } from "@/lib/firebase-upload";
 import { useAuthStore } from "@/store/use-auth-store";
 import toast from "react-hot-toast";
-import { useFileUrl } from "@/lib/firebase-file";
+import { useFileUrl, resolveFileUrl } from "@/lib/firebase-file";
 import "./zoom-slider.css";
 
 /**
  * CVPhoto component - handles Firebase Storage paths/URLs for CV photos
+ * Includes crossOrigin="anonymous" for CORS support when exporting to PDF
  */
 function CVPhoto({ 
   photoUrl, 
@@ -41,6 +42,7 @@ function CVPhoto({
       src={resolvedUrl}
       alt={alt}
       className={className}
+      crossOrigin="anonymous"
     />
   );
 }
@@ -484,8 +486,85 @@ export default function CVPreview({
 
       document.body.appendChild(tempContainer);
 
-      // Wait longer for fonts and styles to load
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // ========================================
+      // FIX: Wait for all images to load before capturing
+      // This ensures avatar/photos appear in the PDF
+      // ========================================
+      console.log("Waiting for images to load...");
+      
+      const imgs = Array.from(tempContainer.getElementsByTagName("img"));
+      
+      // Process images: add crossOrigin and convert Firebase URLs to blob if needed
+      await Promise.all(
+        imgs.map(async (img) => {
+          // Skip if already loaded
+          if (img.complete && img.naturalWidth > 0) {
+            console.log("Image already loaded:", img.src.substring(0, 50) + "...");
+            return;
+          }
+          
+          // Set crossOrigin for CORS support
+          img.crossOrigin = "anonymous";
+          
+          const originalSrc = img.src;
+          
+          // Try to load normally first
+          try {
+            await new Promise<void>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                console.warn("Image load timeout:", originalSrc.substring(0, 50) + "...");
+                resolve(); // Don't reject, just continue
+              }, 5000);
+              
+              img.onload = () => {
+                clearTimeout(timeout);
+                console.log("Image loaded successfully:", originalSrc.substring(0, 50) + "...");
+                resolve();
+              };
+              
+              img.onerror = async () => {
+                clearTimeout(timeout);
+                console.warn("Image load error, trying blob fallback:", originalSrc.substring(0, 50) + "...");
+                
+                // Fallback: Fetch image as blob to bypass CORS
+                try {
+                  const response = await fetch(originalSrc, { mode: 'cors' });
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    img.src = blobUrl;
+                    
+                    // Wait for blob URL to load
+                    await new Promise<void>((res) => {
+                      img.onload = () => res();
+                      img.onerror = () => res(); // Still resolve even on error
+                    });
+                    
+                    console.log("Image loaded via blob fallback");
+                  }
+                  resolve();
+                } catch (fetchError) {
+                  console.error("Blob fallback failed:", fetchError);
+                  resolve(); // Don't block PDF generation
+                }
+              };
+              
+              // Force reload if needed
+              if (!img.complete) {
+                img.src = originalSrc;
+              }
+            });
+          } catch (error) {
+            console.error("Error loading image:", error);
+            // Continue anyway
+          }
+        })
+      );
+      
+      console.log("All images processed, proceeding with capture...");
+
+      // Additional wait for rendering
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       console.log("Capturing canvas...");
 
@@ -677,6 +756,21 @@ export default function CVPreview({
 
       toast.loading("Đang tạo PDF...");
 
+      // ========================================
+      // FIX: Resolve photoUrl to valid Firebase download URL
+      // This ensures avatar appears in the print page
+      // ========================================
+      let resolvedPhotoUrl = "";
+      if (cvData.personalInfo.photoUrl) {
+        try {
+          resolvedPhotoUrl = await resolveFileUrl(cvData.personalInfo.photoUrl);
+          console.log("Resolved photo URL:", resolvedPhotoUrl.substring(0, 80) + "...");
+        } catch (error) {
+          console.warn("Could not resolve photo URL:", error);
+          resolvedPhotoUrl = cvData.personalInfo.photoUrl; // Fallback to original
+        }
+      }
+
       // Transform cvData to match print template format
       const printData = {
         fullName: cvData.personalInfo.fullName || "",
@@ -685,7 +779,9 @@ export default function CVPreview({
         phone: cvData.personalInfo.phone || "",
         address: cvData.personalInfo.location || "",
         website: cvData.personalInfo.website || "",
-        photoUrl: cvData.personalInfo.photoUrl || "",
+        photoUrl: resolvedPhotoUrl, // Use resolved URL
+        dob: cvData.personalInfo.dob || "",
+        gender: cvData.personalInfo.gender || "",
         summary: cvData.personalInfo.summary || "",
         experience: cvData.experience?.map(exp => ({
           position: exp.position || "",
@@ -699,10 +795,17 @@ export default function CVPreview({
           period: edu.period || "",
           description: edu.description || ""
         })) || [],
+        // Normalize skills: extract skill name from items
         skills: cvData.skills?.map(skill => ({
           category: skill.category || "",
-          items: skill.items || []
+          items: (skill.items || []).map((item: any) => 
+            typeof item === 'string' ? item : (item.skill || item.name || String(item))
+          )
         })) || [],
+        // Add softSkills - normalize to string array
+        softSkills: (cvData.softSkills || []).map((skill: any) =>
+          typeof skill === 'string' ? skill : (skill.skill || skill.name || String(skill))
+        ),
         languages: cvData.languages?.map(lang => ({
           name: lang.language || "",
           level: lang.level || ""
@@ -715,8 +818,11 @@ export default function CVPreview({
         projects: cvData.projects?.map(proj => ({
           name: proj.name || "",
           description: proj.description || "",
-          period: proj.period || ""
-        })) || []
+          period: proj.period || "",
+          url: proj.url || ""
+        })) || [],
+        // Awards in CVData is string[], just pass through
+        awards: cvData.awards || []
       };
 
       // Call NEW API to generate PDF using base64-encoded data
@@ -2821,7 +2927,7 @@ export default function CVPreview({
               Update your profile
             </Link>
 
-            <button
+            {/* <button
               onClick={handleDownloadCV}
               disabled={isDownloading}
               className="px-4 py-2 border border-gray-300 bg-gradient-to-r from-[#3a4660] to-gray-300 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2868,7 +2974,7 @@ export default function CVPreview({
                   Download PDF
                 </>
               )}
-            </button>
+            </button> */}
 
             {/* Save to Firebase Button */}
             <button
@@ -2905,12 +3011,12 @@ export default function CVPreview({
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3 3m0 0l-3-3m3 3V4"
                     />
                   </svg>
-                  Lưu CV vào Firebase
+                  Save and download CV
                 </>
               )}
             </button>
 
-            <button
+            {/* <button
               onClick={() => handleDirectPDF(cvData)}
               className="px-3 py-2 border border-blue-400 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-2"
               title="Direct PDF generation (simple text-based)"
@@ -2929,8 +3035,8 @@ export default function CVPreview({
                 />
               </svg>
               Simple PDF
-            </button>
-
+            </button> */}
+{/* 
             <button
               onClick={handlePrintPDF}
               className="px-3 py-2 border border-gray-400 bg-white text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -2950,7 +3056,7 @@ export default function CVPreview({
                 />
               </svg>
               Print
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

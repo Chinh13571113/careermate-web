@@ -229,7 +229,7 @@ export default function PersonalDetailDialog({
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Date of Birth
+                                Date of Birth <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 type="date"
@@ -256,7 +256,7 @@ export default function PersonalDetailDialog({
 
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Current Province/City <span className="text-red-500">*</span>
+                                Current Province/City
                             </label>
                             <Input
                                 value={profileAddress}

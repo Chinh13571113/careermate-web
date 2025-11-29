@@ -174,3 +174,50 @@ export async function uploadCvFile(candidateId: string, file: File) {
     throw new Error("Failed to upload CV file");
   }
 }
+
+/**
+ * Upload CV for job application to Firebase Storage
+ * Path: careermate-files/job-applications/{jobId}/{originalName}_CM_{timestamp}.{ext}
+ * 
+ * @param jobId - The job posting ID
+ * @param file - The CV file to upload
+ * @returns UploadResult with storagePath and downloadUrl
+ */
+export async function uploadJobApplicationCV(jobId: string | number, file: File): Promise<UploadResult> {
+  try {
+    // Extract file info
+    const originalName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const ext = file.name.split('.').pop() || 'pdf';
+    const timestamp = Date.now();
+    
+    // Generate filename: {originalName}_CM_{timestamp}.{ext}
+    const filename = `${originalName}_CM_${timestamp}.${ext}`;
+    
+    // Build storage path
+    const storagePath = `careermate-files/job-applications/${jobId}/${filename}`;
+    
+    // Upload to Firebase Storage
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, file, {
+      contentType: file.type || 'application/pdf',
+      customMetadata: {
+        uploadedAt: new Date().toISOString(),
+        originalName: file.name,
+        jobId: String(jobId),
+        type: 'job-application-cv',
+      },
+    });
+    
+    const downloadUrl = await getDownloadURL(storageRef);
+    
+    console.log("✅ Job Application CV uploaded:", { storagePath, downloadUrl });
+    
+    return {
+      storagePath,
+      downloadUrl,
+    };
+  } catch (error) {
+    console.error("❌ Error uploading job application CV:", error);
+    throw new Error("Failed to upload CV for job application");
+  }
+}

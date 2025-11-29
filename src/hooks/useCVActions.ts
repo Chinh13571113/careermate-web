@@ -61,8 +61,18 @@ export const useCVActions = (
   const [syncingCV, setSyncingCV] = useState<CV | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Extract Zustand store action
+  // Extract Zustand store actions
   const setDefaultCvInStore = useCVStore((state) => state.setDefaultCv);
+  
+  /**
+   * TEMPORARY: Set the current editing resume ID in Zustand store.
+   * This allows cm-profile to know which resume the user was working on
+   * when they navigate from cv-management.
+   * 
+   * NOTE: This is a temporary client-side solution. Will be replaced by
+   * backend-driven currentResumeId in the future.
+   */
+  const setCurrentEditingResume = useCVStore((state) => state.setCurrentEditingResume);
 
   const handleSetDefault = async (cv: CV) => {
     console.log('⭐ handleSetDefault called for CV:', cv.id, cv.name);
@@ -111,6 +121,13 @@ export const useCVActions = (
 
     // Store the CV being synced
     setSyncingCV(cv);
+    
+    /**
+     * TEMPORARY: Set this resume as the current editing resume.
+     * This allows cm-profile to display this resume when user navigates there.
+     */
+    setCurrentEditingResume(cv.id);
+    console.log("📝 Set currentEditingResumeId:", cv.id);
 
     // For Created CVs (source = "builder") - Show confirmation dialog to convert to draft
     if (cv.source === "builder") {
