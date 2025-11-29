@@ -489,7 +489,7 @@ export default function RoadmapFlowPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-[#20619a] animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải roadmap...</p>
+          <p className="text-gray-600">Roadmap is loading...</p>
         </div>
       </div>
     );
@@ -519,7 +519,7 @@ export default function RoadmapFlowPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/candidate/road-map")}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -527,6 +527,25 @@ export default function RoadmapFlowPage() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7cb3fb] to-[#20619a] bg-clip-text text-transparent capitalize">
               {roadmapData.name}
             </h1>
+          </div>
+          
+          {/* Toggle Buttons */}
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => router.push(`/candidate/road-map-courses/${encodeURIComponent(roadmapData.name)}`)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors text-gray-600 hover:bg-gray-200"
+            >
+              <BookOpen className="w-4 h-4" />
+              Online Course
+            </button>
+            <button
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors bg-white text-blue-600 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              Road Map Flow
+            </button>
           </div>
         </div>
       </div>
@@ -561,7 +580,7 @@ export default function RoadmapFlowPage() {
         {showDetailPanel && (
           <div className="absolute top-0 right-0 w-96 h-full bg-white shadow-2xl z-20 overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Chi tiết Topic</h2>
+              <h2 className="text-lg font-bold text-gray-900">Topic Details</h2>
               <button
                 onClick={() => setShowDetailPanel(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -590,7 +609,7 @@ export default function RoadmapFlowPage() {
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <BookOpen className="w-4 h-4" />
-                        Tài nguyên học tập
+                        Learning Resources
                       </h4>
                       <ul className="space-y-2">
                         {detailContent.resources.map((resource, idx) => (
@@ -613,7 +632,7 @@ export default function RoadmapFlowPage() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <BookOpen className="w-4 h-4" />
-                      Khóa học cho Topic này
+                      Courses for this Topic
                     </h4>
                     {detailContent.courses && detailContent.courses.length > 0 ? (
                       <ul className="space-y-2">
@@ -658,7 +677,7 @@ export default function RoadmapFlowPage() {
                                 <span className="font-medium text-gray-800 text-left">{subtopic.name}</span>
                               </div>
                               <span className="text-xs text-gray-500">
-                                {subtopic.courses?.length || 0} khóa học
+                                {subtopic.courses?.length || 0} courses
                               </span>
                             </button>
                             
@@ -716,7 +735,7 @@ export default function RoadmapFlowPage() {
                                       ))}
                                     </ul>
                                   ) : (
-                                    <p className="text-sm text-gray-500 italic">Không có nội dung</p>
+                                    <p className="text-sm text-gray-500 italic">No content available</p>
                                   )}
                                 </div>
                                 
