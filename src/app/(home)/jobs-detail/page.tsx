@@ -439,7 +439,7 @@ export default function JobsDetailPage() {
                     onChange={(e) => setSearchLocation(e.target.value)}
                     className="appearance-none w-full md:w-64 pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white cursor-pointer text-gray-700"
                   >
-                    <option value="All Cities">All Cities</option>
+git add src/app/(home)/jobs-detail/page.tsx
                     <option value="Ho Chi Minh">Ho Chi Minh</option>
                     <option value="Ha Noi">Ha Noi</option>
                     <option value="Da Nang">Da Nang</option>

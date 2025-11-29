@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import React, { memo } from "react";
 import { PiHandWavingLight } from "react-icons/pi";
 import { candidateMenuItems } from "@/lib/candidate-menu-item";
+import { useAuthStore } from "@/store/use-auth-store";
 
 type Item = {
   href: string;
@@ -21,6 +22,10 @@ interface CVSidebarProps {
 
 const CVSidebar: React.FC<CVSidebarProps> = memo(({ activePage }) => {
   const pathname = usePathname();
+  const { user } = useAuthStore();
+
+  // Get display name: prioritize user.fullName, then user.name, then user.email
+  const displayName = user?.fullName || user?.name || user?.email?.split('@')[0] || 'User';
 
   const items: Item[] = candidateMenuItems;
 
@@ -41,7 +46,7 @@ const CVSidebar: React.FC<CVSidebarProps> = memo(({ activePage }) => {
           <p className="text-xs text-gray-500">Welcome</p>
         </div>
         <div>
-          <p className="font-medium">Lê Quang Anh</p>
+          <p className="font-medium">{displayName}</p>
         </div>
       </div>
 

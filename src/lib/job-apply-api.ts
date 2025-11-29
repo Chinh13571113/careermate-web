@@ -68,7 +68,7 @@ export const submitJobApplication = async (
       phoneNumber: data.phoneNumber,
       preferredWorkLocation: data.preferredWorkLocation,
       cvFilePath: data.cvFilePath || "",
-      overLetter: data.coverLetter ?? "", // Use "" if null/undefined
+      coverLetter: data.coverLetter ?? "", // Use "" if null/undefined
       status: data.status || "PENDING"
     };
 

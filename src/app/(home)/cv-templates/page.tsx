@@ -8,6 +8,22 @@ import CVPreview from '@/components/cv/CVPreview';
 // import CVEditForm from '@/components/cv/CVEditForm';
 import { SAMPLE_CV_DATA, CV_TEMPLATES, type CVData } from '@/types/cv';
 import { decodeCVTemplateData } from '@/lib/cv-template-navigation';
+import { autoNormalizeCVData } from '@/lib/cv-data-normalizer';
+
+// Helper function to normalize awards array to strings for CVPreview compatibility
+// Kept for backward compatibility with localStorage data
+const normalizeAwards = (awards: any[] | undefined): string[] => {
+  if (!awards || !Array.isArray(awards)) return [];
+  return awards.map(a => {
+    if (typeof a === 'string') return a;
+    if (typeof a === 'object' && a !== null) {
+      // Convert object to string format: "Name - Organization - Year"
+      const parts = [a.name, a.organization, a.year || a.month].filter(Boolean);
+      return parts.join(' - ') || 'Award';
+    }
+    return String(a);
+  });
+};
 
 export default function CVTemplatesPage() {
   const searchParams = useSearchParams();
@@ -41,9 +57,14 @@ export default function CVTemplatesPage() {
         
         // Set CV data
         if (incomingCVData) {
-          setCVData(incomingCVData);
+          // Normalize awards to strings for CVPreview compatibility
+          const normalizedData = {
+            ...incomingCVData,
+            awards: normalizeAwards(incomingCVData.awards),
+          };
+          setCVData(normalizedData);
           try {
-            localStorage.setItem('cvData', JSON.stringify(incomingCVData));
+            localStorage.setItem('cvData', JSON.stringify(normalizedData));
           } catch (err) {
             // ignore
           }
@@ -81,31 +102,35 @@ export default function CVTemplatesPage() {
         
         // Check if parsedData is valid and contains essential CV properties
         if (parsedData && typeof parsedData === 'object' && parsedData.personalInfo) {
+          // Auto-normalize the data to ensure CVData format compatibility
+          // This handles data from cm-profile format or any legacy format
+          const normalizedData = autoNormalizeCVData(parsedData);
+          
           // Create a properly structured CV data object
           const loadedCVData: CVData = {
             // Start with our sample data as a base
             ...SAMPLE_CV_DATA,
-            // Merge with stored data, ensuring deep merge of nested objects
-            ...parsedData,
+            // Merge with normalized data
+            ...normalizedData,
             // Ensure nested objects are properly merged
             personalInfo: {
               ...SAMPLE_CV_DATA.personalInfo,
-              ...parsedData.personalInfo
+              ...normalizedData.personalInfo
             },
-            // For arrays, we replace them entirely as they should be complete
-            education: parsedData.education || SAMPLE_CV_DATA.education,
-            experience: parsedData.experience || SAMPLE_CV_DATA.experience,
-            skills: parsedData.skills || SAMPLE_CV_DATA.skills,
-            languages: parsedData.languages || SAMPLE_CV_DATA.languages,
-            certifications: parsedData.certifications || SAMPLE_CV_DATA.certifications,
-            projects: parsedData.projects || SAMPLE_CV_DATA.projects,
-            softSkills: parsedData.softSkills || SAMPLE_CV_DATA.softSkills,
-            hobbies: parsedData.hobbies || SAMPLE_CV_DATA.hobbies,
-            references: parsedData.references || SAMPLE_CV_DATA.references,
-            awards: parsedData.awards || SAMPLE_CV_DATA.awards,
+            // For arrays, use normalized data or fall back to sample
+            education: normalizedData.education?.length ? normalizedData.education : SAMPLE_CV_DATA.education,
+            experience: normalizedData.experience?.length ? normalizedData.experience : SAMPLE_CV_DATA.experience,
+            skills: normalizedData.skills?.length ? normalizedData.skills : SAMPLE_CV_DATA.skills,
+            languages: normalizedData.languages?.length ? normalizedData.languages : SAMPLE_CV_DATA.languages,
+            certifications: normalizedData.certifications?.length ? normalizedData.certifications : SAMPLE_CV_DATA.certifications,
+            projects: normalizedData.projects?.length ? normalizedData.projects : SAMPLE_CV_DATA.projects,
+            softSkills: normalizedData.softSkills || SAMPLE_CV_DATA.softSkills,
+            hobbies: normalizedData.hobbies || SAMPLE_CV_DATA.hobbies,
+            references: normalizedData.references || SAMPLE_CV_DATA.references,
+            awards: normalizedData.awards || SAMPLE_CV_DATA.awards,
           };
           
-          console.log("Loaded and structured CV data from localStorage:", loadedCVData);
+          console.log("Loaded and normalized CV data from localStorage:", loadedCVData);
           setCVData(loadedCVData);
         } else {
           console.warn("Invalid CV data structure in localStorage, using sample data");

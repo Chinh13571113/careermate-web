@@ -1845,6 +1845,7 @@ export default function CMProfile() {
   // Handler for Preview & Download CV button
   const handlePreviewCV = () => {
     // Prepare CV data from profile information
+    // Note: This data will be normalized by openCVTemplate to match CVData interface
     const cvData = {
       personalInfo: {
         fullName: profileName || "",
@@ -1858,8 +1859,9 @@ export default function CMProfile() {
       },
       experience: workExpHook.workExperiences || [],
       education: educationHook.educations || [],
-      // Cần điều chỉnh cấu trúc skills cho phù hợp với template nếu cần
-      skills: skillsHook.coreSkillGroups || [], 
+      // Pass both coreSkillGroups and softSkillGroups for proper normalization
+      coreSkillGroups: skillsHook.coreSkillGroups || [],
+      softSkillGroups: skillsHook.softSkillGroups || [],
       languages: languagesHook.languages || [],
       certifications: certificatesHook.certificates || [],
       projects: projectsHook.projects || [],
