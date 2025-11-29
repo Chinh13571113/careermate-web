@@ -5,6 +5,23 @@ import { storage } from "@/lib/firebase";
 const CV_ROOT = 'careermate-files/candidates';
 
 /**
+ * Result type for upload functions that return both path and URL
+ */
+export interface UploadResult {
+  /** The storage path (recommended to store in database) */
+  storagePath: string;
+  /** The download URL (for immediate display, may expire) */
+  downloadUrl: string;
+}
+
+/**
+ * Generate avatar storage path
+ */
+function getAvatarStoragePath(candidateId: string, filename: string): string {
+  return `${CV_ROOT}/${candidateId}/avatar/${filename}`;
+}
+
+/**
  * Generate CV storage path
  */
 function getCvStoragePath(candidateId: string, filename: string): string {
@@ -13,21 +30,40 @@ function getCvStoragePath(candidateId: string, filename: string): string {
 
 /**
  * Upload avatar to Firebase Storage (public)
- * Path: /careermate-files/candidates/{userId}/profile/{fileName}
+ * Path: /careermate-files/candidates/{candidateId}/avatar/{fileName}
+ * 
+ * @param candidateId - The candidate's numeric ID (NOT email)
+ * @param file - The image file to upload
+ * @returns UploadResult with both storagePath and downloadUrl
  */
-export async function uploadAvatar(userId: string, file: File): Promise<string> {
+export async function uploadAvatar(candidateId: string, file: File): Promise<UploadResult> {
   try {
     const fileName = `${Date.now()}_${file.name}`;
-    const fileRef = ref(storage, `careermate-files/candidates/${userId}/profile/${fileName}`);
+    const storagePath = getAvatarStoragePath(candidateId, fileName);
+    const fileRef = ref(storage, storagePath);
     
     await uploadBytes(fileRef, file);
-    const downloadURL = await getDownloadURL(fileRef);
+    const downloadUrl = await getDownloadURL(fileRef);
     
-    return downloadURL;
+    console.log("✅ Avatar uploaded:", { storagePath, downloadUrl });
+    
+    return {
+      storagePath,
+      downloadUrl,
+    };
   } catch (error) {
     console.error("Error uploading avatar:", error);
     throw new Error("Failed to upload avatar");
   }
+}
+
+/**
+ * Upload avatar and return only URL (for backward compatibility)
+ * @deprecated Use uploadAvatar() which returns both path and URL
+ */
+export async function uploadAvatarUrl(candidateId: string, file: File): Promise<string> {
+  const result = await uploadAvatar(candidateId, file);
+  return result.downloadUrl;
 }
 
 /**

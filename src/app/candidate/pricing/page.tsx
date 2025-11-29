@@ -30,14 +30,9 @@ export default function PricingPage() {
         const packagesData = await fetchPackages();
         setPackages(packagesData);
         
-        try {
-          const invoiceData = await getMyInvoice();
-          setInvoice(invoiceData);
-        } catch (error: any) {
-          if (error.message !== 'NO_INVOICE_FOUND') {
-            console.error('Failed to fetch invoice:', error);
-          }
-        }
+        // getMyInvoice now returns null if no invoice (404)
+        const invoiceData = await getMyInvoice();
+        setInvoice(invoiceData);
       } catch (error) {
         console.error('Failed to load data:', error);
         toast.error('Failed to load packages. Please try again.');

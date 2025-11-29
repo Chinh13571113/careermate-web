@@ -1,4 +1,5 @@
 import React from "react";
+import { FiInfo } from "react-icons/fi";
 
 type TabType = "built" | "uploaded" | "draft";
 
@@ -61,6 +62,14 @@ export const CVTabs: React.FC<CVTabsProps> = ({
 
         {/* Action Buttons - Always visible on the right */}
         <div className="py-2 flex items-center gap-3">
+          {/* Recommendation hint for Upload tab */}
+          {activeTab === "uploaded" && (
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md border border-blue-200">
+              <FiInfo className="w-3.5 h-3.5" />
+              <span>Tip: Use a <strong>CareerMate template</strong> for best results</span>
+            </div>
+          )}
+
           {/* Create CV Builder Button */}
           <button
             onClick={onCreateCVClick}

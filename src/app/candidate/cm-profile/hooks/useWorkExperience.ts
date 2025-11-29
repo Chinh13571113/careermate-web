@@ -45,11 +45,18 @@ export function useWorkExperience(resumeId: number | null) {
     }
 
     try {
+      console.log('📝 [useWorkExperience] Building work experience data...');
+      console.log('📝 editingWorkExp:', editingWorkExp);
+      console.log('📝 startMonth:', editingWorkExp.startMonth, 'startYear:', editingWorkExp.startYear);
+      
       const startDate = `${editingWorkExp.startYear}-${editingWorkExp.startMonth.padStart(2, '0')}-01`;
+      console.log('📝 Built startDate:', startDate);
+      
       let endDate: string | undefined = undefined;
 
       if (!editingWorkExp.working && editingWorkExp.endMonth && editingWorkExp.endYear) {
         endDate = `${editingWorkExp.endYear}-${editingWorkExp.endMonth.padStart(2, '0')}-01`;
+        console.log('📝 Built endDate:', endDate);
       }
 
       const data: WorkExperienceData = {
@@ -61,6 +68,8 @@ export function useWorkExperience(resumeId: number | null) {
         description: editingWorkExp.description || "",
         ...(editingWorkExp.project && { project: editingWorkExp.project })
       };
+
+      console.log('📝 Final WorkExperienceData to send:', JSON.stringify(data, null, 2));
 
       if (editingWorkExp.id && editingWorkExp.id !== '0') {
         await updateWorkExperience(resumeId, Number(editingWorkExp.id), data);
