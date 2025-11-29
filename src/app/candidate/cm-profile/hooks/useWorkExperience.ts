@@ -52,11 +52,18 @@ export function useWorkExperience(resumeId: number | null) {
       const startDate = `${editingWorkExp.startYear}-${editingWorkExp.startMonth.padStart(2, '0')}-01`;
       console.log('📝 Built startDate:', startDate);
       
-      let endDate: string | undefined = undefined;
+      // Backend requires endDate (NotNull), so we need to provide a value
+      // When currently working, use current date as placeholder
+      let endDate: string;
 
       if (!editingWorkExp.working && editingWorkExp.endMonth && editingWorkExp.endYear) {
         endDate = `${editingWorkExp.endYear}-${editingWorkExp.endMonth.padStart(2, '0')}-01`;
-        console.log('📝 Built endDate:', endDate);
+        console.log('📝 Built endDate (from user input):', endDate);
+      } else {
+        // Currently working - use today's date as placeholder since backend requires it
+        const today = new Date();
+        endDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+        console.log('📝 Built endDate (current date for working):', endDate);
       }
 
       const data: WorkExperienceData = {
@@ -64,7 +71,7 @@ export function useWorkExperience(resumeId: number | null) {
         jobTitle: editingWorkExp.jobTitle,
         company: editingWorkExp.company,
         startDate,
-        ...(endDate && { endDate }),
+        endDate,
         description: editingWorkExp.description || "",
         ...(editingWorkExp.project && { project: editingWorkExp.project })
       };
@@ -79,10 +86,13 @@ export function useWorkExperience(resumeId: number | null) {
         toast.success("Work experience updated successfully!");
       } else {
         const result = await addWorkExperience(data);
+        console.log('📝 API Response:', result);
+        
+        // Backend may not return result with workExperienceId, use temporary ID
         const newWorkExp: WorkExperience = {
-          id: result.workExperienceId.toString(),
-          jobTitle: result.jobTitle,
-          company: result.company,
+          id: result?.workExperienceId?.toString() || `temp-${Date.now()}`,
+          jobTitle: result?.jobTitle || editingWorkExp.jobTitle,
+          company: result?.company || editingWorkExp.company,
           startMonth: editingWorkExp.startMonth,
           startYear: editingWorkExp.startYear,
           endMonth: editingWorkExp.working ? "" : editingWorkExp.endMonth,

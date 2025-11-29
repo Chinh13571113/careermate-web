@@ -102,6 +102,7 @@ interface ProfilePersonalInfo {
   photoUrl?: string;
   summary?: string;
   dob?: string;
+  gender?: string;
   nationality?: string;
 }
 
@@ -384,6 +385,7 @@ function normalizePersonalInfo(personalInfo?: ProfilePersonalInfo): CVData['pers
     summary: personalInfo.summary || '',
     photoUrl: personalInfo.photoUrl,
     dob: personalInfo.dob,
+    gender: personalInfo.gender,
     nationality: personalInfo.nationality,
   };
 }
@@ -426,6 +428,16 @@ export function normalizeCVData(profileData: ProfileData): CVData {
     profileData.softSkillGroups
   );
   
+  // Handle projects - fallback to highlightProjects if projects is empty
+  const projects = profileData.projects && profileData.projects.length > 0
+    ? profileData.projects
+    : (profileData as any).highlightProjects;
+  
+  // Check if softSkillGroups is already included in skills (as "Soft Skills" category)
+  const hasSoftSkillsInSkills = normalizedSkills.some(
+    (group) => group.category === 'Soft Skills'
+  );
+  
   return {
     personalInfo: normalizePersonalInfo(profileData.personalInfo),
     experience: normalizeExperience(profileData.experience),
@@ -434,8 +446,10 @@ export function normalizeCVData(profileData: ProfileData): CVData {
     languages: normalizeLanguages(profileData.languages),
     certifications: normalizeCertifications(certs),
     awards: normalizeAwards(profileData.awards as any),
-    projects: normalizeProjects(profileData.projects),
-    softSkills: extractSoftSkills(profileData.softSkillGroups),
+    projects: normalizeProjects(projects),
+    // Only set softSkills if softSkillGroups is NOT already included in skills
+    // This prevents duplicate rendering in CVPreview
+    softSkills: hasSoftSkillsInSkills ? undefined : extractSoftSkills(profileData.softSkillGroups),
   };
 }
 
