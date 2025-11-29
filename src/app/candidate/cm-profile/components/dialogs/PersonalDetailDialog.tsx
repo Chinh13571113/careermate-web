@@ -259,7 +259,7 @@ export default function PersonalDetailDialog({
                             />
                         </div>
 
-                        <div className="col-span-2">
+                        {/* <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Address (Street, district,...)
                             </label>
@@ -268,7 +268,7 @@ export default function PersonalDetailDialog({
                                 onChange={(e) => onProfileAddressChange(e.target.value)}
                                 placeholder="Enter your detailed address"
                             />
-                        </div>
+                        </div> */}
 
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">

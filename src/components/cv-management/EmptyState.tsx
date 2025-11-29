@@ -1,4 +1,5 @@
 import React from "react";
+import { FiInfo } from "react-icons/fi";
 
 type TabType = "built" | "uploaded" | "draft";
 
@@ -14,19 +15,22 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ activeTab, onFileInput }
         return {
           title: "No Uploaded CVs",
           description: "Upload your CV to start applying for jobs",
-          hasUpload: true
+          hasUpload: true,
+          showRecommendation: true
         };
       case "built":
         return {
           title: "No Created CVs",
           description: "Create a professional CV using our builder",
-          hasUpload: false
+          hasUpload: false,
+          showRecommendation: false
         };
       case "draft":
         return {
           title: "No Drafts",
           description: "Your CV drafts will appear here",
-          hasUpload: false
+          hasUpload: false,
+          showRecommendation: false
         };
     }
   };
@@ -49,6 +53,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ activeTab, onFileInput }
       <h3 className="text-lg font-medium text-gray-900 mb-2">{content.title}</h3>
 
       <p className="text-gray-600 mb-4">{content.description}</p>
+
+      {/* Recommendation text for Upload tab */}
+      {content.showRecommendation && (
+        <div className="mb-6 mx-auto max-w-md">
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+            <FiInfo className="w-4 h-4 flex-shrink-0" />
+            <span>For the best results, we recommend using a <strong>CareerMate CV template</strong>.</span>
+          </div>
+        </div>
+      )}
 
       {content.hasUpload && onFileInput ? (
         <label className="cursor-pointer">

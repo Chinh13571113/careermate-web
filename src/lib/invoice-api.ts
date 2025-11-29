@@ -16,8 +16,10 @@ export interface InvoiceResponse {
 /**
  * Get user's invoice/transaction history
  * GET /api/candidate-invoice/my-invoice
+ * 
+ * Returns null if user has no invoice (404)
  */
-export const getMyInvoice = async (): Promise<Invoice> => {
+export const getMyInvoice = async (): Promise<Invoice | null> => {
   try {
     const response = await api.get<InvoiceResponse>('/api/candidate-invoice/my-invoice');
     
@@ -25,16 +27,18 @@ export const getMyInvoice = async (): Promise<Invoice> => {
       return response.data.result;
     }
     
-    throw new Error(response.data.message || 'Failed to fetch invoice');
+    // If not success code, return null
+    return null;
   } catch (error: any) {
-    console.error('❌ Error fetching invoice:', error);
-    
-    // If 404 or no invoice found, return null or throw
+    // 404 means no invoice found - this is expected for new users
     if (error.response?.status === 404) {
-      throw new Error('NO_INVOICE_FOUND');
+      console.log('ℹ️ No invoice found for user (404) - this is normal for new users');
+      return null;
     }
     
-    throw error;
+    // Log other errors but don't crash
+    console.error('❌ Error fetching invoice:', error.response?.data?.message || error.message);
+    return null;
   }
 };
 

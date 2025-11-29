@@ -373,7 +373,18 @@ api.interceptors.request.use(async (config) => {
   // ✅ CASE 4: Add token if available
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
+    console.log('🔑 [Interceptor] Token attached to request:', config.url);
+  } else {
+    console.warn('⚠️ [Interceptor] NO TOKEN for request:', config.url);
   }
+
+  // Log final request config for debugging
+  console.log('📤 [Interceptor] Final request config:', {
+    url: config.url,
+    method: config.method,
+    baseURL: config.baseURL,
+    hasAuth: !!config.headers.Authorization
+  });
 
   return config;
 });
