@@ -17,7 +17,33 @@ import jsPDF from "jspdf";
 import { uploadCVPDF } from "@/lib/firebase-upload";
 import { useAuthStore } from "@/store/use-auth-store";
 import toast from "react-hot-toast";
+import { useFileUrl } from "@/lib/firebase-file";
 import "./zoom-slider.css";
+
+/**
+ * CVPhoto component - handles Firebase Storage paths/URLs for CV photos
+ */
+function CVPhoto({ 
+  photoUrl, 
+  alt = "profile", 
+  className 
+}: { 
+  photoUrl?: string; 
+  alt?: string; 
+  className?: string;
+}) {
+  const resolvedUrl = useFileUrl(photoUrl);
+  
+  if (!photoUrl || !resolvedUrl) return null;
+  
+  return (
+    <img
+      src={resolvedUrl}
+      alt={alt}
+      className={className}
+    />
+  );
+}
 
 const decodeHtmlEntities = (value: string) => {
   if (!value) return "";
@@ -1534,13 +1560,11 @@ export default function CVPreview({
               <div className="w-1/3 pl-8">
                 {/* Contact info and photo */}
                 <div className="mb-8 text-center">
-                  {cvData.personalInfo.photoUrl && (
-                    <img
-                      src={cvData.personalInfo.photoUrl}
-                      alt="profile"
-                      className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
-                    />
-                  )}
+                  <CVPhoto
+                    photoUrl={cvData.personalInfo.photoUrl}
+                    alt="profile"
+                    className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
+                  />
                   <div className="space-y-2 text-sm text-left">
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-600 flex-shrink-0" />
@@ -1665,8 +1689,8 @@ export default function CVPreview({
                 {/* Left side - Photo */}
                 <div className="mr-6">
                   {cvData.personalInfo.photoUrl ? (
-                    <img
-                      src={cvData.personalInfo.photoUrl}
+                    <CVPhoto
+                      photoUrl={cvData.personalInfo.photoUrl}
                       alt="Profile"
                       className="w-20 h-20 object-cover rounded"
                     />
@@ -2288,13 +2312,11 @@ export default function CVPreview({
               <div className="bg-white w-3/4 p-8">
                 {/* Profile Photo + Summary */}
                 <div className="flex items-start mb-10">
-                  {cvData.personalInfo.photoUrl && (
-                    <img
-                      src={cvData.personalInfo.photoUrl}
-                      alt="Profile"
-                      className="w-20 h-20 rounded-full object-cover mr-6"
-                    />
-                  )}
+                  <CVPhoto
+                    photoUrl={cvData.personalInfo.photoUrl}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover mr-6"
+                  />
                   <div>
                     <p className="text-gray-600 text-sm leading-relaxed cv-text-content">
                       {cvData.personalInfo.summary}
@@ -2410,13 +2432,11 @@ export default function CVPreview({
                     {cvData.personalInfo.position}
                   </p>
                 </div>
-                {cvData.personalInfo.photoUrl && (
-                  <img
-                    src={cvData.personalInfo.photoUrl}
-                    alt="Profile"
-                    className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md"
-                  />
-                )}
+                <CVPhoto
+                  photoUrl={cvData.personalInfo.photoUrl}
+                  alt="Profile"
+                  className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md"
+                />
               </div>
 
               {/* Divider line */}
