@@ -812,6 +812,14 @@ strong {
   color: #666666;
 }
 
+/* SVG icon styling for vintage template */
+.vintage-template .vintage-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #666666;
+}
+
 .vintage-template .vintage-contact-text {
   flex: 1;
   word-break: break-word;

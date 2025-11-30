@@ -13,13 +13,15 @@ export default function CandidateJobApplySuccessRedirect() {
   const searchParams = useSearchParams();
   
   const jobId = params.id as string;
-  const applicationId = searchParams.get("applicationId");
 
   useEffect(() => {
-    // Redirect to the main success page with query params
-    const queryString = applicationId ? `?applicationId=${applicationId}` : "";
-    router.replace(`/jobs-detail/${jobId}/apply/success${queryString}`);
-  }, [router, jobId, applicationId]);
+    // Redirect to the main success page with all query params
+    const queryString = searchParams.toString();
+    const url = queryString 
+      ? `/jobs-detail/${jobId}/apply/success?${queryString}`
+      : `/jobs-detail/${jobId}/apply/success`;
+    router.replace(url);
+  }, [router, jobId, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
