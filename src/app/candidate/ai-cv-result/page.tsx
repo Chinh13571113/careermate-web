@@ -112,7 +112,7 @@ export default function AICVResult() {
                     <h3 className="font-bold text-gray-900">Điểm mạnh</h3>
                   </div>
                   <ul className="space-y-2">
-                    {result.summary.strengths.map((strength, idx) => (
+                    {(result.summary?.strengths || []).map((strength, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-gray-700">
                         <span className="text-green-600 mt-1">•</span>
                         {strength}
@@ -128,7 +128,7 @@ export default function AICVResult() {
                     <h3 className="font-bold text-gray-900">Cần cải thiện</h3>
                   </div>
                   <ul className="space-y-2">
-                    {result.summary.improvements.map((improvement, idx) => (
+                    {(result.summary?.improvements || []).map((improvement, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-gray-700">
                         <span className="text-orange-600 mt-1">•</span>
                         {improvement}
@@ -177,12 +177,12 @@ export default function AICVResult() {
                     <h4 className="font-semibold text-gray-900 mb-3">Kỹ năng kỹ thuật</h4>
                     <DetailSection
                       title="Đã có"
-                      items={result.skills.technical.matched}
+                      items={result.skills?.technical?.matched || []}
                       type="success"
                     />
                     <DetailSection
                       title="Còn thiếu"
-                      items={result.skills.technical.missing}
+                      items={result.skills?.technical?.missing || []}
                       type="error"
                     />
                   </div>
@@ -190,14 +190,14 @@ export default function AICVResult() {
                     <h4 className="font-semibold text-gray-900 mb-3">Kỹ năng mềm</h4>
                     <DetailSection
                       title="Còn thiếu"
-                      items={result.skills.soft.missing}
+                      items={result.skills?.soft?.missing || []}
                       type="error"
                     />
                   </div>
                 </div>
                 <DetailSection
                   title="Gợi ý cải thiện"
-                  items={result.skills.tips}
+                  items={result.skills?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -206,20 +206,20 @@ export default function AICVResult() {
               <ScoreCard
                 icon={<Layout className="w-6 h-6" />}
                 title="Định dạng"
-                score={result.format.score}
-                description={result.format.description}
+                score={result.format?.score}
+                description={result.format?.description}
               >
                 <div className="mb-4">
                   <h4 className="font-semibold text-gray-900 mb-3">Kiểm tra định dạng</h4>
                   <div className="space-y-2">
-                    <FormatCheck label="Định dạng ngày" status={result.format.checks.date_format} />
-                    <FormatCheck label="Độ dài" status={result.format.checks.length} />
-                    <FormatCheck label="Bullet points" status={result.format.checks.bullet_points} />
+                    <FormatCheck label="Định dạng ngày" status={result.format?.checks?.date_format} />
+                    <FormatCheck label="Độ dài" status={result.format?.checks?.length} />
+                    <FormatCheck label="Bullet points" status={result.format?.checks?.bullet_points} />
                   </div>
                 </div>
                 <DetailSection
                   title="Gợi ý cải thiện"
-                  items={result.format.tips}
+                  items={result.format?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -272,12 +272,12 @@ export default function AICVResult() {
                 <div className="flex items-center gap-3 mb-4">
                   <Lightbulb className="w-6 h-6 text-green-600" />
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {result.recommendations.title}
+                    {result.recommendations?.title || "Gợi ý"}
                   </h2>
                 </div>
-                <p className="text-gray-600 mb-6">{result.recommendations.description}</p>
+                <p className="text-gray-600 mb-6">{result.recommendations?.description || ""}</p>
                 <ul className="space-y-3">
-                  {result.recommendations.items.map((item, idx) => (
+                  {(result.recommendations?.items || []).map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3 bg-white rounded-lg p-4 shadow-sm">
                       <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                         {idx + 1}
