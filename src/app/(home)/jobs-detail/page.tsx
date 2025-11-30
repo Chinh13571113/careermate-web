@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import JobCard from "../../../components/JobCard";
 import JobRecommendModal from "../../../components/JobRecommendModal";
@@ -13,10 +13,13 @@ import {
   toggleSaveJob,
   toggleLikeJob,
   viewJob,
+  fetchSavedJobs,
+  fetchLikedJobs,
   type JobPosting,
 } from "@/lib/job-api";
 import { useAuthStore } from "@/store/use-auth-store";
 import toast from "react-hot-toast";
+import { JobCardSkeleton, JobDetailSkeleton } from "@/components/skeletons";
 
 interface JobListing {
   id: number;
@@ -230,8 +233,11 @@ export default function JobsDetailPage() {
 
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
-  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
-  const [isLiked, setIsLiked] = useState<boolean>(false);
+  
+  // ✅ Use maps to track saved/liked status per job
+  const [savedMap, setSavedMap] = useState<Record<number, boolean>>({});
+  const [likedMap, setLikedMap] = useState<Record<number, boolean>>({});
+  
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLiking, setIsLiking] = useState<boolean>(false);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
@@ -287,9 +293,56 @@ export default function JobsDetailPage() {
     loadJobs();
   }, [currentPage, searchKeyword]);
 
-  const selectedJob = jobs.find((job) => job.id === selectedJobId) || jobs[0];
+  // ✅ Fetch saved and liked jobs when authenticated
+  useEffect(() => {
+    const loadSavedAndLikedJobs = async () => {
+      if (!isAuthenticated || !candidateId) return;
 
-  const handleJobSelect = (jobId: number) => {
+      try {
+        // Fetch saved jobs
+        const savedJobs = await fetchSavedJobs(candidateId);
+        const savedJobIds = savedJobs.reduce((acc, job) => {
+          acc[job.jobId] = true;
+          return acc;
+        }, {} as Record<number, boolean>);
+        setSavedMap(savedJobIds);
+
+        // Fetch liked jobs
+        const likedJobs = await fetchLikedJobs(candidateId);
+        const likedJobIds = likedJobs.reduce((acc, job) => {
+          acc[job.jobId] = true;
+          return acc;
+        }, {} as Record<number, boolean>);
+        setLikedMap(likedJobIds);
+
+        console.log('✅ Loaded saved/liked jobs:', { savedJobIds, likedJobIds });
+      } catch (error) {
+        console.error('❌ Error loading saved/liked jobs:', error);
+      }
+    };
+
+    loadSavedAndLikedJobs();
+  }, [isAuthenticated, candidateId]);
+
+  // ✅ Memoize selectedJob to avoid recalculation on every render
+  const selectedJob = useMemo(() => 
+    jobs.find((job) => job.id === selectedJobId) || jobs[0],
+    [jobs, selectedJobId]
+  );
+  
+  // ✅ Memoize computed values for current job's saved/liked status
+  const isBookmarked = useMemo(() => 
+    selectedJobId ? (savedMap[selectedJobId] ?? false) : false,
+    [selectedJobId, savedMap]
+  );
+  
+  const isLiked = useMemo(() => 
+    selectedJobId ? (likedMap[selectedJobId] ?? false) : false,
+    [selectedJobId, likedMap]
+  );
+
+  // ✅ Memoize handlers with useCallback
+  const handleJobSelect = useCallback((jobId: number) => {
     setSelectedJobId(jobId);
 
     // Track job view
@@ -298,18 +351,18 @@ export default function JobsDetailPage() {
         console.error("Failed to track job view:", err);
       });
     }
-  };
+  }, [candidateId]);
 
-  const handleApplyNow = () => {
+  const handleApplyNow = useCallback(() => {
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }
     // Navigate directly to the apply page (skip redirect stub)
     router.push(`/jobs-detail/${selectedJobId}/apply`);
-  };
+  }, [isAuthenticated, selectedJobId, router]);
 
-  const handleToggleSave = async () => {
+  const handleToggleSave = useCallback(async () => {
     // Check authentication
     if (!isAuthenticated) {
       toast.error("Please login to save jobs");
@@ -329,14 +382,17 @@ export default function JobsDetailPage() {
       return;
     }
 
+    const currentlySaved = savedMap[selectedJobId] ?? false;
+    
     setIsSaving(true);
     try {
       const newSavedStatus = await toggleSaveJob(
         candidateId,
         selectedJobId,
-        isBookmarked
+        currentlySaved
       );
-      setIsBookmarked(newSavedStatus);
+      // ✅ Update the map for this specific job
+      setSavedMap(prev => ({ ...prev, [selectedJobId]: newSavedStatus }));
 
       if (newSavedStatus) {
         toast.success("Job saved successfully! 💾");
@@ -352,9 +408,9 @@ export default function JobsDetailPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isAuthenticated, candidateId, selectedJobId, savedMap]);
 
-  const handleToggleLike = async () => {
+  const handleToggleLike = useCallback(async () => {
     // Check authentication
     if (!isAuthenticated) {
       toast.error("Please login to like jobs");
@@ -374,14 +430,17 @@ export default function JobsDetailPage() {
       return;
     }
 
+    const currentlyLiked = likedMap[selectedJobId] ?? false;
+
     setIsLiking(true);
     try {
       const newLikedStatus = await toggleLikeJob(
         candidateId,
         selectedJobId,
-        isLiked
+        currentlyLiked
       );
-      setIsLiked(newLikedStatus);
+      // ✅ Update the map for this specific job
+      setLikedMap(prev => ({ ...prev, [selectedJobId]: newLikedStatus }));
 
       if (newLikedStatus) {
         toast.success("You like this job! 👍");
@@ -397,32 +456,32 @@ export default function JobsDetailPage() {
     } finally {
       setIsLiking(false);
     }
-  };
+  }, [isAuthenticated, candidateId, selectedJobId, likedMap]);
 
-  const handleLoginRedirect = () => {
+  const handleLoginRedirect = useCallback(() => {
     setShowLoginModal(false);
     // Save the intended destination to localStorage
     if (selectedJobId) {
       localStorage.setItem('redirectAfterLogin', `/jobs-detail/${selectedJobId}/apply`);
     }
     router.push("/sign-in");
-  };
+  }, [selectedJobId, router]);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     console.log("🔍 Searching for:", searchKeyword);
     setCurrentPage(0); // Reset to first page on search
     // The useEffect will automatically re-fetch with the new keyword
-  };
+  }, [searchKeyword]);
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = useCallback((newPage: number) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, []);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchKeyword("");
     setCurrentPage(0); // Reset page when clearing search
-  };
+  }, []);
 
   return (
     <>
@@ -638,9 +697,7 @@ git add src/app/(home)/jobs-detail/page.tsx
                   </div>
 
                   {loading ? (
-                    <div className="flex justify-center items-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
-                    </div>
+                    <JobCardSkeleton count={5} />
                   ) : error ? (
                     <div className="text-center py-12">
                       <p className="text-red-500 mb-4">{error}</p>
@@ -997,13 +1054,13 @@ git add src/app/(home)/jobs-detail/page.tsx
                       </div>
                     </div>
                   </div>
+                ) : loading ? (
+                  <JobDetailSkeleton />
                 ) : (
                   <div className="flex items-center justify-center">
                     <div className="text-center py-20">
                       <p className="text-gray-500 text-lg">
-                        {loading
-                          ? "Loading job details..."
-                          : "Select a job to view details"}
+                        Select a job to view details
                       </p>
                     </div>
                   </div>

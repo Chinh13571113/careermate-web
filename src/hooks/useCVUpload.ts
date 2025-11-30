@@ -19,7 +19,8 @@ export const useCVUpload = (
   uploadedCVs: CV[],
   setUploadedCVs: React.Dispatch<React.SetStateAction<CV[]>>,
   defaultCV: CV | null,
-  setDefaultCV: React.Dispatch<React.SetStateAction<CV | null>>
+  setDefaultCV: React.Dispatch<React.SetStateAction<CV | null>>,
+  refresh?: () => Promise<void> // Optional refresh callback to reload data from API
 ): UseCVUploadReturn => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -132,14 +133,21 @@ export const useCVUpload = (
 
       console.log("✅ Backend resume created successfully");
 
-      // 🚀 STEP 3: Update CV list in frontend
-      console.log("🚀 STEP 3: Updating frontend state...");
-      setUploadedCVs(prev => [uploadedCv, ...prev]);
+      // 🚀 STEP 3: Refresh data from API to get the latest state
+      console.log("🚀 STEP 3: Refreshing data from API...");
+      if (refresh) {
+        await refresh();
+        console.log("✅ Data refreshed from API successfully");
+      } else {
+        // Fallback: Update CV list in frontend locally
+        console.log("⚠️ No refresh callback, updating frontend state locally...");
+        setUploadedCVs(prev => [uploadedCv, ...prev]);
 
-      // Auto set default if this is the first CV
-      if (isActive) {
-        setDefaultCV(uploadedCv);
-        console.log("✅ Set as default CV (first upload)");
+        // Auto set default if this is the first CV
+        if (isActive) {
+          setDefaultCV(uploadedCv);
+          console.log("✅ Set as default CV (first upload)");
+        }
       }
 
       console.log("✅ CV Upload Flow Complete!");

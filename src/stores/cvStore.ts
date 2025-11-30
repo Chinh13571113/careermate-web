@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 
+// Session storage key
+const RESUME_ID_SESSION_KEY = 'cm-profile-resumeId';
 
 // CV Type definitions
 export type CVType = 'CREATED' | 'UPLOADED';
@@ -33,11 +35,24 @@ interface CVStoreState {
    * a backend-driven currentResumeId that persists across sessions.
    * 
    * Behavior:
-   * - Resets on full page reload (expected - no localStorage)
+   * - Persists to sessionStorage (survives page reloads within same tab)
    * - Persists during SPA navigation within the same session
    * - cm-profile uses this as fallback when no isActive resume is found
    */
   currentEditingResumeId: string | null;
+
+  /**
+   * Flag to indicate if the store has been hydrated from sessionStorage.
+   * This is important for cm-profile to wait before fetching data.
+   */
+  _hasHydrated: boolean;
+
+  /**
+   * Track resume IDs that have no type (type = empty/null).
+   * These resumes were created from SyncDialog and haven't been converted to DRAFT yet.
+   * When user navigates away or syncs another CV, we prompt them to convert to DRAFT.
+   */
+  untypedResumeId: string | null;
   
   setCVs: (cvs: CV[]) => void;
   upsertCv: (cv: CV) => void;
@@ -45,7 +60,8 @@ interface CVStoreState {
   setActiveCv: (cvId: string | null) => void;
   
   /**
-   * TEMPORARY: Set the current editing resume ID.
+   * Set the current editing resume ID.
+   * This also persists to sessionStorage automatically via Zustand persist middleware.
    * 
    * Call this when:
    * - User selects a resume to sync in cv-management
@@ -55,32 +71,51 @@ interface CVStoreState {
    * @param resumeId - The resume ID to set as current, or null to clear
    */
   setCurrentEditingResume: (resumeId: string | null) => void;
+
+  /**
+   * Set the untyped resume ID (resume created from SyncDialog without type).
+   * @param resumeId - The resume ID or null to clear
+   */
+  setUntypedResumeId: (resumeId: string | null) => void;
+
+  /**
+   * Clear the untyped resume ID (called after conversion to DRAFT).
+   */
+  clearUntypedResumeId: () => void;
+
+  /**
+   * Set the hydration flag (called by persist middleware).
+   */
+  setHasHydrated: (state: boolean) => void;
 }
 
-// Create the Zustand store
+// Create the Zustand store with persist middleware for sessionStorage
 export const useCVStore = create<CVStoreState>()(
   devtools(
-    (set) => ({
-      cvs: [],
-      defaultCvId: null,
-      activeCvId: null,
-      currentEditingResumeId: null,
+    persist(
+      (set) => ({
+        cvs: [],
+        defaultCvId: null,
+        activeCvId: null,
+        currentEditingResumeId: null,
+        untypedResumeId: null,
+        _hasHydrated: false,
 
-      /**
-       * Replace the entire CV list and detect the default CV
-       */
-      setCVs: (cvs: CV[]) => {
-        console.log('🔄 setCVs called with:', cvs);
-        const defaultCv = cvs.find((c) => c.isDefault);
-        set(
-          {
-            cvs,
-            defaultCvId: defaultCv?.id ?? null,
-          },
-          false,
-          'setCVs'
-        );
-      },
+        /**
+         * Replace the entire CV list and detect the default CV
+         */
+        setCVs: (cvs: CV[]) => {
+          console.log('🔄 setCVs called with:', cvs);
+          const defaultCv = cvs.find((c) => c.isDefault);
+          set(
+            {
+              cvs,
+              defaultCvId: defaultCv?.id ?? null,
+            },
+            false,
+            'setCVs'
+          );
+        },
 
       /**
        * Upsert a CV:
@@ -158,16 +193,52 @@ export const useCVStore = create<CVStoreState>()(
         console.log('📝 setCurrentEditingResume called with:', resumeId);
         set({ currentEditingResumeId: resumeId }, false, 'setCurrentEditingResume');
       },
+
+      /**
+       * Set the untyped resume ID (resume created from SyncDialog without type).
+       */
+      setUntypedResumeId: (resumeId: string | null) => {
+        console.log('📝 setUntypedResumeId called with:', resumeId);
+        set({ untypedResumeId: resumeId }, false, 'setUntypedResumeId');
+      },
+
+      /**
+       * Clear the untyped resume ID (called after conversion to DRAFT).
+       */
+      clearUntypedResumeId: () => {
+        console.log('🧹 clearUntypedResumeId called');
+        set({ untypedResumeId: null }, false, 'clearUntypedResumeId');
+      },
+
+      /**
+       * Set the hydration flag (called by persist middleware).
+       */
+      setHasHydrated: (state: boolean) => {
+        set({ _hasHydrated: state }, false, 'setHasHydrated');
+      },
     }),
     {
-      name: 'cv-store',
-      enabled: true,
-      trace: true,
+      name: RESUME_ID_SESSION_KEY,
+      storage: createJSONStorage(() => sessionStorage),
+      // Only persist the currentEditingResumeId to sessionStorage
+      partialize: (state) => ({
+        currentEditingResumeId: state.currentEditingResumeId,
+      }),
+      onRehydrateStorage: () => (state) => {
+        console.log('💾 CV Store rehydrated from sessionStorage');
+        if (state) {
+          state.setHasHydrated(true);
+          console.log('📋 Restored currentEditingResumeId:', state.currentEditingResumeId);
+        }
+      },
     }
-    
-  )
-  
-);
+  ),
+  {
+    name: 'cv-store',
+    enabled: true,
+    trace: true,
+  }
+));
 
 // Debug: expose store to window and initialize immediately
 if (typeof window !== "undefined") {

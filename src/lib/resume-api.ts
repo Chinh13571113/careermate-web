@@ -317,8 +317,20 @@ export interface SkillResponse {
 }
 
 export const addSkill = async (data: SkillData): Promise<any> => {
-  const response = await api.post("/api/skill", data);
-  return response.data.result || response.data;
+  console.log('📝 ===== ADD SKILL API =====');
+  console.log('Endpoint: POST /api/skill');
+  console.log('Request Data:', JSON.stringify(data, null, 2));
+  
+  try {
+    const response = await api.post("/api/skill", data);
+    console.log('✅ Response:', response.data);
+    return response.data.result || response.data;
+  } catch (error: any) {
+    console.error('❌ Error adding skill:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    throw error;
+  }
 };
 
 export const deleteSkill = async (resumeId: number, skillId: number): Promise<void> => {
@@ -427,7 +439,7 @@ export const updateResumeType = async (
 export interface CreateResumeRequest {
   aboutMe?: string;
   resumeUrl?: string;
-  type: ResumeType;
+  type?: ResumeType; // Optional - can be omitted to create resume without type
   isActive?: boolean;
 }
 
