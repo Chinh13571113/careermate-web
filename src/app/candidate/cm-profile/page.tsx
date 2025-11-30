@@ -803,42 +803,66 @@ export default function CMProfile() {
       return;
     }
 
-    // Validate required fields before sending
-    if (!profileDob || !profileName || !profilePhone || !profileAddress || !profileGender) {
-      toast.error("Please complete your profile information first (Name, DOB, Phone, Address, Gender)");
-      return;
-    }
-
     try {
-      // Update Professional Title - send all required fields
+      // Fetch current profile to get existing values
+      let currentFullName = profileName?.trim() || "";
+      let currentDob = profileDob || "";
+
+      if (!currentFullName || !currentDob) {
+        try {
+          const resp = await api.get('/api/candidates/profiles/current');
+          const p = resp.data?.result;
+          if (p) {
+            currentFullName = currentFullName || (p.fullName || "");
+            currentDob = currentDob || (p.dob || "");
+            // update local state so UI reflects fetched values
+            if (!profileName && p.fullName) setProfileName(p.fullName);
+            if (!profileDob && p.dob) setProfileDob(p.dob);
+          }
+        } catch (fetchErr) {
+          console.warn('Could not fetch current profile before updating title', fetchErr);
+        }
+      }
+
+      // Backend requires fullName and dob
+      if (!currentFullName || !currentDob) {
+        toast.error('Please complete your name and date of birth in Personal Details before updating title.');
+        return;
+      }
+
+      // Send ALL fields - use empty string for optional fields if not present
+      // Backend expects all fields in PUT request
       const profileData = {
-        dob: profileDob, // Required: LocalDate format (YYYY-MM-DD)
-        title: selectedRoleData.role, // Update with selected role
-        fullName: profileName, // Required
-        phone: profilePhone, // Required
-        address: profileAddress, // Required
-        image: profileImage || null,
-        gender: profileGender, // Required
-        link: profileLink || null
+        title: selectedRoleData.role,
+        fullName: currentFullName,
+        dob: currentDob,
+        phone: profilePhone?.trim() || "",
+        address: profileAddress?.trim() || "",
+        gender: profileGender?.trim() || "",
+        image: profileImage?.trim() || "",
+        link: profileLink?.trim() || ""
       };
 
-      await api.put("/api/candidates/profiles", profileData);
+      console.log('📤 Updating profile with:', profileData);
+
+      await api.put('/api/candidates/profiles', profileData);
 
       // Update local state
       setProfileTitle(selectedRoleData.role);
 
-      toast.success("Professional Title updated successfully!");
+      toast.success('Professional Title updated successfully!');
       setIsRoleRecommendOpen(false);
       
       // Reset states
-      setInputText("");
+      setInputText('');
       setRoleResults([]);
       setShowAllRoles(false);
       setSelectedRole(null);
       setSelectedRoleData(null);
     } catch (error: any) {
       console.error('Error updating professional title:', error);
-      toast.error("Failed to update Professional Title. Please try again.");
+      console.error('Error response:', error.response?.data || error.response);
+      toast.error(error.response?.data?.message || 'Failed to update Professional Title. Please try again.');
     }
   };
 
