@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import CVSidebar from "@/components/layout/CVSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
@@ -24,7 +24,9 @@ import {
   NoActiveCV,
   CVPageSkeleton,
   SyncCVSummaryDialog,
-  SyncConfirmDialog
+  SyncConfirmDialog,
+  DraftConversionDialog,
+  SwitchCVConfirmDialog
 } from "@/components/cv-management";
 
 type TabType = "built" | "uploaded" | "draft";
@@ -124,7 +126,7 @@ const CVManagementPage = () => {
   }, [webResumes, uploadedResumes, draftResumes, activeResume, loading, error, userId, setCVs, setDefaultCvInStore]);
 
   // Custom Hooks
-  const uploadHook = useCVUpload(uploadedCVs, setUploadedCVs, defaultCV, setDefaultCV);
+  const uploadHook = useCVUpload(uploadedCVs, setUploadedCVs, defaultCV, setDefaultCV, refresh);
   const actionsHook = useCVActions(
     uploadedCVs,
     setUploadedCVs,
@@ -133,7 +135,8 @@ const CVManagementPage = () => {
     draftCVs,
     setDraftCVs,
     defaultCV,
-    setDefaultCV
+    setDefaultCV,
+    refresh
   );
 
   useEffect(() => {
@@ -147,11 +150,28 @@ const CVManagementPage = () => {
     }
   }, [headerHeight]);
 
-  const currentCVs = activeTab === "uploaded" ? uploadedCVs : activeTab === "built" ? builtCVs : draftCVs;
-  const hasAnyResumes = uploadedCVs.length > 0 || builtCVs.length > 0 || draftCVs.length > 0;
+  // ✅ Memoize current CVs based on active tab to avoid recalculation on every render
+  const currentCVs = useMemo(() => {
+    switch (activeTab) {
+      case "uploaded":
+        return uploadedCVs;
+      case "built":
+        return builtCVs;
+      case "draft":
+        return draftCVs;
+      default:
+        return [];
+    }
+  }, [activeTab, uploadedCVs, builtCVs, draftCVs]);
+
+  // ✅ Memoize boolean check
+  const hasAnyResumes = useMemo(() => 
+    uploadedCVs.length > 0 || builtCVs.length > 0 || draftCVs.length > 0,
+    [uploadedCVs.length, builtCVs.length, draftCVs.length]
+  );
 
   // Handler for Create CV button
-  const handleCreateCV = async () => {
+  const handleCreateCV = useCallback(async () => {
     // Check package limits
     const builtCVCount = builtCVs.length;
     
@@ -190,7 +210,7 @@ const CVManagementPage = () => {
     // If can create, navigate to CV builder with clean slate
     // The cv-templates page will use SAMPLE_CV_DATA as default when no data is provided
     router.push('/cv-templates');
-  };
+  }, [builtCVs.length, currentPackage, router]);
 
   // Loading state - use skeleton
   if (loading) {
@@ -268,6 +288,7 @@ const CVManagementPage = () => {
                   onSetDefault={() => {}}
                   onPreview={() => actionsHook.handlePreview(defaultCV)}
                   onSync={() => actionsHook.handleSyncToProfile(defaultCV)}
+                  onEdit={() => actionsHook.handleEditCV(defaultCV)}
                   onDelete={() => actionsHook.handleDelete(defaultCV.id)}
                 />
               </div>
@@ -305,8 +326,11 @@ const CVManagementPage = () => {
                   cvs={currentCVs}
                   onSetDefault={actionsHook.handleSetDefault}
                   onSync={actionsHook.handleSyncToProfile}
+                  onEdit={actionsHook.handleEditCV}
                   onPreview={actionsHook.handlePreview}
                   onDelete={actionsHook.handleDelete}
+                  isSyncing={actionsHook.isSyncing}
+                  syncingCVId={actionsHook.syncingCV?.id}
                 />
               ) : (
                 <EmptyState activeTab={activeTab} onFileInput={uploadHook.handleFileInput} />
@@ -441,6 +465,23 @@ const CVManagementPage = () => {
         open={actionsHook.showSyncConfirmDialog}
         onOpenChange={actionsHook.handleCloseSyncConfirmDialog}
         onConfirm={actionsHook.handleConfirmDraftConversion}
+        isLoading={actionsHook.isSyncing}
+      />
+
+      {/* Draft Conversion Dialog - For untyped CVs (type="") */}
+      <DraftConversionDialog
+        open={actionsHook.showDraftConversionConfirm}
+        onOpenChange={actionsHook.handleCloseDraftConversionConfirm}
+        onConfirmSaveAsDraft={actionsHook.handleConfirmConvertToDraft}
+        onSkipAndContinue={actionsHook.handleSkipConvertToDraft}
+        isLoading={actionsHook.isSyncing}
+      />
+
+      {/* Switch CV Confirm Dialog - For WEB/DRAFT CVs */}
+      <SwitchCVConfirmDialog
+        open={actionsHook.showSwitchCVConfirm}
+        onOpenChange={actionsHook.handleCloseSwitchCVConfirm}
+        onConfirm={actionsHook.handleConfirmSwitchCV}
         isLoading={actionsHook.isSyncing}
       />
     </>

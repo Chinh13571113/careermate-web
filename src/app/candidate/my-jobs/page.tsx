@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, lazy, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, lazy, Suspense, useMemo, useCallback, memo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ClientHeader, ClientFooter } from "@/modules/client/components";
 import CVSidebar from "@/components/layout/CVSidebar";
 import Link from "next/link";
@@ -70,9 +70,20 @@ const MyJobsPage = () => {
   const { candidateId, fetchCandidateProfile } = useAuthStore();
   const { headerHeight } = useLayout();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // State để quản lý tab hiện tại
-  const [activeTab, setActiveTab] = useState<TabType>("applied");
+  // Get tab from URL or default to "applied" - persist tab state in URL
+  const urlTab = searchParams.get('tab') as TabType | null;
+  const [activeTab, setActiveTab] = useState<TabType>(urlTab || "applied");
+
+  // Sync tab state with URL
+  const handleTabChange = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+    // Update URL without full navigation
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
   // State for job applications
   const [jobApplications, setJobApplications] = useState<JobApplication[]>([]);
@@ -156,13 +167,17 @@ const MyJobsPage = () => {
     loadAllData();
   }, [candidateId, isAuthLoading]);
 
+  // Memoize interview applications to avoid recalculating on every render
+  const interviewApplications = useMemo(() => 
+    jobApplications.filter(
+      app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEWED'
+    ),
+    [jobApplications]
+  );
+
   // Fetch interview details for applications with interview scheduled
   useEffect(() => {
     const fetchInterviews = async () => {
-      const interviewApplications = jobApplications.filter(
-        app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEWED'
-      );
-      
       const newInterviewsMap: Record<number, InterviewScheduleResponse> = {};
       
       await Promise.all(
@@ -173,7 +188,9 @@ const MyJobsPage = () => {
               newInterviewsMap[app.id] = result.interview;
             }
           } catch (error) {
-            console.error(`Failed to fetch interview for application ${app.id}:`, error);
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`Failed to fetch interview for application ${app.id}:`, error);
+            }
           }
         })
       );
@@ -181,28 +198,31 @@ const MyJobsPage = () => {
       setInterviewsMap(newInterviewsMap);
     };
 
-    if (jobApplications.length > 0) {
+    if (interviewApplications.length > 0) {
       fetchInterviews();
     }
-  }, [jobApplications]);
+  }, [interviewApplications]);
 
-  const handleJobUnsaved = (jobId: number) => {
+  // Memoized handlers for stable references
+  const handleJobUnsaved = useCallback((jobId: number) => {
     setSavedJobs(prev => prev.filter(job => job.jobId !== jobId));
-  };
+  }, []);
 
-  const toggleJobDetails = (jobId: number) => {
-    setExpandedJobId(expandedJobId === jobId ? null : jobId);
-  };
+  const toggleJobDetails = useCallback((jobId: number) => {
+    setExpandedJobId(prev => prev === jobId ? null : jobId);
+  }, []);
 
   // Open interview detail popup
-  const openInterviewDetail = (interview: InterviewScheduleResponse) => {
+  const openInterviewDetail = useCallback((interview: InterviewScheduleResponse) => {
     setSelectedInterviewDetail(interview);
     setInterviewDetailOpen(true);
-  };
+  }, []);
 
   // Handle candidate actions
-  const handleCandidateAction = async (action: string, applicationId: number) => {
-    console.log(`Action: ${action}, Application ID: ${applicationId}`);
+  const handleCandidateAction = useCallback(async (action: string, applicationId: number) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Action: ${action}, Application ID: ${applicationId}`);
+    }
     
     try {
       switch (action) {
@@ -274,7 +294,7 @@ const MyJobsPage = () => {
       console.error('Action failed:', error);
       toast.error(error.response?.data?.message || 'Action failed. Please try again.');
     }
-  };
+  }, [candidateId, router]);
 
   // Show loading state if still checking auth
   if (isAuthLoading) {
@@ -334,7 +354,7 @@ const MyJobsPage = () => {
               {/* Tabs */}
               <div className="flex border-b border-gray-200 mb-6">
                 <button
-                  onClick={() => setActiveTab("applied")}
+                  onClick={() => handleTabChange("applied")}
                   className={`pb-3 px-1 mr-8 relative ${activeTab === "applied"
                     ? "text-gray-500 font-medium border-b-2 border-gray-500"
                     : "text-gray-600 hover:text-gray-900"
@@ -347,7 +367,7 @@ const MyJobsPage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("saved")}
+                  onClick={() => handleTabChange("saved")}
                   className={`pb-3 px-1 mr-8 relative ${activeTab === "saved"
                     ? "text-gray-500 font-medium border-b-2 border-gray-500"
                     : "text-gray-600 hover:text-gray-900"
@@ -360,7 +380,7 @@ const MyJobsPage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("recent")}
+                  onClick={() => handleTabChange("recent")}
                   className={`pb-3 px-1 mr-8 relative ${activeTab === "recent"
                     ? "text-gray-500 font-medium border-b-2 border-gray-500"
                     : "text-gray-600 hover:text-gray-900"

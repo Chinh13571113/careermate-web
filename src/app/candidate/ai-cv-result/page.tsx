@@ -411,12 +411,12 @@ export default function AICVResult() {
                 <div className="flex items-center gap-3 mb-4">
                   <Lightbulb className="w-6 h-6 text-green-600" />
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {result.recommendations.title}
+                    {result.recommendations?.title || "Gợi ý"}
                   </h2>
                 </div>
-                <p className="text-gray-600 mb-6">{result.recommendations.description}</p>
+                <p className="text-gray-600 mb-6">{result.recommendations?.description || ""}</p>
                 <ul className="space-y-3">
-                  {result.recommendations.items.map((item, idx) => (
+                  {(result.recommendations?.items || []).map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3 bg-white rounded-lg p-4 shadow-sm">
                       <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                         {idx + 1}

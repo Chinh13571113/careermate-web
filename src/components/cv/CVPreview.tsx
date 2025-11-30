@@ -18,6 +18,8 @@ import { uploadCVPDF } from "@/lib/firebase-upload";
 import { useAuthStore } from "@/store/use-auth-store";
 import toast from "react-hot-toast";
 import { useFileUrl, resolveFileUrl } from "@/lib/firebase-file";
+import { useCVStore } from "@/stores/cvStore";
+import api from "@/lib/api";
 import "./zoom-slider.css";
 
 /**
@@ -411,14 +413,16 @@ interface Props {
   cvData?: typeof SAMPLE_CV_DATA;
   onEditClick?: () => void;
   onBackClick?: () => void;
+  resumeId?: number; // Resume ID for updating after save
 }
 
 export default function CVPreview({
-  templateId = "minimalist",
+  templateId = "classic",
   zoomLevel = 100,
   cvData = SAMPLE_CV_DATA,
   onEditClick,
   onBackClick,
+  resumeId: propResumeId,
 }: Props) {
   const [zoom, setZoom] = useState(zoomLevel);
   const [isMounted, setIsMounted] = useState(false);
@@ -426,6 +430,10 @@ export default function CVPreview({
   
   // Get user from auth store
   const { user, candidateId } = useAuthStore();
+  
+  // Get resumeId from store if not passed as prop
+  const storeResumeId = useCVStore((state) => state.currentEditingResumeId);
+  const resumeId = propResumeId ?? (storeResumeId ? Number(storeResumeId) : undefined);
 
   // Fix hydration mismatch
   useEffect(() => {
@@ -746,6 +754,33 @@ export default function CVPreview({
       return;
     }
 
+    // Debug: Check if cvData is valid before export
+    console.log("🔍 Export started with cvData:", {
+      fullName: cvData.personalInfo?.fullName,
+      email: cvData.personalInfo?.email,
+      hasExperience: cvData.experience?.length || 0,
+      hasEducation: cvData.education?.length || 0,
+      templateId: templateId
+    });
+
+    // Validate cvData is not sample data
+    if (!cvData.personalInfo?.fullName || cvData.personalInfo.fullName === SAMPLE_CV_DATA.personalInfo.fullName) {
+      console.warn("⚠️ cvData might be sample data, attempting to reload from localStorage");
+      try {
+        const savedData = localStorage.getItem('cvData');
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (parsed.personalInfo?.fullName && parsed.personalInfo.fullName !== SAMPLE_CV_DATA.personalInfo.fullName) {
+            console.log("✅ Found valid data in localStorage, but state not updated yet. Please try again.");
+            toast.error("Dữ liệu CV đang được tải. Vui lòng thử lại.");
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Error checking localStorage:", e);
+      }
+    }
+
     setIsDownloading(true);
 
     try {
@@ -779,6 +814,7 @@ export default function CVPreview({
         phone: cvData.personalInfo.phone || "",
         address: cvData.personalInfo.location || "",
         website: cvData.personalInfo.website || "",
+        linkedin: cvData.personalInfo.linkedin || "", // Personal link (Github, LinkedIn, etc.)
         photoUrl: resolvedPhotoUrl, // Use resolved URL
         dob: cvData.personalInfo.dob || "",
         gender: cvData.personalInfo.gender || "",
@@ -856,10 +892,44 @@ export default function CVPreview({
       // Upload to Firebase
       const downloadURL = await uploadCVPDF(userId, pdfBlob, cleanName);
 
+      console.log("✅ CV saved to Firebase:", downloadURL);
+
+      // Update resume with Firebase URL if resumeId is available
+      if (resumeId) {
+        toast.dismiss();
+        toast.loading("Đang cập nhật thông tin CV...");
+        
+        try {
+          // Fetch current resume to preserve existing data (aboutMe, etc.)
+          // Backend PUT replaces entire resource, so we need to merge
+          let currentAboutMe = cvData.personalInfo?.summary || "";
+          
+          try {
+            const currentResumeRes = await api.get(`/api/resume`);
+            const resumes = currentResumeRes.data?.result || [];
+            const currentResume = resumes.find((r: any) => r.resumeId === resumeId);
+            if (currentResume?.aboutMe) {
+              currentAboutMe = currentResume.aboutMe;
+            }
+          } catch (fetchError) {
+            console.warn("⚠️ Could not fetch current resume, using cvData summary:", fetchError);
+          }
+
+          // Use PATCH if available, otherwise PUT with merged data
+          await api.put(`/api/resume/${resumeId}`, {
+            resumeUrl: downloadURL,
+            type: "WEB",
+            aboutMe: currentAboutMe // Preserve aboutMe to prevent data loss
+          });
+          console.log("✅ Resume updated with Firebase URL (aboutMe preserved)");
+        } catch (updateError) {
+          console.warn("⚠️ Could not update resume URL:", updateError);
+          // Don't throw - the CV was still saved to Firebase
+        }
+      }
+
       toast.dismiss();
       toast.success("CV đã được lưu thành công!");
-
-      console.log("✅ CV saved to Firebase:", downloadURL);
 
       // Optional: Download to local as well
       const url = window.URL.createObjectURL(pdfBlob);
@@ -1328,11 +1398,21 @@ export default function CVPreview({
                   <h2 className="text-xl font-serif font-bold text-gray-800 mb-4 uppercase">
                     Awards
                   </h2>
-                  <ul className="list-disc ml-5 text-gray-700 space-y-2">
+                  <div className="space-y-3">
                     {cvData.awards.map((award, i) => (
-                      <li key={i}>{award}</li>
+                      <div key={i} className="mb-2">
+                        <p className="font-semibold text-gray-800">
+                          {typeof award === 'string' ? award : award.name}
+                        </p>
+                        {typeof award === 'object' && award.organization && (
+                          <p className="text-gray-600 text-sm">{award.organization}</p>
+                        )}
+                        {typeof award === 'object' && award.date && (
+                          <p className="text-gray-500 text-sm">{award.date}</p>
+                        )}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -1529,11 +1609,21 @@ export default function CVPreview({
                   <h2 className="text-lg font-bold tracking-widest text-gray-800 mb-3 border-b border-gray-300 uppercase">
                     Awards
                   </h2>
-                  <ul className="list-disc ml-5 text-gray-700 text-sm space-y-1">
+                  <div className="space-y-2">
                     {cvData.awards.map((award, i) => (
-                      <li key={i}>{award}</li>
+                      <div key={i} className="mb-2">
+                        <p className="font-semibold text-gray-800 text-sm">
+                          {typeof award === 'string' ? award : award.name}
+                        </p>
+                        {typeof award === 'object' && award.organization && (
+                          <p className="text-gray-600 text-xs">{award.organization}</p>
+                        )}
+                        {typeof award === 'object' && award.date && (
+                          <p className="text-gray-500 text-xs">{award.date}</p>
+                        )}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -1638,28 +1728,57 @@ export default function CVPreview({
                 </div>
 
                 {/* Soft Skills */}
-                <div className="mb-6">
-                  <h2 className="text-lg uppercase font-bold text-gray-800 mb-3 border-b border-gray-300">
-                    Soft Skills
-                  </h2>
-                  <ul className="list-disc ml-5 text-gray-700 mb-2">
-                    {cvData.softSkills &&
-                      cvData.softSkills.map((skill, index) => (
+                {cvData.softSkills && cvData.softSkills.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-lg uppercase font-bold text-gray-800 mb-3 border-b border-gray-300">
+                      Soft Skills
+                    </h2>
+                    <ul className="list-disc ml-5 text-gray-700 mb-2">
+                      {cvData.softSkills.map((skill, index) => (
                         <li key={index} className="mb-1">
                           {skill}
                         </li>
                       ))}
-                    {!cvData.softSkills && (
-                      <>
-                        <li className="mb-1">Problem solving</li>
-                        <li className="mb-1">
-                          Critical Thinking: Identifying and addressing root
-                          causes of issues
-                        </li>
-                      </>
-                    )}
-                  </ul>
-                </div>
+                    </ul>
+                  </div>
+                )}
+
+                {/* Highlight Projects - using work experience format */}
+                {cvData.projects && cvData.projects.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-lg uppercase font-bold text-gray-800 mb-3 border-b border-gray-300">
+                      HIGHLIGHT PROJECTS
+                    </h2>
+                    <div className="space-y-4">
+                      {cvData.projects.map((project, index) => (
+                        <div key={index} className="mb-4">
+                          <div className="flex items-center">
+                            {project.period && (
+                              <div className="w-28 text-gray-600 text-sm">
+                                {project.period}
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <h3 className="font-bold text-gray-800">
+                                {project.name}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className={project.period ? "ml-28" : ""}>
+                            <p className="text-gray-700 text-sm mb-2">
+                              {project.description}
+                            </p>
+                            {project.technologies && project.technologies.length > 0 && (
+                              <p className="text-gray-600 text-xs">
+                                Tech: {project.technologies.join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Column */}
@@ -1737,30 +1856,47 @@ export default function CVPreview({
                 </div>
 
                 {/* CERTIFICATE */}
-                {(cvData.certifications || cvData.awards) && (
+                {cvData.certifications && cvData.certifications.length > 0 && (
                   <div className="mb-6">
                     <h2 className="text-lg uppercase font-bold text-gray-800 mb-3 border-b border-gray-300">
                       CERTIFICATE
                     </h2>
                     <div className="space-y-2">
-                      {cvData.certifications &&
-                        cvData.certifications.map((cert, index) => (
-                          <div key={index} className="mb-2">
-                            <p className="font-bold text-gray-800">
-                              {cert.name}
-                            </p>
-                            <p className="text-gray-600 text-sm">
-                              {cert.issuer}
-                            </p>
-                            <p className="text-gray-600 text-sm">{cert.date}</p>
-                          </div>
-                        ))}
-                      {cvData.awards &&
-                        cvData.awards.map((award, index) => (
-                          <div key={index} className="mb-2">
-                            <p className="font-bold text-gray-800">{award}</p>
-                          </div>
-                        ))}
+                      {cvData.certifications.map((cert, index) => (
+                        <div key={index} className="mb-2">
+                          <p className="font-bold text-gray-800">
+                            {cert.name}
+                          </p>
+                          <p className="text-gray-600 text-sm">
+                            {cert.issuer}
+                          </p>
+                          <p className="text-gray-600 text-sm">{cert.date}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AWARD */}
+                {cvData.awards && cvData.awards.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-lg uppercase font-bold text-gray-800 mb-3 border-b border-gray-300">
+                      AWARD
+                    </h2>
+                    <div className="space-y-2">
+                      {cvData.awards.map((award, index) => (
+                        <div key={index} className="mb-2">
+                          <p className="font-bold text-gray-800">
+                            {typeof award === 'string' ? award : award.name}
+                          </p>
+                          {typeof award === 'object' && award.organization && (
+                            <p className="text-gray-600 text-sm">{award.organization}</p>
+                          )}
+                          {typeof award === 'object' && award.date && (
+                            <p className="text-gray-600 text-sm">{award.date}</p>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -2905,12 +3041,20 @@ export default function CVPreview({
 
       {/* Sticky Action Buttons */}
       <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 shadow-sm">
+        {/* Loading Status Banner */}
+        {isDownloading && (
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-200">
+            <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm font-medium text-green-700">Đang tạo & lưu CV...</span>
+          </div>
+        )}
         <div className="flex items-center justify-between p-4">
           <div className="text-sm text-gray-600"></div>
           <div className="flex space-x-3">
             <Link
               href="/candidate/cm-profile"
-              className="px-4 py-2 bg-[#163988] hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1"
+              className={`px-4 py-2 bg-[#163988] hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1 ${isDownloading ? 'opacity-50 pointer-events-none' : ''}`}
+              onClick={(e) => isDownloading && e.preventDefault()}
             >
               <svg
                 width="18"
