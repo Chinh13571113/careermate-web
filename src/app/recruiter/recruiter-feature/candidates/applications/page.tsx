@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Filter, Download, FileText, Calendar, MapPin, Clock, CheckCircle, XCircle, Eye, RefreshCw, AlertCircle } from "lucide-react";
+import { Search, Filter, Download, FileText, Calendar, MapPin, Clock, CheckCircle, XCircle, Eye, RefreshCw, AlertCircle, MoreHorizontal, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getJobApplications, getRecruiterApplications, getRecruiterApplicationsFiltered, approveJobApplication, rejectJobApplication, setReviewingJobApplication, JobApplication, updateJobApplicationStatus } from "@/lib/recruiter-api";
@@ -18,6 +18,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function CandidateApplicationsPage() {
   const router = useRouter();
@@ -53,6 +60,7 @@ export default function CandidateApplicationsPage() {
     'INTERVIEW_SCHEDULED',
     'INTERVIEWED',
     'APPROVED',
+    'ACCEPTED',
     'WORKING',
     'REJECTED',
     'PROBATION_FAILED',
@@ -121,10 +129,6 @@ export default function CandidateApplicationsPage() {
             toast.success('Employment started successfully!');
             await fetchApplications();
           }
-          break;
-          
-        case 'send_offer':
-          toast.error('Send offer feature not yet implemented');
           break;
           
         case 'terminate':
@@ -412,31 +416,57 @@ export default function CandidateApplicationsPage() {
 
                     {/* Actions */}
                     <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2 flex-wrap">
-                        {/* View Details Button */}
-                        <button
+                      <div className="flex items-center justify-end gap-2">
+                        {/* View Details Button - Always visible */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             setSelectedApplication(application);
                             setIsDetailDialogOpen(true);
                           }}
-                          className="p-2 rounded-full hover:bg-blue-100 text-blue-600 transition"
+                          className="h-8 w-8 p-0"
                           title="View details"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
+                        </Button>
 
-                        {/* Dynamic Action Buttons based on status */}
-                        {getRecruiterActions(application.status).slice(0, 3).map((statusAction) => (
+                        {/* Primary Action Button - First action prominent */}
+                        {getRecruiterActions(application.status).length > 0 && (
                           <Button
-                            key={statusAction.action}
-                            variant={statusAction.variant as any}
+                            variant={getRecruiterActions(application.status)[0].variant as any}
                             size="sm"
-                            onClick={() => handleRecruiterAction(statusAction.action, application.id)}
-                            className="text-xs px-2 py-1 h-7"
+                            onClick={() => handleRecruiterAction(
+                              getRecruiterActions(application.status)[0].action, 
+                              application.id
+                            )}
+                            className="h-8 text-xs whitespace-nowrap"
                           >
-                            {statusAction.label}
+                            {getRecruiterActions(application.status)[0].label}
                           </Button>
-                        ))}
+                        )}
+
+                        {/* More Actions Dropdown - If more than 1 action */}
+                        {getRecruiterActions(application.status).length > 1 && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {getRecruiterActions(application.status).slice(1).map((statusAction, index) => (
+                                <DropdownMenuItem
+                                  key={statusAction.action}
+                                  onClick={() => handleRecruiterAction(statusAction.action, application.id)}
+                                  className={statusAction.variant === 'destructive' ? 'text-red-600 focus:text-red-600' : ''}
+                                >
+                                  {statusAction.label}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -164,7 +164,7 @@ export const STATUS_CONFIGS: Record<JobApplicationStatus, StatusConfig> = {
     borderColor: 'border-teal-300',
     icon: '✅',
     lucideIcon: 'CheckCircle',
-    text: 'Offer accepted - Pending onboarding',
+    text: 'Accepted - Pending onboarding',
     category: 'employment',
     isTerminal: false,
   },
@@ -233,8 +233,8 @@ export const STATUS_TRANSITIONS: StatusTransition[] = [
   { from: 'SUBMITTED', to: ['REVIEWING', 'WITHDRAWN', 'BANNED'], actor: 'recruiter' },
   { from: 'SUBMITTED', to: ['WITHDRAWN'], actor: 'candidate' },
   
-  // From REVIEWING
-  { from: 'REVIEWING', to: ['INTERVIEW_SCHEDULED', 'APPROVED', 'REJECTED', 'NO_RESPONSE', 'WITHDRAWN', 'BANNED'], actor: 'recruiter' },
+  // From REVIEWING - must schedule interview, cannot directly approve
+  { from: 'REVIEWING', to: ['INTERVIEW_SCHEDULED', 'REJECTED', 'NO_RESPONSE', 'WITHDRAWN', 'BANNED'], actor: 'recruiter' },
   { from: 'REVIEWING', to: ['WITHDRAWN'], actor: 'candidate' },
   { from: 'REVIEWING', to: ['NO_RESPONSE'], actor: 'system' },
   
@@ -248,11 +248,11 @@ export const STATUS_TRANSITIONS: StatusTransition[] = [
   // From INTERVIEWED
   { from: 'INTERVIEWED', to: ['APPROVED', 'REJECTED', 'INTERVIEW_SCHEDULED'], actor: 'recruiter' },
   
-  // From APPROVED
-  { from: 'APPROVED', to: ['ACCEPTED', 'REJECTED'], actor: 'candidate' },
-  { from: 'APPROVED', to: ['REJECTED'], actor: 'recruiter' },
+  // From APPROVED - recruiter creates employment, candidate can still withdraw
+  { from: 'APPROVED', to: ['WORKING', 'REJECTED'], actor: 'recruiter' },
+  { from: 'APPROVED', to: ['WITHDRAWN'], actor: 'candidate' },
   
-  // From ACCEPTED
+  // From ACCEPTED (legacy - kept for backward compatibility)
   { from: 'ACCEPTED', to: ['WORKING'], actor: 'recruiter' },
   { from: 'ACCEPTED', to: ['WITHDRAWN'], actor: 'candidate' },
   
@@ -287,7 +287,6 @@ export const STATUS_ACTIONS: Record<JobApplicationStatus, StatusActions> = {
     ],
     recruiter: [
       { label: 'Schedule Interview', action: 'schedule_interview', variant: 'default', icon: 'Calendar' },
-      { label: 'Approve', action: 'approve', variant: 'default', icon: 'ThumbsUp' },
       { label: 'Reject', action: 'reject', variant: 'destructive', icon: 'XCircle' },
       { label: 'Ban', action: 'ban', variant: 'destructive', icon: 'Ban' },
     ],
@@ -327,12 +326,11 @@ export const STATUS_ACTIONS: Record<JobApplicationStatus, StatusActions> = {
   },
   APPROVED: {
     candidate: [
-      { label: 'Accept Offer', action: 'accept_offer', variant: 'default', icon: 'CheckCircle' },
-      { label: 'Decline Offer', action: 'decline_offer', variant: 'destructive', icon: 'XCircle' },
+      { label: 'View Details', action: 'view_details', variant: 'outline', icon: 'Eye' },
+      { label: 'Withdraw', action: 'withdraw', variant: 'outline', icon: 'Undo2' },
     ],
     recruiter: [
       { label: 'Create Employment', action: 'create_employment', variant: 'default', icon: 'Briefcase' },
-      { label: 'Send Offer', action: 'send_offer', variant: 'outline', icon: 'Mail' },
       { label: 'Reject', action: 'reject', variant: 'destructive', icon: 'XCircle' },
     ],
   },
@@ -346,7 +344,7 @@ export const STATUS_ACTIONS: Record<JobApplicationStatus, StatusActions> = {
       { label: 'Withdraw', action: 'withdraw', variant: 'outline', icon: 'Undo2' },
     ],
     recruiter: [
-      { label: 'Start Employment', action: 'start_employment', variant: 'default', icon: 'Briefcase' },
+      { label: 'Create Employment', action: 'create_employment', variant: 'default', icon: 'Briefcase' },
       { label: 'View Details', action: 'view_employment', variant: 'outline', icon: 'Eye' },
     ],
   },
