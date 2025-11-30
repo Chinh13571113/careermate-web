@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Sparkles, Loader2, Briefcase, Star, Lock } from "lucide-react";
+import { X, Sparkles, Loader2, Briefcase, Star, Lock, Search, Tag } from "lucide-react";
 import { checkJobRecommendationAccess } from "@/lib/entitlement-api";
 import { getJobRecommendations, type JobRecommendation } from "@/lib/job-recommendation-api";
 import { fetchCurrentCandidateProfile } from "@/lib/candidate-profile-api";
@@ -14,23 +14,43 @@ interface JobRecommendModalProps {
   onClose: () => void;
 }
 
+interface ResumeSkill {
+  skillId: number;
+  skillName: string;
+  skillType: string;
+  yearOfExperience?: number;
+}
+
 export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingSkills, setLoadingSkills] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [contentBasedJobs, setContentBasedJobs] = useState<JobRecommendation[]>([]);
   const [collaborativeJobs, setCollaborativeJobs] = useState<JobRecommendation[]>([]);
   const [hotJobs, setHotJobs] = useState<JobRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'main' | 'recommended' | 'hot'>('main');
+  
+  // New states for input form
+  const [showInputForm, setShowInputForm] = useState(true);
+  const [titleInput, setTitleInput] = useState("");
+  const [resumeSkills, setResumeSkills] = useState<string[]>([]);
+  const [candidateId, setCandidateId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      checkAccessAndFetch();
+      // Reset states when modal opens
+      setShowInputForm(true);
+      setContentBasedJobs([]);
+      setCollaborativeJobs([]);
+      setHotJobs([]);
+      setTitleInput("");
+      checkAccessAndLoadSkills();
     }
   }, [isOpen]);
 
-  const checkAccessAndFetch = async () => {
+  const checkAccessAndLoadSkills = async () => {
     try {
       setLoading(true);
       
@@ -44,8 +64,18 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
         return;
       }
 
-      // If has access, fetch recommendations
-      await fetchRecommendations();
+      // Fetch candidate profile
+      const profile = await fetchCurrentCandidateProfile();
+      if (profile.candidateId) {
+        setCandidateId(profile.candidateId);
+        if (profile.title) {
+          setTitleInput(profile.title);
+        }
+      }
+
+      // Load skills from active resume
+      await loadActiveResumeSkills();
+      
     } catch (error) {
       console.error('Error checking access:', error);
       setShowUpgradePrompt(true);
@@ -54,42 +84,74 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
     }
   };
 
-  const fetchRecommendations = async () => {
+  const loadActiveResumeSkills = async () => {
     try {
-      // Fetch candidate profile
-      const profile = await fetchCurrentCandidateProfile();
+      setLoadingSkills(true);
       
-      if (!profile.candidateId) {
-        toast.error("Không tìm thấy thông tin tài khoản");
-        return;
-      }
-
-      // Fetch resume data
+      // Fetch all resumes
       const resumeResponse = await api.get('/api/resume');
       
-      let skills: string[] = [];
-      let aboutMe = "";
-
       if (resumeResponse.data.result && resumeResponse.data.result.length > 0) {
-        const resume = resumeResponse.data.result[0];
+        // Find active resume
+        const activeResume = resumeResponse.data.result.find(
+          (resume: any) => resume.isActive === true
+        );
         
-        if (resume.skills && resume.skills.length > 0) {
-          skills = resume.skills.map((skill: any) => skill.skillName);
-        }
-        
-        if (resume.aboutMe) {
-          aboutMe = resume.aboutMe;
+        if (activeResume && activeResume.skills && activeResume.skills.length > 0) {
+          const skills = activeResume.skills.map((skill: ResumeSkill) => skill.skillName);
+          setResumeSkills(skills);
+          console.log('✅ Loaded skills from active resume:', skills);
+        } else {
+          // If no active resume, try to get skills from first resume
+          const firstResume = resumeResponse.data.result[0];
+          if (firstResume.skills && firstResume.skills.length > 0) {
+            const skills = firstResume.skills.map((skill: ResumeSkill) => skill.skillName);
+            setResumeSkills(skills);
+            console.log('✅ Loaded skills from first resume:', skills);
+          } else {
+            console.log('⚠️ No skills found in any resume');
+            setResumeSkills([]);
+          }
         }
       }
+    } catch (error) {
+      console.error('Error loading resume skills:', error);
+      setResumeSkills([]);
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
+
+  const handleSearchRecommendations = async () => {
+    if (!titleInput.trim()) {
+      toast.error("Vui lòng nhập tiêu đề công việc");
+      return;
+    }
+
+    if (!candidateId) {
+      toast.error("Không tìm thấy thông tin tài khoản");
+      return;
+    }
+
+    if (resumeSkills.length === 0) {
+      toast.error("Không tìm thấy skills trong CV. Vui lòng cập nhật CV trước.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setShowInputForm(false);
 
       // Build request
       const requestData = {
-        candidate_id: profile.candidateId,
-        skills: skills,
-        title: profile.title || "Developer",
-        description: aboutMe || "No description available",
+        candidate_id: candidateId,
+        skills: resumeSkills,
+        title: titleInput.trim(),
+        description: `Looking for ${titleInput.trim()} position with skills: ${resumeSkills.join(', ')}`,
         top_n: 5
       };
+
+      console.log('🔵 Job Recommendation Request:', requestData);
 
       const response = await getJobRecommendations(requestData);
       
@@ -110,7 +172,17 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
     } catch (error: any) {
       console.error('Error fetching recommendations:', error);
       toast.error("Không thể tải gợi ý công việc");
+      setShowInputForm(true);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleBackToInput = () => {
+    setShowInputForm(true);
+    setContentBasedJobs([]);
+    setCollaborativeJobs([]);
+    setHotJobs([]);
   };
 
   const handleUpgrade = () => {
@@ -148,7 +220,9 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
-              <p className="text-gray-600">Đang tìm kiếm công việc phù hợp...</p>
+              <p className="text-gray-600">
+                {loadingSkills ? "Đang tải skills từ CV..." : "Đang tìm kiếm công việc phù hợp..."}
+              </p>
             </div>
           ) : showUpgradePrompt ? (
             <div className="p-8">
@@ -199,6 +273,111 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
                 </button>
               </div>
             </div>
+          ) : showInputForm ? (
+            /* Input Form - Title và Skills */
+            <div className="p-8">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Tìm công việc phù hợp</h3>
+                <p className="text-gray-600 text-sm">
+                  Nhập tiêu đề công việc bạn mong muốn, hệ thống sẽ phân tích dựa trên skills trong CV của bạn
+                </p>
+              </div>
+
+              {/* Title Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Tiêu đề công việc <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={titleInput}
+                    onChange={(e) => setTitleInput(e.target.value)}
+                    placeholder="VD: Frontend Developer, Backend Engineer, Fullstack..."
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearchRecommendations();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Skills from Resume */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Tag className="w-4 h-4 text-blue-600" />
+                  <label className="text-sm font-semibold text-gray-700">
+                    Skills từ CV của bạn
+                  </label>
+                </div>
+                
+                {loadingSkills ? (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Đang tải skills...</span>
+                  </div>
+                ) : resumeSkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {resumeSkills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-yellow-800 text-sm">
+                      ⚠️ Không tìm thấy skills trong CV. Vui lòng cập nhật CV trước khi tìm kiếm.
+                    </p>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        router.push('/candidate/cv-profile');
+                      }}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Cập nhật CV ngay →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200 mb-6">
+                <p className="text-sm text-indigo-800">
+                  <strong>💡 Mẹo:</strong> Hệ thống sẽ phân tích title và skills để tìm các công việc phù hợp nhất với bạn dựa trên:
+                </p>
+                <ul className="mt-2 text-sm text-indigo-700 space-y-1 ml-4">
+                  <li>• Content-based: Dựa trên nội dung mô tả công việc</li>
+                  <li>• Collaborative: Dựa trên hành vi của ứng viên tương tự</li>
+                  <li>• Hybrid: Kết hợp cả hai phương pháp</li>
+                </ul>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={handleSearchRecommendations}
+                  disabled={!titleInput.trim() || resumeSkills.length === 0}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Search className="w-5 h-5" />
+                  Tìm kiếm công việc
+                </button>
+              </div>
+            </div>
           ) : (contentBasedJobs.length === 0 && collaborativeJobs.length === 0 && hotJobs.length === 0) ? (
             <div className="text-center py-20 px-6">
               <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -208,20 +387,44 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
                 Không tìm thấy công việc phù hợp
               </h3>
               <p className="text-gray-600 mb-6">
-                Hãy cập nhật thêm thông tin trong profile để nhận được gợi ý tốt hơn.
+                Thử với tiêu đề công việc khác hoặc cập nhật thêm skills trong CV.
               </p>
-              <button
-                onClick={() => {
-                  onClose();
-                  router.push('/candidate/cm-profile');
-                }}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-              >
-                Cập nhật Profile
-              </button>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleBackToInput}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Thử lại
+                </button>
+                <button
+                  onClick={() => {
+                    onClose();
+                    router.push('/candidate/cv-profile');
+                  }}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Cập nhật CV
+                </button>
+              </div>
             </div>
           ) : (
             <div className="p-6">
+              {/* Search Info & New Search Button */}
+              <div className="flex items-center justify-between mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm text-gray-700">
+                    Kết quả cho: <strong className="text-blue-700">{titleInput}</strong>
+                  </span>
+                </div>
+                <button
+                  onClick={handleBackToInput}
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  Tìm kiếm mới
+                </button>
+              </div>
+
               {/* Tabs */}
               <div className="flex gap-2 mb-6 border-b border-gray-200">
                 <button

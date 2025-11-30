@@ -345,7 +345,7 @@ export default function RoadMapPage() {
                               setShowUpgradeModal(true);
                               return;
                             }
-                            router.push(`/candidate/road-map/${encodeURIComponent(roadmap.title)}`);
+                            router.push(`/candidate/road-map-flow/${encodeURIComponent(roadmap.title)}`);
                           }}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium ml-4"
                         >
