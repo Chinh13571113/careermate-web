@@ -442,10 +442,9 @@ export default function CMProfile() {
         // Also update Zustand store to keep it in sync
         setCurrentEditingResume(String(resume.resumeId));
 
-        // Load About Me
-        if (resume.aboutMe) {
-          aboutMeHook.setAboutMeText(resume.aboutMe);
-        }
+        // Load About Me - always set, even if empty to ensure state sync
+        console.log("📝 Loading About Me from resume:", resume.aboutMe);
+        aboutMeHook.setAboutMeText(resume.aboutMe || "");
 
         // Load Awards
         if (resume.awards && resume.awards.length > 0) {
