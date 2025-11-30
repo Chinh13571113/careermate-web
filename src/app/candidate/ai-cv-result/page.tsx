@@ -224,9 +224,9 @@ export default function AICVResult() {
 
             {/* Summary Section - Overview with Radar Chart */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Tổng quan</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Overview</h2>
               <p className="mb-1">
-                <span className="text-gray-700">Mức độ phù hợp: </span>
+                <span className="text-gray-700">Suitability Level: </span>
                 <span className={`text-xl font-bold ${getScoreColor(result.overall_score)}`}>
                   {result.overall_score}
                 </span>
@@ -238,20 +238,20 @@ export default function AICVResult() {
                 <div className="flex items-center justify-center">
                   <RadarChart 
                     data={[
-                      { label: "Nội dung", value: result.content.score, color: "#3b82f6" },
-                      { label: "Định dạng", value: result.format.score, color: "#f97316" },
-                      { label: "Phong cách", value: result.style.score, color: "#8b5cf6" },
-                      { label: "Các mục", value: result.sections.score, color: "#ef4444" },
-                      { label: "Kỹ năng", value: result.skills.score, color: "#22c55e" },
+                      { label: "Content", value: result.content.score, color: "#3b82f6" },
+                      { label: "Format", value: result.format.score, color: "#f97316" },
+                      { label: "Style", value: result.style.score, color: "#8b5cf6" },
+                      { label: "Sections", value: result.sections.score, color: "#ef4444" },
+                      { label: "Skills", value: result.skills.score, color: "#22c55e" },
                     ]}
                   />
                 </div>
 
                 {/* Strengths & Improvements */}
                 <div className="space-y-6">
-                  {/* Điểm nổi bật */}
+                  {/* Strengths */}
                   <div className="bg-green-50 rounded-xl p-5 border border-green-200">
-                    <h3 className="font-bold text-gray-900 mb-3">Điểm nổi bật</h3>
+                    <h3 className="font-bold text-gray-900 mb-3">Strengths</h3>
                     <ul className="space-y-2">
                       {result.summary.strengths.map((strength, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-gray-700">
@@ -262,9 +262,9 @@ export default function AICVResult() {
                     </ul>
                   </div>
 
-                  {/* Cải thiện */}
+                  {/* Improvements */}
                   <div className="bg-amber-50 rounded-xl p-5 border border-amber-200">
-                    <h3 className="font-bold text-gray-900 mb-3">Cải thiện</h3>
+                    <h3 className="font-bold text-gray-900 mb-3">Improvements</h3>
                     <ul className="space-y-2">
                       {result.summary.improvements.map((improvement, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-gray-700">

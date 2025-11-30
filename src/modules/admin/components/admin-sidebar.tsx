@@ -224,7 +224,7 @@ export function AdminSidebar() {
     return (
         <aside
             className={cn(
-                "fixed left-0 z-40 h-screen border-r bg-white shadow-sm transition-all duration-300 ease-in-out pt-16",
+                "fixed left-0 z-40 h-screen border-r bg-white shadow-sm transition-all duration-300 ease-in-out pt-10",
                 isOpen ? "w-64" : "w-16"
             )}
             onMouseEnter={handleMouseEnter}
