@@ -900,11 +900,28 @@ export default function CVPreview({
         toast.loading("Đang cập nhật thông tin CV...");
         
         try {
+          // Fetch current resume to preserve existing data (aboutMe, etc.)
+          // Backend PUT replaces entire resource, so we need to merge
+          let currentAboutMe = cvData.personalInfo?.summary || "";
+          
+          try {
+            const currentResumeRes = await api.get(`/api/resume`);
+            const resumes = currentResumeRes.data?.result || [];
+            const currentResume = resumes.find((r: any) => r.resumeId === resumeId);
+            if (currentResume?.aboutMe) {
+              currentAboutMe = currentResume.aboutMe;
+            }
+          } catch (fetchError) {
+            console.warn("⚠️ Could not fetch current resume, using cvData summary:", fetchError);
+          }
+
+          // Use PATCH if available, otherwise PUT with merged data
           await api.put(`/api/resume/${resumeId}`, {
             resumeUrl: downloadURL,
-            type: "WEB"
+            type: "WEB",
+            aboutMe: currentAboutMe // Preserve aboutMe to prevent data loss
           });
-          console.log("✅ Resume updated with Firebase URL");
+          console.log("✅ Resume updated with Firebase URL (aboutMe preserved)");
         } catch (updateError) {
           console.warn("⚠️ Could not update resume URL:", updateError);
           // Don't throw - the CV was still saved to Firebase
