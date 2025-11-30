@@ -16,6 +16,7 @@ interface CVData {
   phone?: string;
   address?: string;
   website?: string;
+  linkedin?: string; // Personal link from CVPreview
   photoUrl?: string;
   dob?: string;
   gender?: string;
@@ -143,6 +144,7 @@ function normalizeCVData(rawData: any): CVData {
     phone: personalInfo.phone || rawData.phone || '',
     address: personalInfo.location || personalInfo.address || rawData.address || '',
     website: personalInfo.website || personalInfo.link || rawData.website || '',
+    linkedin: personalInfo.linkedin || rawData.linkedin || '', // Personal link from CVPreview
     photoUrl: personalInfo.photoUrl || rawData.photoUrl || '',
     dob: personalInfo.dob || rawData.dob || '',
     gender: personalInfo.gender || rawData.gender || '',
@@ -184,12 +186,12 @@ function normalizeCVData(rawData: any): CVData {
       date: cert.date || ''
     })),
     
-    // Projects
-    projects: (rawData.projects || []).map((proj: any) => ({
-      name: proj.name || '',
+    // Projects - fallback to highlightProjects if projects is empty
+    projects: ((rawData.projects?.length ? rawData.projects : rawData.highlightProjects) || []).map((proj: any) => ({
+      name: proj.name || proj.title || '',
       description: proj.description || '',
       period: proj.period || '',
-      url: proj.url || ''
+      url: proj.url || proj.link || ''
     })),
     
     // Awards
@@ -566,6 +568,44 @@ function ModernTemplate({ data }: { data: CVData }) {
   );
 }
 
+// SVG Icons for print templates (matching CVPreview's Lucide icons)
+const PhoneIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="vintage-icon">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+);
+
+const MailIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="vintage-icon">
+    <rect width="20" height="16" x="2" y="4" rx="2"/>
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+  </svg>
+);
+
+const CalendarIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="vintage-icon">
+    <path d="M8 2v4"/>
+    <path d="M16 2v4"/>
+    <rect width="18" height="18" x="3" y="4" rx="2"/>
+    <path d="M3 10h18"/>
+  </svg>
+);
+
+const MapPinIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="vintage-icon">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+
+const GlobeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="vintage-icon">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+    <path d="M2 12h20"/>
+  </svg>
+);
+
 function VintageTemplate({ data }: { data: CVData }) {
   return (
     <div className="cv-page vintage-template">
@@ -619,6 +659,24 @@ function VintageTemplate({ data }: { data: CVData }) {
             )}
           </section>
         )}
+
+        {/* Highlight Projects */}
+        {data.projects && data.projects.length > 0 && (
+          <section className="vintage-section">
+            <h2 className="vintage-section-title">Highlight Projects</h2>
+            {data.projects.map((project, index) => (
+              <div key={index} className="vintage-experience-item">
+                <div className="vintage-experience-header">
+                  {project.period && <span className="vintage-period">{project.period}</span>}
+                  <div className="vintage-experience-content">
+                    <h3 className="vintage-position-title">{project.name}</h3>
+                  </div>
+                </div>
+                {project.description && <p className="vintage-description">{project.description}</p>}
+              </div>
+            ))}
+          </section>
+        )}
       </div>
 
       {/* Right Column */}
@@ -634,26 +692,32 @@ function VintageTemplate({ data }: { data: CVData }) {
         <div className="vintage-contact">
           {data.phone && (
             <div className="vintage-contact-item">
-              <span className="vintage-contact-icon">📞</span>
+              <PhoneIcon />
               <span className="vintage-contact-text">{data.phone}</span>
             </div>
           )}
           {data.email && (
             <div className="vintage-contact-item">
-              <span className="vintage-contact-icon">✉️</span>
+              <MailIcon />
               <span className="vintage-contact-text">{data.email}</span>
+            </div>
+          )}
+          {data.dob && (
+            <div className="vintage-contact-item">
+              <CalendarIcon />
+              <span className="vintage-contact-text">{data.dob}</span>
             </div>
           )}
           {data.address && (
             <div className="vintage-contact-item">
-              <span className="vintage-contact-icon">📍</span>
+              <MapPinIcon />
               <span className="vintage-contact-text">{data.address}</span>
             </div>
           )}
-          {data.website && (
+          {data.linkedin && (
             <div className="vintage-contact-item">
-              <span className="vintage-contact-icon">🌐</span>
-              <span className="vintage-contact-text">{data.website}</span>
+              <GlobeIcon />
+              <span className="vintage-contact-text">{data.linkedin}</span>
             </div>
           )}
         </div>
@@ -683,6 +747,25 @@ function VintageTemplate({ data }: { data: CVData }) {
               <div key={index} className="vintage-cert-item">
                 <p className="vintage-cert-name">{cert.name}</p>
                 <p className="vintage-cert-issuer">{cert.issuer} • {cert.date}</p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Awards */}
+        {data.awards && data.awards.length > 0 && (
+          <section className="vintage-section">
+            <h2 className="vintage-section-title">Awards</h2>
+            {data.awards.map((award, index) => (
+              <div key={index} className="vintage-cert-item">
+                <p className="vintage-cert-name">
+                  {typeof award === 'string' ? award : award.name}
+                </p>
+                {typeof award === 'object' && (award.organization || award.date) && (
+                  <p className="vintage-cert-issuer">
+                    {[award.organization, award.date].filter(Boolean).join(' • ')}
+                  </p>
+                )}
               </div>
             ))}
           </section>

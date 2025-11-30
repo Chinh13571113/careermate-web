@@ -10,3 +10,5 @@ export { CVParsedPreviewModal } from "./CVParsedPreviewModal";
 export { CVSyncStatusModal } from "./CVSyncStatusModal";
 export { default as SyncCVSummaryDialog } from "./SyncCVSummaryDialog";
 export { default as SyncConfirmDialog } from "./SyncConfirmDialog";
+export { default as DraftConversionDialog } from "./DraftConversionDialog";
+export { default as SwitchCVConfirmDialog } from "./SwitchCVConfirmDialog";

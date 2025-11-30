@@ -7,7 +7,11 @@ interface CVCardProps {
   onSetDefault?: () => void;
   onPreview?: () => void;
   onSync?: () => void;
+  onEdit?: () => void;
   onDelete?: () => void;
+  // Loading states
+  isSyncing?: boolean;
+  isDisabled?: boolean;
 }
 
 export const CVCard = ({
@@ -16,7 +20,10 @@ export const CVCard = ({
   onSetDefault,
   onPreview,
   onSync,
-  onDelete
+  onEdit,
+  onDelete,
+  isSyncing = false,
+  isDisabled = false
 }: CVCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -126,6 +133,14 @@ export const CVCard = ({
           {cv.fileSize && <span>{cv.fileSize}</span>}
         </div>
 
+        {/* Syncing Status Banner */}
+        {isSyncing && (
+          <div className="flex items-center gap-1.5 px-2 py-1 mb-2 bg-blue-50 border border-blue-200 rounded text-blue-700">
+            <div className="w-3 h-3 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+            <span className="text-[10px] font-medium">Đang đồng bộ...</span>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-1.5 items-center">
           {!isDefault && onSetDefault && (
@@ -134,23 +149,47 @@ export const CVCard = ({
                 e.stopPropagation();
                 onSetDefault();
               }}
-              className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+              disabled={isDisabled}
+              className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Set Default
             </button>
           )}
 
-          {onSync && (
+          {/* Edit Button - Show for builder and draft CVs */}
+          {onEdit && (cv.source === "builder" || cv.source === "draft") && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              disabled={isDisabled}
+              className="flex-1 px-2 py-1 text-[10px] font-medium text-white bg-gradient-to-r from-[#3a4660] to-gray-400 hover:from-[#3a4660] hover:to-[#3a4660] rounded transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Edit CV in profile"
+            >
+              Edit
+            </button>
+          )}
+
+          {/* Sync Button - Only show for uploaded CVs */}
+          {onSync && cv.source === "upload" && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onSync();
               }}
-              disabled={cv.parsedStatus !== "ready"}
-              className="flex-1 px-2 py-1 text-[10px] font-medium text-white bg-gradient-to-r from-[#3a4660] to-gray-400 hover:from-[#3a4660] hover:to-[#3a4660] rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+              disabled={cv.parsedStatus !== "ready" || isDisabled}
+              className="flex-1 px-2 py-1 text-[10px] font-medium text-white bg-gradient-to-r from-[#3a4660] to-gray-400 hover:from-[#3a4660] hover:to-[#3a4660] rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-1"
               title={cv.parsedStatus !== "ready" ? "CV not parsed yet" : "Sync CV to profile"}
             >
-              Sync
+              {isSyncing ? (
+                <>
+                  <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Syncing...</span>
+                </>
+              ) : (
+                "Sync"
+              )}
             </button>
           )}
 
@@ -161,6 +200,7 @@ export const CVCard = ({
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
+              disabled={isDisabled}
               className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

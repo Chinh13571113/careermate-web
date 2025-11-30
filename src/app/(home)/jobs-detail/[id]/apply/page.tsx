@@ -343,8 +343,14 @@ export default function JobApplicationPage() {
 
       toast.success("Application submitted successfully!", { id: "submit-app" });
 
-      // Navigate to success page
-      router.push(`/jobs-detail/${jobId}/apply/success?applicationId=${response.result.id}`);
+      // Navigate to success page with job info (no extra API call needed on success page)
+      const successParams = new URLSearchParams({
+        applicationId: response.result.id.toString(),
+        jobTitle: jobDetails?.title || "Your applied position",
+        company: jobDetails?.company || "The company",
+        location: jobDetails?.location || "your area",
+      });
+      router.push(`/jobs-detail/${jobId}/apply/success?${successParams.toString()}`);
     } catch (error) {
       console.error("Error submitting application:", error);
       const errorMessage =

@@ -285,20 +285,39 @@ function normalizeCertifications(certs?: ProfileCertificate[]): CVData['certific
 }
 
 /**
- * Normalize awards from cm-profile format (objects) to CVData format (strings)
+ * Normalize awards from cm-profile format (objects) to CVData format (objects like certifications)
  */
-function normalizeAwards(awards?: ProfileAward[] | string[]): string[] {
+function normalizeAwards(awards?: ProfileAward[] | string[]): CVData['awards'] {
   if (!awards || !Array.isArray(awards)) return [];
   
   return awards.map((award) => {
-    if (typeof award === 'string') return award;
-    
-    if (typeof award === 'object' && award !== null) {
-      const parts = [award.name, award.organization, award.year || award.month].filter(Boolean);
-      return parts.join(' - ') || 'Award';
+    if (typeof award === 'string') {
+      // Parse string format: "Name - Organization - Year"
+      const parts = award.split(' - ');
+      return {
+        name: parts[0] || award,
+        organization: parts[1] || '',
+        date: parts[2] || ''
+      };
     }
     
-    return String(award);
+    if (typeof award === 'object' && award !== null) {
+      // Format date from month and year fields
+      let dateStr = '';
+      if (award.month && award.year) {
+        dateStr = `${award.month.padStart(2, '0')}/${award.year}`;
+      } else if (award.year) {
+        dateStr = award.year;
+      }
+      
+      return {
+        name: award.name || '',
+        organization: award.organization || '',
+        date: dateStr
+      };
+    }
+    
+    return { name: String(award), organization: '', date: '' };
   });
 }
 
@@ -330,31 +349,19 @@ function normalizeProjects(projects?: ProfileProject[]): CVData['projects'] {
 
 /**
  * Normalize languages from cm-profile format to CVData format
+ * Preserves the original level value to support all proficiency levels
  */
 function normalizeLanguages(languages?: ProfileLanguage[]): CVData['languages'] {
   if (!languages || !Array.isArray(languages)) return [];
   
-  const validLevels = ['Beginner', 'Intermediate', 'Advanced', 'Native'] as const;
-  
   return languages.map((lang) => {
-    // Map level to valid CVData level
-    let level: typeof validLevels[number] = 'Intermediate';
-    if (lang.level) {
-      const levelLower = lang.level.toLowerCase();
-      if (levelLower.includes('native') || levelLower.includes('fluent')) {
-        level = 'Native';
-      } else if (levelLower.includes('advanced') || levelLower.includes('proficient')) {
-        level = 'Advanced';
-      } else if (levelLower.includes('beginner') || levelLower.includes('basic')) {
-        level = 'Beginner';
-      } else if (validLevels.includes(lang.level as any)) {
-        level = lang.level as typeof validLevels[number];
-      }
-    }
-    
+    // Preserve the original level value instead of forcing it into a limited set
+    // This allows levels like "Elementary", "Upper Intermediate" to pass through
+    // The CVData type expects Beginner|Intermediate|Advanced|Native but CVPreview
+    // just displays the string, so we cast it for type safety
     return {
       language: lang.language || '',
-      level,
+      level: (lang.level || 'Intermediate') as CVData['languages'][0]['level'],
     };
   });
 }
