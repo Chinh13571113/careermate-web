@@ -1,12 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar as CalendarIcon,
   Clock,
   User,
-  Users,
   Briefcase,
   MapPin,
   Video,
@@ -28,7 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/use-auth-store";
 import {
+  getAvailableSlots,
   getDailyCalendar,
   type DailyCalendarResponse,
 } from "@/lib/calendar-api";
@@ -38,6 +39,7 @@ import {
   getInterviewByJobApplyId, 
   updateInterview,
   getRecruiterUpcomingInterviews,
+  requestReschedule,
   type UpdateInterviewRequest,
   type InterviewScheduleResponse
 } from "@/lib/interview-api";
@@ -54,24 +56,7 @@ interface InterviewForm {
   interviewType: string;
   location: string;
   meetingLink: string;
-  interviewerName: string;
-  interviewerEmail: string;
-  interviewerPhone: string;
   notes: string;
-}
-
-// SIMPLIFIED: Slot info with overlap count for visual indicator
-interface TimeSlotInfo {
-  time: string;
-  interviewCount: number; // How many interviews overlap this slot
-  interviews: Array<{
-    id: number;
-    candidateName: string;
-    startMinutes: number;
-    endMinutes: number;
-  }>;
-  isOwnInterview: boolean; // For reschedule mode
-  isLunchTime: boolean; // Visual indicator only (not restriction)
 }
 
 const INTERVIEW_TYPES = [
@@ -89,27 +74,12 @@ const DURATIONS = [
   { value: 120, label: "2 hours" },
 ];
 
-// Main page component with Suspense wrapper for useSearchParams
 export default function ScheduleInterviewPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    }>
-      <ScheduleInterviewContent />
-    </Suspense>
-  );
-}
-
-function ScheduleInterviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("applicationId");
-  const interviewIdParam = searchParams.get("interviewId");
+  const action = searchParams.get("action"); // 'reschedule' or null
+  const interviewIdParam = searchParams.get("interviewId"); // For reschedule
 
   const [loading, setLoading] = useState(true);
   const [scheduling, setScheduling] = useState(false);
@@ -117,17 +87,20 @@ function ScheduleInterviewContent() {
   const [isReschedule, setIsReschedule] = useState(false);
   const [originalInterview, setOriginalInterview] = useState<InterviewScheduleResponse | null>(null);
   
+  // Use ref to ensure handleSchedule always has the latest interview data
+  // This prevents stale closure issues with React state
   const interviewRef = useRef<{ isReschedule: boolean; interview: InterviewScheduleResponse | null }>({
     isReschedule: false,
     interview: null
   });
 
-  // SIMPLIFIED: All slots available, just track overlap count
+  // Calendar state
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [timeSlots, setTimeSlots] = useState<TimeSlotInfo[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [dailyCalendar, setDailyCalendar] = useState<DailyCalendarResponse | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getWeekStart(new Date()));
 
+  // Form state
   const [form, setForm] = useState<InterviewForm>({
     jobApplyId: parseInt(applicationId || "0"),
     candidateId: 0,
@@ -139,12 +112,10 @@ function ScheduleInterviewContent() {
     interviewType: "VIDEO_CALL",
     location: "",
     meetingLink: "",
-    interviewerName: "",
-    interviewerEmail: "",
-    interviewerPhone: "",
     notes: "",
   });
 
+  // Mount and initialize
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -153,29 +124,26 @@ function ScheduleInterviewContent() {
     if (mounted) {
       initializePage();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
   useEffect(() => {
     if (selectedDate) {
-      loadTimeSlots();
+      loadAvailableSlots();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, form.durationMinutes]);
+
+  // Note: Conflict checking is handled by the available slots API
+  // The backend returns only non-conflicting time slots, so we don't need separate conflict checks
 
   function getWeekStart(date: Date): Date {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
     return new Date(d.setDate(diff));
   }
 
   function formatDateForAPI(date: Date): string {
-    // Use local date components to avoid UTC timezone shift
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return date.toISOString().split("T")[0];
   }
 
   function getWeekDates(startDate: Date): Date[] {
@@ -188,118 +156,186 @@ function ScheduleInterviewContent() {
     return dates;
   }
 
+  /**
+   * Format time to ISO 8601 datetime string
+   * Handles time in HH:mm or HH:mm:ss format
+   * Returns: YYYY-MM-DDTHH:mm:ss (no extra colons)
+   */
   function formatScheduledDateTime(date: string, time: string): string {
+    // Time can be "10:00" or "10:00:00"
+    // We need to ensure it's always HH:mm:ss format
     const timeParts = time.split(':');
-    const formattedTime = timeParts.length === 2 ? `${time}:00` : time;
+    let formattedTime = time;
+    
+    if (timeParts.length === 2) {
+      // Time is HH:mm, add :00 for seconds
+      formattedTime = `${time}:00`;
+    } else if (timeParts.length === 3) {
+      // Time is already HH:mm:ss, use as-is
+      formattedTime = time;
+    }
+    
     return `${date}T${formattedTime}`;
   }
 
   const initializePage = async () => {
+    console.log('🚀 [INIT] Starting page initialization...', { action, applicationId, interviewIdParam });
     try {
       setLoading(true);
       
+      // STEP 1: Check if we already have an interview for this job application
+      // This determines whether we schedule a NEW interview or RESCHEDULE an existing one
       let existingInterview: InterviewScheduleResponse | null = null;
       
+      // Try by interviewId first (if provided in URL)
       if (interviewIdParam) {
+        const interviewId = parseInt(interviewIdParam);
+        console.log('🔍 [AUTO-DETECT] Fetching interview by ID:', interviewId);
         try {
-          existingInterview = await getInterviewById(parseInt(interviewIdParam));
-        } catch (e) {
-          console.log('Could not find interview by ID');
+          existingInterview = await getInterviewById(interviewId);
+          console.log('✅ [AUTO-DETECT] Found interview by ID:', existingInterview?.id);
+        } catch (e: any) {
+          console.log('⚠️ [AUTO-DETECT] Could not find interview by ID:', e?.message);
         }
       }
       
+      // If no interview found by ID, try by applicationId (jobApplyId)
       if (!existingInterview && applicationId) {
         const jobApplyId = parseInt(applicationId);
+        console.log('🔍 [AUTO-DETECT] Checking for existing interview for jobApplyId:', jobApplyId);
+        
+        // Method 1: Try direct API call
         try {
           const result = await getInterviewByJobApplyId(jobApplyId);
+          console.log('🔍 [AUTO-DETECT] getInterviewByJobApplyId result:', result);
+          
           if (result.found) {
             existingInterview = result.interview;
+            console.log('✅ [AUTO-DETECT] Found existing interview via direct API:', existingInterview.id);
+          } else {
+            console.log('ℹ️ [AUTO-DETECT] Direct API returned not found, trying fallback...');
           }
-        } catch (e) {
-          // Try fallback
+        } catch (e: any) {
+          console.error('⚠️ [AUTO-DETECT] Direct API error:', e?.message);
+        }
+        
+        // Method 2: Fallback - search in recruiter's upcoming interviews
+        if (!existingInterview) {
+          console.log('🔍 [AUTO-DETECT FALLBACK] Searching in recruiter upcoming interviews...');
           try {
             const allInterviews = await getRecruiterUpcomingInterviews();
+            console.log('🔍 [AUTO-DETECT FALLBACK] Got', allInterviews.length, 'upcoming interviews');
+            
             const matchingInterview = allInterviews.find(i => i.jobApplyId === jobApplyId);
             if (matchingInterview) {
               existingInterview = matchingInterview;
+              console.log('✅ [AUTO-DETECT FALLBACK] Found matching interview:', existingInterview.id);
+            } else {
+              console.log('ℹ️ [AUTO-DETECT FALLBACK] No matching interview in upcoming list');
             }
-          } catch (fallbackError) {
-            console.error('Fallback failed:', fallbackError);
+          } catch (fallbackError: any) {
+            console.error('⚠️ [AUTO-DETECT FALLBACK] Failed:', fallbackError?.message);
           }
         }
       }
 
+      // STEP 2: Configure page based on whether interview exists
       if (existingInterview) {
+        // === RESCHEDULE MODE ===
+        console.log('🔄 [RESCHEDULE MODE] Interview exists - entering reschedule mode');
+        console.log('🔄 [RESCHEDULE MODE] Interview details:', {
+          id: existingInterview.id,
+          jobApplyId: existingInterview.jobApplyId,
+          status: existingInterview.status,
+          scheduledDate: existingInterview.scheduledDate
+        });
+        
+        // Update both state AND ref to ensure handleSchedule has latest data
         setIsReschedule(true);
         setOriginalInterview(existingInterview);
         interviewRef.current = { isReschedule: true, interview: existingInterview };
         
+        console.log('🔄 [RESCHEDULE MODE] Updated ref:', interviewRef.current);
+        
+        // Pre-fill form with existing interview data
         const dateTimeStr = existingInterview.scheduledDate || existingInterview.interviewDateTime || '';
         const interviewDate = new Date(dateTimeStr);
         const dateStr = formatDateForAPI(interviewDate);
-        const timeStr = `${interviewDate.getHours().toString().padStart(2, '0')}:${interviewDate.getMinutes().toString().padStart(2, '0')}`;
         
+        // Get candidate/position info - try from interview first, then fetch from application
         let candidateName = existingInterview.candidateName || '';
-        let positionTitle = existingInterview.jobTitle || existingInterview.positionTitle || '';
+        let positionTitle = existingInterview.positionTitle || '';
         let candidateId = existingInterview.candidateId || 0;
         
+        // If interview doesn't have candidate info, fetch from application
         if (!candidateName || !positionTitle) {
+          console.log('📋 [RESCHEDULE MODE] Interview missing candidate info, fetching from application...');
           try {
             const appResponse = await getApplicationById(existingInterview.jobApplyId);
             if (appResponse.result) {
-              candidateName = candidateName || appResponse.result.fullName || 'Unknown Candidate';
-              positionTitle = positionTitle || appResponse.result.jobTitle || 'Unknown Position';
-              candidateId = candidateId || appResponse.result.candidateId || 0;
+              const app = appResponse.result;
+              candidateName = candidateName || app.fullName || 'Unknown Candidate';
+              positionTitle = positionTitle || app.jobTitle || 'Unknown Position';
+              candidateId = candidateId || app.candidateId || 0;
+              console.log('✅ [RESCHEDULE MODE] Got candidate info from application:', candidateName, positionTitle);
             }
-          } catch (e) {
-            console.error('Failed to fetch application:', e);
+          } catch (appError) {
+            console.error('⚠️ [RESCHEDULE MODE] Failed to fetch application details:', appError);
           }
         }
         
         setForm(prev => ({
           ...prev,
           jobApplyId: existingInterview!.jobApplyId,
-          candidateId,
+          candidateId: candidateId,
           candidateName: candidateName || 'Unknown Candidate',
           positionTitle: positionTitle || 'Unknown Position',
           durationMinutes: existingInterview!.durationMinutes,
           interviewType: existingInterview!.interviewType as string,
           location: existingInterview!.location || '',
           meetingLink: existingInterview!.meetingLink || '',
-          interviewerName: existingInterview!.interviewerName || '',
-          interviewerEmail: existingInterview!.interviewerEmail || '',
-          interviewerPhone: existingInterview!.interviewerPhone || '',
           notes: existingInterview!.preparationNotes || '',
-          scheduledDate: dateStr,
-          scheduledTime: timeStr,
         }));
         
+        // Set the date for calendar (but don't set time - let user pick new time)
         setSelectedDate(dateStr);
         setCurrentWeekStart(getWeekStart(interviewDate));
-        toast.info("Update interview details or select a new time to reschedule.");
+        
+        toast.info("Interview exists. Select a new date and time to reschedule.");
       } else if (applicationId) {
+        // === NEW SCHEDULE MODE ===
+        console.log('➕ [NEW SCHEDULE MODE] No existing interview, loading application details');
         const jobApplyId = parseInt(applicationId);
+        
         try {
           const appResponse = await getApplicationById(jobApplyId);
           if (appResponse.result) {
+            const app = appResponse.result;
             setForm(prev => ({
               ...prev,
-              jobApplyId: appResponse.result.id,
-              candidateId: appResponse.result.candidateId,
-              candidateName: appResponse.result.fullName || 'Unknown Candidate',
-              positionTitle: appResponse.result.jobTitle || 'Unknown Position',
+              jobApplyId: app.id,
+              candidateId: app.candidateId,
+              candidateName: app.fullName || 'Unknown Candidate',
+              positionTitle: app.jobTitle || 'Unknown Position',
             }));
+            console.log('✅ [NEW SCHEDULE] Pre-filled application data:', app.fullName, app.jobTitle);
           }
-        } catch (e) {
+        } catch (appError) {
+          console.error("Failed to fetch application details:", appError);
           toast.error("Failed to load application details");
         }
+      } else {
+        // === ERROR STATE ===
+        console.error('❌ [INIT] No applicationId or interviewId provided');
+        toast.error("Missing application or interview ID");
       }
 
+      // Set today as initial selected date if not already set
       if (!selectedDate) {
         const today = new Date();
         const todayStr = formatDateForAPI(today);
         setSelectedDate(todayStr);
-        setForm(prev => ({ ...prev, scheduledDate: todayStr }));
+        setForm((prev) => ({ ...prev, scheduledDate: todayStr }));
       }
     } catch (error) {
       console.error("Failed to initialize page:", error);
@@ -309,153 +345,62 @@ function ScheduleInterviewContent() {
     }
   };
 
-  /**
-   * SIMPLIFIED: Generate all time slots with overlap count
-   * All slots are available - just show how many interviews overlap
-   */
-  const generateTimeSlots = (
-    calendar: DailyCalendarResponse | null,
-    currentInterviewId?: number
-  ): TimeSlotInfo[] => {
-    // Default to 8 AM - 8 PM for flexibility (overtime allowed)
-    let startHour = 8;
-    let startMin = 0;
-    let endHour = 20;
-    let endMin = 0;
-    
-    // Use configured hours if available
-    if (calendar?.workStartTime) {
-      if (typeof calendar.workStartTime === 'string') {
-        const [h, m] = calendar.workStartTime.split(':').map(Number);
-        startHour = h;
-        startMin = m;
-      } else {
-        startHour = calendar.workStartTime.hour;
-        startMin = calendar.workStartTime.minute;
-      }
-    }
-    
-    if (calendar?.workEndTime) {
-      if (typeof calendar.workEndTime === 'string') {
-        const [h, m] = calendar.workEndTime.split(':').map(Number);
-        endHour = h;
-        endMin = m;
-      } else {
-        endHour = calendar.workEndTime.hour;
-        endMin = calendar.workEndTime.minute;
-      }
-    }
-    
-    // Parse lunch times (for visual indicator only)
-    let lunchStartMinutes = 12 * 60; // Default 12:00
-    let lunchEndMinutes = 13 * 60;   // Default 13:00
-    
-    if (calendar?.lunchBreakStart) {
-      if (typeof calendar.lunchBreakStart === 'string') {
-        const [h, m] = calendar.lunchBreakStart.split(':').map(Number);
-        lunchStartMinutes = h * 60 + m;
-      } else {
-        lunchStartMinutes = calendar.lunchBreakStart.hour * 60 + calendar.lunchBreakStart.minute;
-      }
-    }
-    if (calendar?.lunchBreakEnd) {
-      if (typeof calendar.lunchBreakEnd === 'string') {
-        const [h, m] = calendar.lunchBreakEnd.split(':').map(Number);
-        lunchEndMinutes = h * 60 + m;
-      } else {
-        lunchEndMinutes = calendar.lunchBreakEnd.hour * 60 + calendar.lunchBreakEnd.minute;
-      }
-    }
-    
-    // Parse existing interviews
-    const existingInterviews = (calendar?.interviews || []).map((interview: any) => {
-      const start = new Date(interview.scheduledDate || interview.interviewDateTime);
-      const startMins = start.getHours() * 60 + start.getMinutes();
-      const duration = interview.durationMinutes || 60;
-      return {
-        id: interview.id,
-        candidateName: interview.candidateName || 'Unknown',
-        startMinutes: startMins,
-        endMinutes: startMins + duration,
-      };
-    });
-    
-    // Generate 15-minute slots
-    const slots: TimeSlotInfo[] = [];
-    let currentHour = startHour;
-    let currentMin = startMin;
-    
-    while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
-      const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
-      const slotMinutes = currentHour * 60 + currentMin;
-      
-      // Check lunch time (visual indicator only)
-      const isLunchTime = slotMinutes >= lunchStartMinutes && slotMinutes < lunchEndMinutes;
-      
-      // Find overlapping interviews for this slot
-      const overlappingInterviews = existingInterviews.filter(interview => 
-        slotMinutes >= interview.startMinutes && slotMinutes < interview.endMinutes
-      );
-      
-      // Check if this is own interview (for reschedule)
-      const isOwnInterview = currentInterviewId 
-        ? overlappingInterviews.some(i => i.id === currentInterviewId)
-        : false;
-      
-      slots.push({
-        time: timeStr,
-        interviewCount: overlappingInterviews.length,
-        interviews: overlappingInterviews,
-        isOwnInterview,
-        isLunchTime,
-      });
-      
-      currentMin += 15;
-      if (currentMin >= 60) {
-        currentMin = 0;
-        currentHour++;
-      }
-    }
-    
-    return slots;
-  };
-
-  const loadTimeSlots = async () => {
+  const loadAvailableSlots = async () => {
     if (!selectedDate) return;
 
     try {
-      const calendar = await getDailyCalendar(selectedDate);
+      console.log(`📅 [LOAD SLOTS] Loading for date ${selectedDate}, duration ${form.durationMinutes}min (ID from JWT)`);
+      
+      const [slots, calendar] = await Promise.all([
+        getAvailableSlots(selectedDate, form.durationMinutes),
+        getDailyCalendar(selectedDate),
+      ]);
+
+      console.log(`✅ [LOAD SLOTS] Got ${slots.length} slots:`, slots);
+      console.log(`✅ [LOAD SLOTS] Calendar:`, calendar);
+
+      setAvailableSlots(slots);
       setDailyCalendar(calendar);
       
-      const currentInterviewId = interviewRef.current.isReschedule 
-        ? interviewRef.current.interview?.id 
-        : undefined;
-      
-      const slots = generateTimeSlots(calendar, currentInterviewId);
-      setTimeSlots(slots);
+      // Show helpful message if no slots available
+      if (slots.length === 0) {
+        if (calendar && !calendar.isWorkingDay) {
+          toast.info("This is not a working day. Please select another date.");
+        } else if (calendar && calendar.hasTimeOff) {
+          toast.info("You have time off on this day.");
+        } else {
+          console.log("⚠️ [LOAD SLOTS] No slots returned - may need to configure working hours");
+        }
+      }
     } catch (error: any) {
-      console.error("Failed to load time slots:", error);
-      // Generate default slots even if API fails
-      const slots = generateTimeSlots(null);
-      setTimeSlots(slots);
+      console.error("Failed to load available slots:", error);
+      // Don't show error toast if it's a "no working hours" issue
+      if (error.message?.includes("working hours")) {
+        toast.warning("Please configure your working hours in Calendar settings first.");
+      } else {
+        toast.error("Failed to load available time slots");
+      }
     }
   };
 
   const handleDateSelect = (date: Date) => {
     const dateStr = formatDateForAPI(date);
     setSelectedDate(dateStr);
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       scheduledDate: dateStr,
-      scheduledTime: "",
+      scheduledTime: "", // Reset time when date changes
     }));
   };
 
   const handleTimeSelect = (time: string) => {
-    setForm(prev => ({ ...prev, scheduledTime: time }));
+    setForm((prev) => ({ ...prev, scheduledTime: time }));
   };
 
   const handleSchedule = async () => {
+    // Note: Conflict checking is handled by available slots API
+    // Users can only select from available (non-conflicting) time slots
+
     if (!form.scheduledDate || !form.scheduledTime) {
       toast.error("Please select date and time");
       return;
@@ -466,48 +411,81 @@ function ScheduleInterviewContent() {
       return;
     }
 
-    const { isReschedule: isRescheduleMode, interview: interviewData } = interviewRef.current;
-    if (!isRescheduleMode && (!form.jobApplyId || form.jobApplyId === 0)) {
-      toast.error("Invalid job application. Please try again.");
-      return;
-    }
-
     try {
       setScheduling(true);
+
       const scheduledDateTime = formatScheduledDateTime(form.scheduledDate, form.scheduledTime);
+      
+      // Use ref as the source of truth to avoid stale closure issues
+      const { isReschedule: isRescheduleMode, interview: interviewData } = interviewRef.current;
+      
+      console.log('📋 [HANDLE SCHEDULE] State check:', {
+        isRescheduleFromState: isReschedule,
+        isRescheduleFromRef: isRescheduleMode,
+        hasOriginalInterviewState: !!originalInterview,
+        hasOriginalInterviewRef: !!interviewData,
+        originalInterviewIdState: originalInterview?.id,
+        originalInterviewIdRef: interviewData?.id,
+        jobApplyId: form.jobApplyId,
+      });
 
+      // Handle reschedule differently
+      // Use ref values to avoid stale closure
       if (isRescheduleMode && interviewData) {
-        const updateRequest: UpdateInterviewRequest = {
-          scheduledDate: scheduledDateTime,
-          durationMinutes: form.durationMinutes,
-          interviewType: form.interviewType as 'IN_PERSON' | 'VIDEO_CALL' | 'PHONE' | 'ONLINE_ASSESSMENT',
-          location: form.location || undefined,
-          meetingLink: form.meetingLink || undefined,
-          interviewerName: form.interviewerName || undefined,
-          interviewerEmail: form.interviewerEmail || undefined,
-          interviewerPhone: form.interviewerPhone || undefined,
-          preparationNotes: form.notes || undefined,
-          updateReason: 'Rescheduled by recruiter',
-        };
+        console.log('🔄 [HANDLE SCHEDULE] Using RESCHEDULE flow for interview ID:', interviewData.id);
+        
+        // Try direct update first (PUT /api/interviews/{id})
+        try {
+          console.log('🔄 [HANDLE SCHEDULE] Attempting direct update (PUT)...');
+          const updateRequest: UpdateInterviewRequest = {
+            scheduledDate: scheduledDateTime,
+            durationMinutes: form.durationMinutes,
+            interviewType: form.interviewType as 'IN_PERSON' | 'VIDEO_CALL' | 'PHONE' | 'ONLINE_ASSESSMENT',
+            location: form.location || undefined,
+            meetingLink: form.meetingLink || undefined,
+            preparationNotes: form.notes || undefined,
+            updateReason: 'Rescheduled by recruiter',
+          };
 
-        await updateInterview(interviewData.id, updateRequest);
-        toast.success("Interview rescheduled successfully!");
+          await updateInterview(interviewData.id, updateRequest);
+          console.log('✅ [HANDLE SCHEDULE] Direct update succeeded');
+        } catch (updateError: any) {
+          console.log('⚠️ [HANDLE SCHEDULE] Direct update failed, trying reschedule request API...');
+          console.log('⚠️ [HANDLE SCHEDULE] Error was:', updateError?.message);
+          
+          // Fallback to reschedule request API (POST /api/interviews/{id}/reschedule)
+          // This API uses consent flow but with requiresConsent: false for recruiter
+          await requestReschedule(interviewData.id, {
+            newRequestedDate: scheduledDateTime,
+            reason: form.notes || 'Rescheduled by recruiter',
+            requestedBy: 'RECRUITER',
+            requiresConsent: false,
+          });
+          console.log('✅ [HANDLE SCHEDULE] Reschedule request succeeded');
+        }
+
+        toast.success("Interview rescheduled successfully!", {
+          description: `New time: ${form.scheduledDate} at ${formatTime(form.scheduledTime)}`,
+        });
       } else {
+        console.log('➕ [HANDLE SCHEDULE] Using CREATE (new schedule) flow');
+        // Schedule new interview - createdByRecruiterId is extracted from JWT on backend
         await scheduleInterview(form.jobApplyId, {
           scheduledDate: scheduledDateTime,
           durationMinutes: form.durationMinutes,
           interviewType: form.interviewType as 'IN_PERSON' | 'VIDEO_CALL' | 'PHONE' | 'ONLINE_ASSESSMENT',
+          createdByRecruiterId: 0, // Backend will extract from JWT, this is for type compatibility
           location: form.location || undefined,
           meetingLink: form.meetingLink || undefined,
-          interviewerName: form.interviewerName || undefined,
-          interviewerEmail: form.interviewerEmail || undefined,
-          interviewerPhone: form.interviewerPhone || undefined,
           preparationNotes: form.notes || undefined,
         });
 
-        toast.success("Interview scheduled successfully!");
+        toast.success("Interview scheduled successfully!", {
+          description: `Scheduled for ${form.scheduledDate} at ${formatTime(form.scheduledTime)}`,
+        });
       }
 
+      // Redirect back to interviews page
       router.push("/recruiter/interviews");
     } catch (error: any) {
       console.error("Failed to schedule interview:", error);
@@ -523,26 +501,8 @@ function ScheduleInterviewContent() {
     setCurrentWeekStart(newStart);
   };
 
-  function formatTime(time: string | { hour: number; minute: number } | null | undefined): string {
-    if (!time) return "";
-    
-    let hours: number;
-    let minutes: number;
-    
-    if (typeof time === "object" && "hour" in time && "minute" in time) {
-      hours = time.hour;
-      minutes = time.minute;
-    } else if (typeof time === "string") {
-      if (time.trim() === "") return "";
-      const parts = time.split(":");
-      if (parts.length < 2) return time;
-      hours = parseInt(parts[0], 10);
-      minutes = parseInt(parts[1], 10);
-      if (isNaN(hours) || isNaN(minutes)) return time;
-    } else {
-      return String(time);
-    }
-    
+  function formatTime(time: string): string {
+    const [hours, minutes] = time.split(":").map(Number);
     const period = hours >= 12 ? "PM" : "AM";
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
@@ -567,35 +527,6 @@ function ScheduleInterviewContent() {
     return date < today;
   }
 
-  /**
-   * Get slot color based on overlap count
-   * 0 = green (available)
-   * 1 = blue (one interview)
-   * 2+ = purple/violet (overlapping interviews)
-   */
-  function getSlotColor(slot: TimeSlotInfo, isSelected: boolean): string {
-    if (isSelected) {
-      return "bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2";
-    }
-    
-    if (slot.isOwnInterview) {
-      return "border-amber-300 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 text-amber-700";
-    }
-    
-    if (slot.interviewCount === 0) {
-      // Available - green
-      return "border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-300 text-green-800";
-    }
-    
-    if (slot.interviewCount === 1) {
-      // One interview - blue
-      return "border-blue-200 bg-blue-100 hover:bg-blue-150 hover:border-blue-300 text-blue-800";
-    }
-    
-    // Multiple interviews - purple/violet gradient (blue + red overlap)
-    return "border-purple-300 bg-gradient-to-br from-blue-100 via-purple-100 to-red-100 hover:from-blue-150 hover:via-purple-150 hover:to-red-150 text-purple-900";
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -607,7 +538,8 @@ function ScheduleInterviewContent() {
     );
   }
 
-export default function ScheduleInterviewPage() {
+  const weekDates = getWeekDates(currentWeekStart);
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
@@ -629,7 +561,7 @@ export default function ScheduleInterviewPage() {
         </div>
       </div>
 
-      {/* Current Interview Info */}
+      {/* Current Interview Info - shown only when rescheduling */}
       {isReschedule && originalInterview && (
         <Card className="mb-6 border-amber-200 bg-amber-50">
           <CardHeader className="pb-3">
@@ -678,9 +610,7 @@ export default function ScheduleInterviewPage() {
                 <CalendarIcon className="h-5 w-5" />
                 Select Date & Time
               </CardTitle>
-              <CardDescription>
-                Choose any time slot. Overlapping interviews are allowed (multiple interviewers).
-              </CardDescription>
+              <CardDescription>Choose an available date and time slot</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Week Navigator */}
@@ -726,122 +656,34 @@ export default function ScheduleInterviewPage() {
                 })}
               </div>
 
-              {/* Time Slots */}
+              {/* Available Time Slots */}
               {selectedDate && (
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <Label>Time Slots</Label>
-                    <div className="flex items-center gap-3 text-xs flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-green-100 border border-green-300"></span>
-                        Available
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span>
-                        1 Interview
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-gradient-to-br from-blue-100 via-purple-100 to-red-100 border border-purple-300"></span>
-                        <Users className="w-3 h-3" />
-                        Overlapping
-                      </span>
-                      {form.scheduledTime && (
-                        <span className="flex items-center gap-1">
-                          <span className="w-3 h-3 rounded bg-primary/20 border border-primary/50 border-dashed"></span>
-                          Duration
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {timeSlots.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/30">
+                  <Label className="mb-3 block">Available Time Slots</Label>
+                  {availableSlots.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
                       <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p className="font-medium">No time slots for this date</p>
+                      <p>No available slots for this date</p>
+                      <p className="text-sm">Try another date or adjust duration</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-2">
-                      {timeSlots.map((slot) => {
-                        const isSelected = form.scheduledTime === slot.time;
-                        
-                        // Duration preview
-                        let isInDurationPreview = false;
-                        if (form.scheduledTime && !isSelected) {
-                          const [selectedHour, selectedMin] = form.scheduledTime.split(':').map(Number);
-                          const [slotHour, slotMin] = slot.time.split(':').map(Number);
-                          const selectedMinutes = selectedHour * 60 + selectedMin;
-                          const slotMinutes = slotHour * 60 + slotMin;
-                          const endMinutes = selectedMinutes + form.durationMinutes;
-                          isInDurationPreview = slotMinutes > selectedMinutes && slotMinutes < endMinutes;
-                        }
-                        
-                        // Tooltip content
-                        const tooltipContent = slot.interviewCount > 0 
-                          ? `${slot.interviewCount} interview(s): ${slot.interviews.map(i => i.candidateName).join(', ')}`
-                          : 'Available';
-                        
-                        return (
-                          <button
-                            key={slot.time}
-                            onClick={() => handleTimeSelect(slot.time)}
-                            title={tooltipContent}
-                            className={`
-                              p-3 rounded-lg border text-sm font-medium transition-all relative
-                              ${isSelected 
-                                ? "bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2" 
-                                : isInDurationPreview
-                                  ? "bg-primary/20 text-primary border-primary/50 border-dashed"
-                                  : getSlotColor(slot, false)
-                              }
-                              ${slot.isLunchTime ? "opacity-90" : ""}
-                            `}
-                          >
-                            <span>{formatTime(slot.time)}</span>
-                            
-                            {/* Selected checkmark */}
-                            {isSelected && (
-                              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                <CheckCircle2 className="w-3 h-3 text-white" />
-                              </span>
-                            )}
-                            
-                            {/* Duration preview indicator */}
-                            {isInDurationPreview && !isSelected && (
-                              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary/70 rounded-full flex items-center justify-center">
-                                <Clock className="w-2.5 h-2.5 text-white" />
-                              </span>
-                            )}
-                            
-                            {/* Overlap indicator - 2+ people icon (purple) */}
-                            {!isSelected && !isInDurationPreview && slot.interviewCount >= 2 && (
-                              <span className="absolute -top-1 -right-1 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
-                                <Users className="w-3 h-3 text-white" />
-                              </span>
-                            )}
-                            
-                            {/* Single interview indicator (blue) - includes own interview */}
-                            {!isSelected && !isInDurationPreview && slot.interviewCount === 1 && (
-                              <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                <User className="w-2.5 h-2.5 text-white" />
-                              </span>
-                            )}
-                            
-                            {/* Lunch indicator (small, subtle) */}
-                            {slot.isLunchTime && (
-                              <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-[8px]">🍽️</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                  {/* Summary */}
-                  {timeSlots.length > 0 && (
-                    <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-                      <span>{timeSlots.filter(s => s.interviewCount === 0).length} available slots</span>
-                      <span>{timeSlots.filter(s => s.interviewCount === 1).length} with 1 interview</span>
-                      <span>{timeSlots.filter(s => s.interviewCount >= 2).length} overlapping</span>
+                      {availableSlots.map((slot) => (
+                        <button
+                          key={slot}
+                          onClick={() => handleTimeSelect(slot)}
+                          className={`
+                            p-3 rounded-lg border text-sm font-medium transition-colors
+                            ${
+                              form.scheduledTime === slot
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border hover:bg-accent"
+                            }
+                          `}
+                        >
+                          {formatTime(slot)}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -855,21 +697,21 @@ export default function ScheduleInterviewPage() {
                     <div>
                       <span className="text-muted-foreground">Working Hours:</span>
                       <div className="font-medium">
-                        {`${formatTime(dailyCalendar.workStartTime || "")} - ${formatTime(dailyCalendar.workEndTime || "")}`}
+                        {dailyCalendar.isWorkingDay
+                          ? `${formatTime(dailyCalendar.workStartTime || "")} - ${formatTime(
+                              dailyCalendar.workEndTime || ""
+                            )}`
+                          : "Not a working day"}
                       </div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Scheduled Interviews:</span>
                       <div className="font-medium">{dailyCalendar.totalInterviews}</div>
                     </div>
-                    {dailyCalendar.lunchBreakStart && (
-                      <div>
-                        <span className="text-muted-foreground">Lunch Break:</span>
-                        <div className="font-medium">
-                          {`${formatTime(dailyCalendar.lunchBreakStart)} - ${formatTime(dailyCalendar.lunchBreakEnd || "")}`}
-                        </div>
-                      </div>
-                    )}
+                    <div>
+                      <span className="text-muted-foreground">Available Slots:</span>
+                      <div className="font-medium">{dailyCalendar.availableSlots}</div>
+                    </div>
                     {dailyCalendar.hasTimeOff && (
                       <div className="col-span-2 text-amber-600">
                         <AlertCircle className="h-4 w-4 inline mr-1" />
@@ -901,7 +743,9 @@ export default function ScheduleInterviewPage() {
                   <Input
                     id="candidateName"
                     value={form.candidateName}
-                    onChange={(e) => setForm(prev => ({ ...prev, candidateName: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, candidateName: e.target.value }))
+                    }
                     placeholder="Enter candidate name"
                     className="pl-10"
                   />
@@ -918,7 +762,9 @@ export default function ScheduleInterviewPage() {
                   <Input
                     id="positionTitle"
                     value={form.positionTitle}
-                    onChange={(e) => setForm(prev => ({ ...prev, positionTitle: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, positionTitle: e.target.value }))
+                    }
                     placeholder="Enter position title"
                     className="pl-10"
                   />
@@ -930,7 +776,7 @@ export default function ScheduleInterviewPage() {
                 <Label htmlFor="interviewType">Interview Type</Label>
                 <Select
                   value={form.interviewType}
-                  onValueChange={(value) => setForm(prev => ({ ...prev, interviewType: value }))}
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, interviewType: value }))}
                 >
                   <SelectTrigger id="interviewType" className="mt-1">
                     <SelectValue />
@@ -950,7 +796,9 @@ export default function ScheduleInterviewPage() {
                 <Label htmlFor="duration">Duration</Label>
                 <Select
                   value={form.durationMinutes.toString()}
-                  onValueChange={(value) => setForm(prev => ({ ...prev, durationMinutes: parseInt(value) }))}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, durationMinutes: parseInt(value) }))
+                  }
                 >
                   <SelectTrigger id="duration" className="mt-1">
                     <SelectValue />
@@ -965,7 +813,7 @@ export default function ScheduleInterviewPage() {
                 </Select>
               </div>
 
-              {/* Location - IN_PERSON only */}
+              {/* Location - show only for IN_PERSON type */}
               {form.interviewType === "IN_PERSON" && (
                 <div>
                   <Label htmlFor="location">Location</Label>
@@ -974,7 +822,7 @@ export default function ScheduleInterviewPage() {
                     <Input
                       id="location"
                       value={form.location}
-                      onChange={(e) => setForm(prev => ({ ...prev, location: e.target.value }))}
+                      onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
                       placeholder="Enter interview location"
                       className="pl-10"
                     />
@@ -982,7 +830,7 @@ export default function ScheduleInterviewPage() {
                 </div>
               )}
 
-              {/* Meeting Link */}
+              {/* Meeting Link - show for VIDEO_CALL and PHONE types */}
               {(form.interviewType === "VIDEO_CALL" || form.interviewType === "PHONE" || form.interviewType === "ONLINE_ASSESSMENT") && (
                 <div>
                   <Label htmlFor="meetingLink">Meeting Link</Label>
@@ -991,7 +839,9 @@ export default function ScheduleInterviewPage() {
                     <Input
                       id="meetingLink"
                       value={form.meetingLink}
-                      onChange={(e) => setForm(prev => ({ ...prev, meetingLink: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, meetingLink: e.target.value }))
+                      }
                       placeholder="https://meet.google.com/..."
                       className="pl-10"
                     />
@@ -999,59 +849,13 @@ export default function ScheduleInterviewPage() {
                 </div>
               )}
 
-              {/* Interviewer Information */}
-              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Interviewer Information
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  This information will be shown to the candidate
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="interviewerName">Interviewer Name</Label>
-                    <Input
-                      id="interviewerName"
-                      value={form.interviewerName}
-                      onChange={(e) => setForm(prev => ({ ...prev, interviewerName: e.target.value }))}
-                      placeholder="e.g., John Smith"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="interviewerEmail">Interviewer Email</Label>
-                    <Input
-                      id="interviewerEmail"
-                      type="email"
-                      value={form.interviewerEmail}
-                      onChange={(e) => setForm(prev => ({ ...prev, interviewerEmail: e.target.value }))}
-                      placeholder="interviewer@company.com"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <div className="md:w-1/2">
-                  <Label htmlFor="interviewerPhone">Interviewer Phone</Label>
-                  <Input
-                    id="interviewerPhone"
-                    type="tel"
-                    value={form.interviewerPhone}
-                    onChange={(e) => setForm(prev => ({ ...prev, interviewerPhone: e.target.value }))}
-                    placeholder="e.g., 0901234567"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
               {/* Notes */}
               <div>
                 <Label htmlFor="notes">Notes (Optional)</Label>
                 <Textarea
                   id="notes"
                   value={form.notes}
-                  onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
                   placeholder="Add any additional notes..."
                   rows={3}
                   className="mt-1"

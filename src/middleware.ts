@@ -145,6 +145,17 @@ export function middleware(request: NextRequest) {
       path: request.nextUrl.pathname,
     });
 
+    // ✨ Allow unauthenticated access to payment result pages (VNPay redirect)
+    if (
+      request.nextUrl.pathname.startsWith('/recruiter/payment-success') ||
+      request.nextUrl.pathname.startsWith('/recruiter/payment-failure')
+    ) {
+      safeLog.middleware('✅ [MIDDLEWARE] Recruiter payment result page - allowing access', {
+        path: request.nextUrl.pathname,
+      });
+      return NextResponse.next();
+    }
+
     if (!validateToken(refreshToken)) {
       return NextResponse.redirect(
         new URL(
@@ -182,6 +193,19 @@ export function middleware(request: NextRequest) {
     // ✨ Allow unauthenticated access to print pages (for PDF export)
     if (request.nextUrl.pathname.startsWith('/candidate/cv/print/')) {
       safeLog.middleware('✅ [MIDDLEWARE] Print page - allowing unauthenticated access', {
+        path: request.nextUrl.pathname,
+      });
+      return NextResponse.next();
+    }
+
+    // ✨ Allow unauthenticated access to payment result pages (VNPay redirect)
+    // VNPay redirects may not include cookies due to SameSite restrictions
+    if (
+      request.nextUrl.pathname.startsWith('/candidate/pricing/success') ||
+      request.nextUrl.pathname.startsWith('/candidate/pricing/failure') ||
+      request.nextUrl.pathname.startsWith('/candidate/pricing/return')
+    ) {
+      safeLog.middleware('✅ [MIDDLEWARE] Candidate payment result page - allowing access', {
         path: request.nextUrl.pathname,
       });
       return NextResponse.next();
@@ -229,11 +253,13 @@ export function middleware(request: NextRequest) {
       path: request.nextUrl.pathname,
     });
 
-    // Allow access without authentication for success/failure pages
+    // Allow access without authentication for success/failure/return pages
     // These pages don't contain sensitive data and need to be accessible after payment redirect
+    // VNPay redirects may not include cookies due to SameSite restrictions
     if (
       request.nextUrl.pathname.startsWith('/payment/success') ||
-      request.nextUrl.pathname.startsWith('/payment/failure')
+      request.nextUrl.pathname.startsWith('/payment/failure') ||
+      request.nextUrl.pathname.startsWith('/payment/return')
     ) {
       safeLog.middleware('✅ [MIDDLEWARE] Payment result page - allowing access', {
         path: request.nextUrl.pathname,
