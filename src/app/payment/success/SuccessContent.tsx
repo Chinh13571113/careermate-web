@@ -115,7 +115,7 @@ export default function PaymentSuccessPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               onClick={handleDashboard}
-              className="px-8 py-6 text-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all"
+              className="px-8 py-6 text-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all"
             >
               Go to Dashboard
             </Button>

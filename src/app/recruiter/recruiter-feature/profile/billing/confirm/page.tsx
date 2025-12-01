@@ -1,6 +1,6 @@
 "use client";
 import { Suspense } from "react";
-import { ConfirmContent } from "./ConfirmContent";
+import ConfirmContent from "./ConfirmContent";
 
 function LoadingFallback() {
   return (
