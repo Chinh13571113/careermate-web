@@ -539,7 +539,7 @@ export const fetchViewedJobs = async (candidateId: number): Promise<SavedJobFeed
     console.log('📡 Fetching viewed jobs for candidate:', candidateId);
     
     const response = await api.get<SavedJobsResponse>(
-      `/api/job-feedback/candidate/${candidateId}/type/VIEW`
+      `/api/job-feedback/candidate/${candidateId}/type/view`
     );
 
     console.log('✅ Viewed jobs response:', response.data);
