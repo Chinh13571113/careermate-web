@@ -238,11 +238,11 @@ export default function AICVResult() {
                 <div className="flex items-center justify-center">
                   <RadarChart 
                     data={[
-                      { label: "Content", value: result.content.score, color: "#3b82f6" },
-                      { label: "Format", value: result.format.score, color: "#f97316" },
-                      { label: "Style", value: result.style.score, color: "#8b5cf6" },
-                      { label: "Sections", value: result.sections.score, color: "#ef4444" },
-                      { label: "Skills", value: result.skills.score, color: "#22c55e" },
+                      { label: "Content", value: result.content?.score || 0, color: "#3b82f6" },
+                      { label: "Format", value: result.format?.score || 0, color: "#f97316" },
+                      { label: "Style", value: result.style?.score || 0, color: "#8b5cf6" },
+                      { label: "Sections", value: result.sections?.score || 0, color: "#ef4444" },
+                      { label: "Skills", value: result.skills?.score || 0, color: "#22c55e" },
                     ]}
                   />
                 </div>
@@ -253,7 +253,7 @@ export default function AICVResult() {
                   <div className="bg-green-50 rounded-xl p-5 border border-green-200">
                     <h3 className="font-bold text-gray-900 mb-3">Strengths</h3>
                     <ul className="space-y-2">
-                      {result.summary.strengths.map((strength, idx) => (
+                      {(result.summary?.strengths || []).map((strength, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-gray-700">
                           <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                           <span className="text-sm">{strength}</span>
@@ -266,7 +266,7 @@ export default function AICVResult() {
                   <div className="bg-amber-50 rounded-xl p-5 border border-amber-200">
                     <h3 className="font-bold text-gray-900 mb-3">Improvements</h3>
                     <ul className="space-y-2">
-                      {result.summary.improvements.map((improvement, idx) => (
+                      {(result.summary?.improvements || []).map((improvement, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-gray-700">
                           <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                           <span className="text-sm">{improvement}</span>
@@ -284,22 +284,22 @@ export default function AICVResult() {
               <ScoreCard
                 icon={<FileText className="w-6 h-6" />}
                 title="Content"
-                score={result.content.score}
-                description={result.content.description}
+                score={result.content?.score}
+                description={result.content?.description}
               >
                 <DetailSection
                   title="Measurable Results"
-                  items={result.content.measurable_results}
+                  items={result.content?.measurable_results || []}
                   type="success"
                 />
                 <DetailSection
                   title="Grammar Issues"
-                  items={result.content.grammar_issues}
+                  items={result.content?.grammar_issues || []}
                   type="error"
                 />
                 <DetailSection
                   title="Improvement Tips"
-                  items={result.content.tips}
+                  items={result.content?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -308,20 +308,20 @@ export default function AICVResult() {
               <ScoreCard
                 icon={<Award className="w-6 h-6" />}
                 title="Skills"
-                score={result.skills.score}
-                description={result.skills.description}
+                score={result.skills?.score}
+                description={result.skills?.description}
               >
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">Technical Skills</h4>
                     <DetailSection
                       title="Matched"
-                      items={result.skills.technical.matched}
+                      items={result.skills?.technical?.matched || []}
                       type="success"
                     />
                     <DetailSection
                       title="Missing"
-                      items={result.skills.technical.missing}
+                      items={result.skills?.technical?.missing || []}
                       type="error"
                     />
                   </div>
@@ -329,14 +329,14 @@ export default function AICVResult() {
                     <h4 className="font-semibold text-gray-900 mb-3">Soft Skills</h4>
                     <DetailSection
                       title="Missing"
-                      items={result.skills.soft.missing}
+                      items={result.skills?.soft?.missing || []}
                       type="error"
                     />
                   </div>
                 </div>
                 <DetailSection
                   title="Improvement Tips"
-                  items={result.skills.tips}
+                  items={result.skills?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -345,20 +345,20 @@ export default function AICVResult() {
               <ScoreCard
                 icon={<Layout className="w-6 h-6" />}
                 title="Format"
-                score={result.format.score}
-                description={result.format.description}
+                score={result.format?.score}
+                description={result.format?.description}
               >
                 <div className="mb-4">
                   <h4 className="font-semibold text-gray-900 mb-3">Format Checks</h4>
                   <div className="space-y-2">
-                    <FormatCheck label="Date Format" status={result.format.checks.date_format} />
-                    <FormatCheck label="Length" status={result.format.checks.length} />
-                    <FormatCheck label="Bullet Points" status={result.format.checks.bullet_points} />
+                    <FormatCheck label="Date Format" status={result.format?.checks?.date_format} />
+                    <FormatCheck label="Length" status={result.format?.checks?.length} />
+                    <FormatCheck label="Bullet Points" status={result.format?.checks?.bullet_points} />
                   </div>
                 </div>
                 <DetailSection
                   title="Improvement Tips"
-                  items={result.format.tips}
+                  items={result.format?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -367,17 +367,17 @@ export default function AICVResult() {
               <ScoreCard
                 icon={<BookOpen className="w-6 h-6" />}
                 title="Sections"
-                score={result.sections.score}
-                description={result.sections.description}
+                score={result.sections?.score}
+                description={result.sections?.description}
               >
                 <DetailSection
                   title="Missing Sections"
-                  items={result.sections.missing}
+                  items={result.sections?.missing || []}
                   type="error"
                 />
                 <DetailSection
                   title="Improvement Tips"
-                  items={result.sections.tips}
+                  items={result.sections?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -386,22 +386,22 @@ export default function AICVResult() {
               <ScoreCard
                 icon={<Palette className="w-6 h-6" />}
                 title="Style"
-                score={result.style.score}
-                description={result.style.description}
+                score={result.style?.score}
+                description={result.style?.description}
               >
                 <DetailSection
                   title="Tone"
-                  items={result.style.tone}
+                  items={result.style?.tone || []}
                   type="warning"
                 />
                 <DetailSection
                   title="Buzzwords"
-                  items={result.style.buzzwords}
+                  items={result.style?.buzzwords || []}
                   type="info"
                 />
                 <DetailSection
                   title="Improvement Tips"
-                  items={result.style.tips}
+                  items={result.style?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
