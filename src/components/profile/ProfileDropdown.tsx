@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 import { getMyInvoice } from "@/lib/invoice-api";
+import { getRecruiterInvoice } from "@/lib/recruiter-invoice-api";
 import { PremiumAvatar } from "@/components/ui/premium-avatar";
 import { NotificationBell } from "@/components/notifications";
 
@@ -45,12 +46,32 @@ export function ProfileDropdown({
   const router = useRouter();
   const [isPremium, setIsPremium] = useState(false);
 
-  // Check if user has PREMIUM package
+  // Normalize role - handle both "RECRUITER" and "ROLE_RECRUITER" formats
+  // Must be defined before useEffect
+  const normalizedRole =
+    role?.toUpperCase().includes("CANDIDATE")
+      ? "ROLE_CANDIDATE"
+      : role?.toUpperCase().includes("RECRUITER")
+        ? "ROLE_RECRUITER"
+        : role?.toUpperCase().includes("ADMIN")
+          ? "ROLE_ADMIN"
+          : "ROLE_USER";
+
+  const isCandidate = normalizedRole === "ROLE_CANDIDATE";
+  const isRecruiter = normalizedRole === "ROLE_RECRUITER";
+
+  // Check if user has PREMIUM package (Candidate or Recruiter)
   useEffect(() => {
     const checkPremiumStatus = async () => {
       try {
-        const invoice = await getMyInvoice();
-        setIsPremium(invoice.packageName === 'PREMIUM');
+        if (isCandidate) {
+          const invoice = await getMyInvoice();
+          setIsPremium(invoice?.packageName === 'PREMIUM');
+        } else if (isRecruiter) {
+          const invoice = await getRecruiterInvoice();
+          // For recruiter: PREMIUM package with Active status
+          setIsPremium(invoice?.packageName === 'PREMIUM');
+        }
       } catch (error) {
         // User doesn't have any active package
         setIsPremium(false);
@@ -60,7 +81,7 @@ export function ProfileDropdown({
     if (isAuthenticated) {
       checkPremiumStatus();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isCandidate, isRecruiter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -92,19 +113,6 @@ export function ProfileDropdown({
     }
   };
 
-  // Normalize role - handle both "RECRUITER" and "ROLE_RECRUITER" formats
-  const normalizedRole =
-    role?.toUpperCase().includes("CANDIDATE")
-      ? "ROLE_CANDIDATE"
-      : role?.toUpperCase().includes("RECRUITER")
-        ? "ROLE_RECRUITER"
-        : role?.toUpperCase().includes("ADMIN")
-          ? "ROLE_ADMIN"
-          : "ROLE_USER";
-
-  const isCandidate = normalizedRole === "ROLE_CANDIDATE";
-  const isRecruiter = normalizedRole === "ROLE_RECRUITER";
-
   // Debug log
   console.log("🔍 ProfileDropdown Props:", {
     userName,
@@ -113,6 +121,7 @@ export function ProfileDropdown({
     normalizedRole,
     isCandidate,
     isRecruiter,
+    isPremium,
   });
 
   return (

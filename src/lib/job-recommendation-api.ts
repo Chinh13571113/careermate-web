@@ -1,9 +1,18 @@
-import api from './api';
+import axios from 'axios';
 
 /**
  * Job Recommendation API
- * POST /api/v1/jobs/job-postings/
+ * POST http://localhost:8000/api/v1/jobs/job-postings/
+ * 
+ * This is a separate AI/ML service running on port 8000
  */
+
+// Create a dedicated axios instance for AI recommendation service
+const aiApi = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8000',
+  timeout: 30000,
+  headers: { "Content-Type": "application/json" },
+});
 
 export interface JobRecommendationRequest {
   candidate_id: number;
@@ -47,8 +56,9 @@ export const getJobRecommendations = async (
 ): Promise<JobRecommendationResponse> => {
   try {
     console.log('🔵 [JOB RECOMMENDATION] Request:', data);
+    console.log('🔵 [JOB RECOMMENDATION] URL:', aiApi.defaults.baseURL + '/api/v1/jobs/job-postings/');
     
-    const response = await api.post<JobRecommendationResponse>(
+    const response = await aiApi.post<JobRecommendationResponse>(
       '/api/v1/jobs/job-postings/',
       data
     );
@@ -61,9 +71,9 @@ export const getJobRecommendations = async (
 
     return response.data;
   } catch (error: any) {
-    console.error('❌ [JOB RECOMMENDATION] Error:', error.response?.data || error);
+    console.error('❌ [JOB RECOMMENDATION] Error:', error.response?.data || error.message || error);
     throw new Error(
-      error.response?.data?.message || 'Failed to get job recommendations'
+      error.response?.data?.message || error.message || 'Failed to get job recommendations'
     );
   }
 };

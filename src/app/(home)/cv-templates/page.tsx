@@ -10,24 +10,34 @@ import { SAMPLE_CV_DATA, CV_TEMPLATES, type CVData } from '@/types/cv';
 import { decodeCVTemplateData } from '@/lib/cv-template-navigation';
 import { autoNormalizeCVData } from '@/lib/cv-data-normalizer';
 
-// Helper function to normalize awards array to strings for CVPreview compatibility
+// Helper function to normalize awards array to objects for CVPreview compatibility
 // Kept for backward compatibility with localStorage data
-const normalizeAwards = (awards: any[] | undefined): string[] => {
+const normalizeAwards = (awards: any[] | undefined): Array<{name: string; organization?: string; date?: string}> => {
   if (!awards || !Array.isArray(awards)) return [];
   return awards.map(a => {
-    if (typeof a === 'string') return a;
-    if (typeof a === 'object' && a !== null) {
-      // Convert object to string format: "Name - Organization - Year"
-      const parts = [a.name, a.organization, a.year || a.month].filter(Boolean);
-      return parts.join(' - ') || 'Award';
+    if (typeof a === 'string') {
+      // Parse string format: "Name - Organization - Year"
+      const parts = a.split(' - ');
+      return {
+        name: parts[0] || a,
+        organization: parts[1] || '',
+        date: parts[2] || ''
+      };
     }
-    return String(a);
+    if (typeof a === 'object' && a !== null) {
+      return {
+        name: a.name || '',
+        organization: a.organization || '',
+        date: a.year || a.month || a.date || ''
+      };
+    }
+    return { name: String(a), organization: '', date: '' };
   });
 };
 
 export default function CVTemplatesPage() {
   const searchParams = useSearchParams();
-  const [selectedTemplate, setSelectedTemplate] = useState('minimalist');
+  const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [cvData, setCVData] = useState<CVData>(SAMPLE_CV_DATA);
   const [profileData, setProfileData] = useState<any>(null);
@@ -90,10 +100,16 @@ export default function CVTemplatesPage() {
       }
     }
     
-    // If no data param, restore from localStorage
+    // If no data param, restore from localStorage (or use 'classic' as default)
     try {
       const t = localStorage.getItem('selectedTemplate');
-      if (t) setSelectedTemplate(t);
+      if (t) {
+        setSelectedTemplate(t);
+      } else {
+        // No saved template, ensure 'classic' is the default
+        setSelectedTemplate('classic');
+        localStorage.setItem('selectedTemplate', 'classic');
+      }
     } catch (err) {
       // ignore
     }
@@ -128,17 +144,18 @@ export default function CVTemplatesPage() {
               ...SAMPLE_CV_DATA.personalInfo,
               ...normalizedData.personalInfo
             },
-            // For arrays, use normalized data or fall back to sample
+            // For arrays, use normalized data or empty array if no data
             education: normalizedData.education?.length ? normalizedData.education : SAMPLE_CV_DATA.education,
             experience: normalizedData.experience?.length ? normalizedData.experience : SAMPLE_CV_DATA.experience,
             skills: normalizedData.skills?.length ? normalizedData.skills : SAMPLE_CV_DATA.skills,
             languages: normalizedData.languages?.length ? normalizedData.languages : SAMPLE_CV_DATA.languages,
             certifications: normalizedData.certifications?.length ? normalizedData.certifications : SAMPLE_CV_DATA.certifications,
-            projects: normalizedData.projects?.length ? normalizedData.projects : SAMPLE_CV_DATA.projects,
-            softSkills: normalizedData.softSkills || SAMPLE_CV_DATA.softSkills,
-            hobbies: normalizedData.hobbies || SAMPLE_CV_DATA.hobbies,
+            // For optional sections, use empty arrays instead of SAMPLE_CV_DATA fallback
+            projects: normalizedData.projects?.length ? normalizedData.projects : [],
+            softSkills: normalizedData.softSkills?.length ? normalizedData.softSkills : [],
+            hobbies: normalizedData.hobbies?.length ? normalizedData.hobbies : [],
             references: normalizedData.references || SAMPLE_CV_DATA.references,
-            awards: normalizedData.awards || SAMPLE_CV_DATA.awards,
+            awards: normalizedData.awards?.length ? normalizedData.awards : [],
           };
           
           console.log("Loaded and normalized CV data from localStorage:", loadedCVData);
@@ -208,11 +225,12 @@ export default function CVTemplatesPage() {
         skills: savedCVData.skills || templateDefaultData.skills,
         languages: savedCVData.languages || templateDefaultData.languages,
         certifications: savedCVData.certifications || templateDefaultData.certifications,
-        projects: savedCVData.projects || templateDefaultData.projects,
-        softSkills: savedCVData.softSkills || templateDefaultData.softSkills,
-        hobbies: savedCVData.hobbies || templateDefaultData.hobbies,
+        // For optional sections, use empty arrays instead of template fallback
+        projects: savedCVData.projects?.length ? savedCVData.projects : [],
+        softSkills: savedCVData.softSkills?.length ? savedCVData.softSkills : [],
+        hobbies: savedCVData.hobbies?.length ? savedCVData.hobbies : [],
         references: savedCVData.references || templateDefaultData.references,
-        awards: savedCVData.awards || templateDefaultData.awards,
+        awards: savedCVData.awards?.length ? savedCVData.awards : [],
       });
     } else {
       // No saved data, use template default data

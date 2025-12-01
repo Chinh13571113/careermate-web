@@ -63,7 +63,11 @@ export interface CVData {
   }>;
   // New fields for enhanced templates
   softSkills?: string[];
-  awards?: string[];
+  awards?: Array<{
+    name: string;
+    organization?: string;
+    date?: string;
+  }>;
   projects?: Array<{
     name: string;
     description: string;
