@@ -607,7 +607,9 @@ function ScheduleInterviewContent() {
     );
   }
 
-export default function ScheduleInterviewPage() {
+  // Compute week dates for the calendar grid
+  const weekDates = getWeekDates(currentWeekStart);
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
