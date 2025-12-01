@@ -292,7 +292,7 @@ export default function UserManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1 min-w-[72px]">
                           {/* View Details Button */}
                           <Button
                             variant="ghost"
@@ -305,7 +305,7 @@ export default function UserManagementPage() {
                           </Button>
 
                           {/* Actions Dropdown - Only show if not admin */}
-                          {!user.roles.some(role => role.name === 'ADMIN') && (
+                          {!user.roles.some(role => role.name === 'ADMIN') ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button 
@@ -342,6 +342,9 @@ export default function UserManagementPage() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                          ) : (
+                            /* Placeholder to maintain alignment for admin users */
+                            <div className="h-8 w-8" />
                           )}
                         </div>
                       </TableCell>

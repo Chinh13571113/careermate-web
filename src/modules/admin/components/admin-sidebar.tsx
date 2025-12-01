@@ -11,7 +11,6 @@ import {
     Briefcase,
     Clock,
     Ban,
-    Settings,
     ChevronDown,
     ChevronRight,
     Brain,
@@ -78,11 +77,6 @@ const NAV_ITEMS: NavItem[] = [
         label: "Skill Management",
         href: "/admin/skills",
         icon: Brain,
-    },
-    {
-        label: "Settings",
-        href: "/admin/settings",
-        icon: Settings,
     },
 ];
 
