@@ -206,10 +206,10 @@ export default function ClientHeader() {
               Blog
             </Link>
              <Link
-              href="/recruiter/recruiter-feature/services"
+              href="/companies"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
-              Companies 
+              Companies
             </Link>
             <Link
               href="/cv-templates"

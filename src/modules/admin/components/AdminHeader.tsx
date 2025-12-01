@@ -111,9 +111,9 @@ export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#1b1b20f5] text-[#ffffff] w-full">
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
-        <div className="flex items-center gap-6">
+    <header className="bg-[#1b1b20f5] text-[#ffffff] w-full">
+      <div className="flex items-center justify-between px-3 py-2 md:p-4 border-b border-white/10">
+        <div className="flex items-center gap-3 md:gap-6">
           {/* Menu button */}
           <button
             onClick={toggleSidebar}
@@ -124,15 +124,15 @@ export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
           </button>
 
           {/* Title */}
-          <h1 className="text-lg font-semibold">CareerMate Admin</h1>
+          <h1 className="text-base md:text-lg font-semibold">CareerMate Admin</h1>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Right side header */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4">
             {isAuthenticated && user ? (
               <>
-                <span className="sm:block text-gray-300 hover:text-white transition-colors hidden text-xs md:inline">
+                <span className="text-gray-300 hover:text-white transition-colors hidden lg:inline text-xs">
                   For Admin {userInfo?.username || userInfo?.name || "Admin"}
                 </span>
 
@@ -147,13 +147,13 @@ export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
               <>
                 <Link
                   href="/sign-in"
-                  className="px-4 py-2 text-white hover:text-gray-300 transition-colors"
+                  className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base text-white hover:text-gray-300 transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/sign-up"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Sign Up
                 </Link>
@@ -162,7 +162,6 @@ export function AdminHeader({ sidebarOpen = false }: AdminHeaderProps) {
           </div>
         </div>
       </div>
-      <div className="border-b border-[#1f4171]"></div>
     </header>
   );
 }

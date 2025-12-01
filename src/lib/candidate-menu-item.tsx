@@ -105,6 +105,28 @@ export const candidateMenuItems: MenuItem[] = [
     ),
   },
   {
+    href: "/interview-practice",
+    label: "AI Interview Practice",
+    key: "interview-practice",
+    icon: (
+      <svg
+        className="w-5 h-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M12 2a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+        <circle cx="12" cy="5" r="1" fill="currentColor" />
+        <path d="M8 22h8" />
+        <path d="M4 8l2-2" />
+        <path d="M20 8l-2-2" />
+      </svg>
+    ),
+  },
+  {
     href: "/employments",
     label: "My Employment",
     key: "employments",

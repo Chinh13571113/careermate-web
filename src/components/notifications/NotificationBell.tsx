@@ -205,24 +205,19 @@ export function NotificationBell() {
         console.log('✅ [Recruiter] Job rejected -> /recruiter/recruiter-feature/jobs/drafts');
       }
       else if (eventType === 'APPLICATION_RECEIVED') {
-        // New candidate application
-        const jobPostingId = metadata.jobPostingId;
-        if (jobPostingId) {
-          redirectUrl = `/recruiter/recruiter-feature/jobs/${jobPostingId}/applications`;
-        } else {
-          redirectUrl = '/recruiter/recruiter-feature/applications';
-        }
-        console.log('✅ [Recruiter] Application received -> ', redirectUrl);
+        // New candidate application - go to applications list
+        redirectUrl = '/recruiter/recruiter-feature/candidates/applications';
+        console.log('✅ [Recruiter] Application received -> /recruiter/recruiter-feature/candidates/applications');
       }
       else if (eventType === 'PROFILE_UPDATE_APPROVED') {
         // Profile update approved
-        redirectUrl = '/recruiter/profile';
-        console.log('✅ [Recruiter] Profile update approved -> /recruiter/profile');
+        redirectUrl = '/recruiter/recruiter-feature/profile';
+        console.log('✅ [Recruiter] Profile update approved -> /recruiter/recruiter-feature/profile');
       }
       else if (eventType === 'PROFILE_UPDATE_REJECTED') {
         // Profile update rejected
-        redirectUrl = '/recruiter/profile';
-        console.log('✅ [Recruiter] Profile update rejected -> /recruiter/profile');
+        redirectUrl = '/recruiter/recruiter-feature/profile';
+        console.log('✅ [Recruiter] Profile update rejected -> /recruiter/recruiter-feature/profile');
       }
       else if (eventType === 'ACCOUNT_APPROVED') {
         // Registration approved
