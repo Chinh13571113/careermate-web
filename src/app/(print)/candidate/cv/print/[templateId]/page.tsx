@@ -312,7 +312,12 @@ async function getCVData(cvId: string): Promise<CVData | null> {
 // TEMPLATE COMPONENTS
 // ========================================
 
-function ClassicTemplate({ data }: { data: CVData }) {
+interface TemplateProps {
+  data: CVData;
+  showWatermark: boolean;
+}
+
+function ClassicTemplate({ data, showWatermark }: TemplateProps) {
   return (
     <div className="cv-page classic-template">
       {/* Header Section */}
@@ -437,11 +442,14 @@ function ClassicTemplate({ data }: { data: CVData }) {
           </div>
         </section>
       )}
+
+      {/* Watermark - only show for BASIC package */}
+      {showWatermark && <div className="cv-watermark" />}
     </div>
   );
 }
 
-function ModernTemplate({ data }: { data: CVData }) {
+function ModernTemplate({ data, showWatermark }: TemplateProps) {
   return (
     <div className="cv-page modern-template">
       {/* Sidebar */}
@@ -564,6 +572,9 @@ function ModernTemplate({ data }: { data: CVData }) {
           </section>
         )}
       </main>
+
+      {/* Watermark - only show for BASIC package */}
+      {showWatermark && <div className="cv-watermark" />}
     </div>
   );
 }
@@ -606,7 +617,7 @@ const GlobeIcon = () => (
   </svg>
 );
 
-function VintageTemplate({ data }: { data: CVData }) {
+function VintageTemplate({ data, showWatermark }: TemplateProps) {
   return (
     <div className="cv-page vintage-template">
       {/* Left Column */}
@@ -784,11 +795,14 @@ function VintageTemplate({ data }: { data: CVData }) {
           </section>
         )}
       </div>
+
+      {/* Watermark - only show for BASIC package */}
+      {showWatermark && <div className="cv-watermark" />}
     </div>
   );
 }
 
-function ProfessionalTemplate({ data }: { data: CVData }) {
+function ProfessionalTemplate({ data, showWatermark }: TemplateProps) {
   return (
     <div className="cv-page professional-template">
       {/* Header with accent */}
@@ -919,6 +933,9 @@ function ProfessionalTemplate({ data }: { data: CVData }) {
           )}
         </main>
       </div>
+
+      {/* Watermark - only show for BASIC package */}
+      {showWatermark && <div className="cv-watermark" />}
     </div>
   );
 }
@@ -932,10 +949,14 @@ export default async function PrintPage({
   searchParams,
 }: {
   params: { templateId: string };
-  searchParams: { id?: string; data?: string };
+  searchParams: { id?: string; data?: string; package?: string };
 }) {
   const { templateId } = params;
-  const { id: cvId, data: encodedData } = searchParams;
+  const { id: cvId, data: encodedData, package: userPackage } = searchParams;
+
+  // Determine if watermark should be shown
+  // Show watermark for FREE or BASIC package (or when no package specified)
+  const showWatermark = !userPackage || userPackage === 'FREE' || userPackage === 'BASIC';
 
   // Template mapping: CVPreview ID -> Print template ID
   const templateMapping: Record<string, string> = {
@@ -982,13 +1003,13 @@ export default async function PrintPage({
     );
   }
 
-  // Render appropriate template
+  // Render appropriate template with watermark flag
   return (
     <>
-      {mappedTemplate === 'classic' && <ClassicTemplate data={cvData} />}
-      {mappedTemplate === 'modern' && <ModernTemplate data={cvData} />}
-      {mappedTemplate === 'professional' && <ProfessionalTemplate data={cvData} />}
-      {mappedTemplate === 'vintage' && <VintageTemplate data={cvData} />}
+      {mappedTemplate === 'classic' && <ClassicTemplate data={cvData} showWatermark={showWatermark} />}
+      {mappedTemplate === 'modern' && <ModernTemplate data={cvData} showWatermark={showWatermark} />}
+      {mappedTemplate === 'professional' && <ProfessionalTemplate data={cvData} showWatermark={showWatermark} />}
+      {mappedTemplate === 'vintage' && <VintageTemplate data={cvData} showWatermark={showWatermark} />}
     </>
   );
 }
