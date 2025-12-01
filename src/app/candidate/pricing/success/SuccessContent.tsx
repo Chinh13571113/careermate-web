@@ -86,7 +86,7 @@ export default function PaymentSuccessPage() {
           <div className="flex gap-4 justify-center">
             <Button
               onClick={() => router.push('/candidate/dashboard')}
-              className="px-8 py-6 text-lg bg-blue-600 hover:bg-blue-700"
+              className="px-8 py-6 text-white text-lg bg-blue-600 hover:bg-blue-700"
             >
               Go to Dashboard
             </Button>

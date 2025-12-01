@@ -1,6 +1,6 @@
 "use client";
 import { Suspense } from "react";
-import { FailureContent } from "./FailureContent";
+import FailureContent from "./FailureContent";
 
 function LoadingFallback() {
   return (
