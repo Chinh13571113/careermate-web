@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
@@ -19,6 +19,131 @@ import { CVATSAnalyzeResponse } from "@/types/cv-ats";
 import CVSidebar from "@/components/layout/CVSidebar";
 import toast from "react-hot-toast";
 
+// Radar Chart Component
+function RadarChart({ 
+  data 
+}: { 
+  data: { label: string; value: number; color: string }[] 
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 60;
+    const angleStep = (Math.PI * 2) / data.length;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background circles
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 5; i++) {
+      ctx.beginPath();
+      const r = (radius * i) / 5;
+      for (let j = 0; j <= data.length; j++) {
+        const angle = j * angleStep - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * r;
+        const y = centerY + Math.sin(angle) * r;
+        if (j === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // Draw axis lines
+    ctx.strokeStyle = '#d1d5db';
+    data.forEach((_, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(
+        centerX + Math.cos(angle) * radius,
+        centerY + Math.sin(angle) * radius
+      );
+      ctx.stroke();
+    });
+
+    // Draw data polygon
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    data.forEach((item, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const r = (radius * item.value) / 100;
+      const x = centerX + Math.cos(angle) * r;
+      const y = centerY + Math.sin(angle) * r;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw data points
+    data.forEach((item, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const r = (radius * item.value) / 100;
+      const x = centerX + Math.cos(angle) * r;
+      const y = centerY + Math.sin(angle) * r;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    // Draw labels
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    data.forEach((item, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const labelRadius = radius + 35;
+      const x = centerX + Math.cos(angle) * labelRadius;
+      const y = centerY + Math.sin(angle) * labelRadius;
+      
+      // Draw colored dot
+      ctx.beginPath();
+      ctx.arc(x + 25, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      
+      // Draw label text
+      ctx.fillStyle = '#374151';
+      ctx.fillText(item.label, x, y);
+    });
+
+  }, [data]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      width={320} 
+      height={320}
+      className="mx-auto"
+    />
+  );
+}
+
 export default function AICVResult() {
   const router = useRouter();
   const [result, setResult] = useState<CVATSAnalyzeResponse | null>(null);
@@ -28,7 +153,7 @@ export default function AICVResult() {
     if (storedResult) {
       setResult(JSON.parse(storedResult));
     } else {
-      toast.error("Không tìm thấy kết quả phân tích");
+      toast.error("Analysis result not found");
       router.push('/candidate/ai-cv-checker');
     }
   }, [router]);
@@ -38,7 +163,7 @@ export default function AICVResult() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải kết quả...</p>
+          <p className="text-gray-600">Loading results...</p>
         </div>
       </div>
     );
@@ -74,14 +199,14 @@ export default function AICVResult() {
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                Quay lại
+                Back
               </button>
               
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                      Kết quả phân tích CV
+                      CV Analysis Results
                     </h1>
                     <p className="text-gray-600">{result.overall_comment}</p>
                   </div>
@@ -90,51 +215,65 @@ export default function AICVResult() {
                       {result.overall_score}
                     </div>
                     <div className="text-sm font-semibold text-gray-600 mt-1">
-                      Điểm tổng thể
+                      Overall Score
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Summary Section */}
+            {/* Summary Section - Overview with Radar Chart */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Target className="w-6 h-6 text-green-600" />
-                <h2 className="text-2xl font-bold text-gray-900">Tổng quan</h2>
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Overview</h2>
+              <p className="mb-1">
+                <span className="text-gray-700">Suitability Level: </span>
+                <span className={`text-xl font-bold ${getScoreColor(result.overall_score)}`}>
+                  {result.overall_score}
+                </span>
+              </p>
+              <p className="text-gray-600 mb-6">{result.overall_comment}</p>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Strengths */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <h3 className="font-bold text-gray-900">Điểm mạnh</h3>
-                  </div>
-                  <ul className="space-y-2">
-                    {(result.summary?.strengths || []).map((strength, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-gray-700">
-                        <span className="text-green-600 mt-1">•</span>
-                        {strength}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Radar Chart */}
+                <div className="flex items-center justify-center">
+                  <RadarChart 
+                    data={[
+                      { label: "Content", value: result.content?.score || 0, color: "#3b82f6" },
+                      { label: "Format", value: result.format?.score || 0, color: "#f97316" },
+                      { label: "Style", value: result.style?.score || 0, color: "#8b5cf6" },
+                      { label: "Sections", value: result.sections?.score || 0, color: "#ef4444" },
+                      { label: "Skills", value: result.skills?.score || 0, color: "#22c55e" },
+                    ]}
+                  />
                 </div>
 
-                {/* Improvements */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <TrendingUp className="w-5 h-5 text-orange-600" />
-                    <h3 className="font-bold text-gray-900">Cần cải thiện</h3>
+                {/* Strengths & Improvements */}
+                <div className="space-y-6">
+                  {/* Strengths */}
+                  <div className="bg-green-50 rounded-xl p-5 border border-green-200">
+                    <h3 className="font-bold text-gray-900 mb-3">Strengths</h3>
+                    <ul className="space-y-2">
+                      {(result.summary?.strengths || []).map((strength, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-gray-700">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-2">
-                    {(result.summary?.improvements || []).map((improvement, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-gray-700">
-                        <span className="text-orange-600 mt-1">•</span>
-                        {improvement}
-                      </li>
-                    ))}
-                  </ul>
+
+                  {/* Improvements */}
+                  <div className="bg-amber-50 rounded-xl p-5 border border-amber-200">
+                    <h3 className="font-bold text-gray-900 mb-3">Improvements</h3>
+                    <ul className="space-y-2">
+                      {(result.summary?.improvements || []).map((improvement, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-gray-700">
+                          <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">{improvement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -144,23 +283,23 @@ export default function AICVResult() {
               {/* Content Score */}
               <ScoreCard
                 icon={<FileText className="w-6 h-6" />}
-                title="Nội dung"
-                score={result.content.score}
-                description={result.content.description}
+                title="Content"
+                score={result.content?.score}
+                description={result.content?.description}
               >
                 <DetailSection
-                  title="Kết quả đo lường được"
-                  items={result.content.measurable_results}
+                  title="Measurable Results"
+                  items={result.content?.measurable_results || []}
                   type="success"
                 />
                 <DetailSection
-                  title="Lỗi ngữ pháp"
-                  items={result.content.grammar_issues}
+                  title="Grammar Issues"
+                  items={result.content?.grammar_issues || []}
                   type="error"
                 />
                 <DetailSection
-                  title="Gợi ý cải thiện"
-                  items={result.content.tips}
+                  title="Improvement Tips"
+                  items={result.content?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -168,35 +307,35 @@ export default function AICVResult() {
               {/* Skills Score */}
               <ScoreCard
                 icon={<Award className="w-6 h-6" />}
-                title="Kỹ năng"
-                score={result.skills.score}
-                description={result.skills.description}
+                title="Skills"
+                score={result.skills?.score}
+                description={result.skills?.description}
               >
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Kỹ năng kỹ thuật</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">Technical Skills</h4>
                     <DetailSection
-                      title="Đã có"
+                      title="Matched"
                       items={result.skills?.technical?.matched || []}
                       type="success"
                     />
                     <DetailSection
-                      title="Còn thiếu"
+                      title="Missing"
                       items={result.skills?.technical?.missing || []}
                       type="error"
                     />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Kỹ năng mềm</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">Soft Skills</h4>
                     <DetailSection
-                      title="Còn thiếu"
+                      title="Missing"
                       items={result.skills?.soft?.missing || []}
                       type="error"
                     />
                   </div>
                 </div>
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.skills?.tips || []}
                   type="tip"
                 />
@@ -205,20 +344,20 @@ export default function AICVResult() {
               {/* Format Score */}
               <ScoreCard
                 icon={<Layout className="w-6 h-6" />}
-                title="Định dạng"
+                title="Format"
                 score={result.format?.score}
                 description={result.format?.description}
               >
                 <div className="mb-4">
-                  <h4 className="font-semibold text-gray-900 mb-3">Kiểm tra định dạng</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">Format Checks</h4>
                   <div className="space-y-2">
-                    <FormatCheck label="Định dạng ngày" status={result.format?.checks?.date_format} />
-                    <FormatCheck label="Độ dài" status={result.format?.checks?.length} />
-                    <FormatCheck label="Bullet points" status={result.format?.checks?.bullet_points} />
+                    <FormatCheck label="Date Format" status={result.format?.checks?.date_format} />
+                    <FormatCheck label="Length" status={result.format?.checks?.length} />
+                    <FormatCheck label="Bullet Points" status={result.format?.checks?.bullet_points} />
                   </div>
                 </div>
                 <DetailSection
-                  title="Gợi ý cải thiện"
+                  title="Improvement Tips"
                   items={result.format?.tips || []}
                   type="tip"
                 />
@@ -227,18 +366,18 @@ export default function AICVResult() {
               {/* Sections Score */}
               <ScoreCard
                 icon={<BookOpen className="w-6 h-6" />}
-                title="Các mục"
-                score={result.sections.score}
-                description={result.sections.description}
+                title="Sections"
+                score={result.sections?.score}
+                description={result.sections?.description}
               >
                 <DetailSection
-                  title="Các mục còn thiếu"
-                  items={result.sections.missing}
+                  title="Missing Sections"
+                  items={result.sections?.missing || []}
                   type="error"
                 />
                 <DetailSection
-                  title="Gợi ý cải thiện"
-                  items={result.sections.tips}
+                  title="Improvement Tips"
+                  items={result.sections?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -246,23 +385,23 @@ export default function AICVResult() {
               {/* Style Score */}
               <ScoreCard
                 icon={<Palette className="w-6 h-6" />}
-                title="Phong cách"
-                score={result.style.score}
-                description={result.style.description}
+                title="Style"
+                score={result.style?.score}
+                description={result.style?.description}
               >
                 <DetailSection
-                  title="Giọng văn"
-                  items={result.style.tone}
+                  title="Tone"
+                  items={result.style?.tone || []}
                   type="warning"
                 />
                 <DetailSection
-                  title="Từ khóa thông dụng"
-                  items={result.style.buzzwords}
+                  title="Buzzwords"
+                  items={result.style?.buzzwords || []}
                   type="info"
                 />
                 <DetailSection
-                  title="Gợi ý cải thiện"
-                  items={result.style.tips}
+                  title="Improvement Tips"
+                  items={result.style?.tips || []}
                   type="tip"
                 />
               </ScoreCard>
@@ -295,13 +434,13 @@ export default function AICVResult() {
                 onClick={() => router.push('/candidate/ai-cv-checker')}
                 className="px-6 py-3 border-2 border-green-600 text-green-600 rounded-xl hover:bg-green-50 transition-colors font-semibold"
               >
-                Phân tích CV khác
+                Analyze Another CV
               </button>
               <button
                 onClick={() => router.push('/candidate/cm-profile')}
                 className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
               >
-                Cải thiện CV của bạn
+                Improve Your CV
               </button>
             </div>
           </div>

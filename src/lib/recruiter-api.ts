@@ -647,6 +647,25 @@ export const getJobRecommendations = async (
   }
 };
 
+// Check if recruiter has AI matching entitlement
+export interface AIMatchingCheckerResponse {
+  code: number;
+  message: string;
+  result: boolean;
+}
+
+export const checkAIMatchingEntitlement = async (): Promise<AIMatchingCheckerResponse> => {
+  try {
+    console.log('🔵 [CHECK AI MATCHING] Checking entitlement');
+    const response = await api.get('/api/recruiter-entitlement/ai-matching-checker');
+    console.log('✅ [CHECK AI MATCHING] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [CHECK AI MATCHING] Error:', error.response?.data || error);
+    throw new Error(error.response?.data?.message || 'Failed to check AI matching entitlement');
+  }
+};
+
 // Job Application APIs
 export interface JobApplication {
   id: number;
