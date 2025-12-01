@@ -330,7 +330,7 @@ export const STATUS_ACTIONS: Record<JobApplicationStatus, StatusActions> = {
       { label: 'Withdraw', action: 'withdraw', variant: 'outline', icon: 'Undo2' },
     ],
     recruiter: [
-      { label: 'Create Employment', action: 'create_employment', variant: 'default', icon: 'Briefcase' },
+      { label: 'Start Employment', action: 'start_employment', variant: 'default', icon: 'Briefcase' },
       { label: 'Reject', action: 'reject', variant: 'destructive', icon: 'XCircle' },
     ],
   },
@@ -344,7 +344,7 @@ export const STATUS_ACTIONS: Record<JobApplicationStatus, StatusActions> = {
       { label: 'Withdraw', action: 'withdraw', variant: 'outline', icon: 'Undo2' },
     ],
     recruiter: [
-      { label: 'Create Employment', action: 'create_employment', variant: 'default', icon: 'Briefcase' },
+      { label: 'Start Employment', action: 'start_employment', variant: 'default', icon: 'Briefcase' },
       { label: 'View Details', action: 'view_employment', variant: 'outline', icon: 'Eye' },
     ],
   },

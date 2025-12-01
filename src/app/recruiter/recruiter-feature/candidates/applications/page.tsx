@@ -4,6 +4,7 @@ import { Search, Filter, Download, FileText, Calendar, MapPin, Clock, CheckCircl
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getJobApplications, getRecruiterApplications, getRecruiterApplicationsFiltered, approveJobApplication, rejectJobApplication, setReviewingJobApplication, JobApplication, updateJobApplicationStatus } from "@/lib/recruiter-api";
+import { createEmploymentVerification } from "@/lib/employment-api";
 import { StatusBadgeFull } from "@/components/shared/StatusBadge";
 import { getRecruiterActions, sortStatuses } from "@/lib/status-utils";
 import { JobApplicationStatus } from "@/types/status";
@@ -117,17 +118,31 @@ export default function CandidateApplicationsPage() {
             toast.error('Cancel interview API not yet implemented');
           }
           break;
-          
-        case 'create_employment':
-          router.push(`/recruiter/employments/create?applicationId=${applicationId}`);
-          break;
         
         case 'start_employment':
-          // For ACCEPTED status - transition to WORKING
-          if (confirm('Are you sure you want to start this employee? This will mark them as currently working.')) {
-            await updateJobApplicationStatus(applicationId, 'WORKING');
-            toast.success('Employment started successfully!');
-            await fetchApplications();
+          // For APPROVED/ACCEPTED status - transition to WORKING and create employment record
+          if (confirm('Are you sure you want to start this employee? This will mark them as currently working and begin employment tracking.')) {
+            try {
+              // First create employment verification record
+              await createEmploymentVerification(applicationId, {
+                startDate: new Date().toISOString().split('T')[0],
+                position: application?.jobTitle || 'Employee',
+              });
+              // Then update status to WORKING
+              await updateJobApplicationStatus(applicationId, 'WORKING');
+              toast.success('Employment started successfully! Status updated to WORKING.');
+              await fetchApplications();
+            } catch (error: any) {
+              console.error('Failed to start employment:', error);
+              // If employment creation fails, still try to update status
+              try {
+                await updateJobApplicationStatus(applicationId, 'WORKING');
+                toast.success('Status updated to WORKING (employment record may need manual creation).');
+                await fetchApplications();
+              } catch (statusError: any) {
+                toast.error(statusError.message || 'Failed to start employment');
+              }
+            }
           }
           break;
           
