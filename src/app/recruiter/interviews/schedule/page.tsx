@@ -564,7 +564,9 @@ function ScheduleInterviewContent() {
   function isPast(date: Date): boolean {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return date < today;
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate < today;
   }
 
   /**
@@ -715,10 +717,13 @@ function ScheduleInterviewContent() {
                       disabled={disabled}
                       className={`
                         p-3 rounded-lg border text-center transition-colors
-                        ${isSelected ? "bg-primary text-primary-foreground border-primary" : ""}
-                        ${isToday(date) ? "ring-2 ring-primary/50" : ""}
-                        ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent"}
-                        ${!isSelected && !disabled ? "border-border" : ""}
+                        ${disabled 
+                          ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed" 
+                          : isSelected 
+                            ? "bg-primary text-primary-foreground border-primary" 
+                            : "border-border hover:bg-accent"
+                        }
+                        ${!disabled && isToday(date) ? "ring-2 ring-primary/50" : ""}
                       `}
                     >
                       <div className="text-xs font-medium">{getDayName(date)}</div>
