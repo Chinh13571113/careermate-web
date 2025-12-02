@@ -166,7 +166,7 @@ export default function CandidateHeader() {
               All Jobs
             </Link>
             <Link
-              href="/candidate/companies"
+              href="/companies"
               className="text-[#ffffff] hover:text-[#c8c8c8]"
             >
               Companies

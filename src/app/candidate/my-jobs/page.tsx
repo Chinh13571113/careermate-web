@@ -250,24 +250,6 @@ const MyJobsPage = () => {
           router.push('/candidate/interviews');
           break;
           
-        case 'accept_offer':
-          if (confirm('Are you sure you want to accept this job offer? The recruiter will be notified to proceed with onboarding.')) {
-            await updateJobApplicationStatus(applicationId, 'ACCEPTED');
-            toast.success('Job offer accepted! The company will contact you for next steps.');
-            const updatedApplications = await fetchMyJobApplications(candidateId!);
-            setJobApplications(updatedApplications);
-          }
-          break;
-          
-        case 'decline_offer':
-          if (confirm('Are you sure you want to decline this job offer?')) {
-            await updateJobApplicationStatus(applicationId, 'REJECTED');
-            toast.success('Job offer declined');
-            const updatedApplications = await fetchMyJobApplications(candidateId!);
-            setJobApplications(updatedApplications);
-          }
-          break;
-          
         case 'submit_review':
           router.push(`/candidate/reviews/submit?jobApplyId=${applicationId}`);
           break;
@@ -432,7 +414,7 @@ const MyJobsPage = () => {
                                     {/* Action Required badge - for INTERVIEW_SCHEDULED, only show if interview not confirmed */}
                                     {application.status === 'INTERVIEW_SCHEDULED' && interviewsMap[application.id] && !interviewsMap[application.id].candidateConfirmed && (
                                       <button
-                                        onClick={() => router.push(`/candidate/interviews?action=confirm&id=${interviewsMap[application.id].id}`)}
+                                        onClick={() => router.push(`/candidate/interviews?action=confirm&id=${application.id}`)}
                                         className="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse hover:bg-amber-200 cursor-pointer transition-colors"
                                       >
                                         Action Required
@@ -565,7 +547,7 @@ const MyJobsPage = () => {
                                         <div className="mt-3 pt-3 border-t border-purple-200 flex flex-wrap gap-2">
                                           <Button
                                             size="sm"
-                                            onClick={() => router.push(`/candidate/interviews?action=confirm&id=${interviewsMap[application.id].id}`)}
+                                            onClick={() => router.push(`/candidate/interviews?action=confirm&id=${application.id}`)}
                                             className="bg-green-600 hover:bg-green-700 text-white"
                                           >
                                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
