@@ -414,6 +414,7 @@ interface Props {
   onEditClick?: () => void;
   onBackClick?: () => void;
   resumeId?: number; // Resume ID for updating after save
+  userPackage?: string; // User's package (FREE, BASIC, PLUS, PREMIUM) - controls watermark
 }
 
 export default function CVPreview({
@@ -423,6 +424,7 @@ export default function CVPreview({
   onEditClick,
   onBackClick,
   resumeId: propResumeId,
+  userPackage,
 }: Props) {
   const [zoom, setZoom] = useState(zoomLevel);
   const [isMounted, setIsMounted] = useState(false);
@@ -871,6 +873,7 @@ export default function CVPreview({
           templateId: templateId, // Pass template ID
           cvData: printData, // Pass transformed CV data
           fileName: fileName,
+          userPackage: userPackage, // Pass user package to control watermark
         }),
       });
 
