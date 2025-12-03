@@ -759,8 +759,8 @@ export default function CMProfile() {
 
     setIsAnalyzing(true);
     try {
-      // ✅ Lưu ý: Thay đổi API_BASE thành endpoint thực tế của bạn nếu khác
-      const API_BASE = 'http://localhost:8000/api/cv-creation';
+      // const API_BASE = 'http://localhost:8000/api/cv-creation';
+      const API_BASE = process.env.NEXT_PUBLIC_PYTHON_API_URL;
       const response = await fetch(`${API_BASE}/recommend-roles/`, {
         method: 'POST',
         headers: {

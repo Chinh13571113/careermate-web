@@ -42,7 +42,7 @@ interface UseCVActionsReturn {
   handleEditCV: (cv: CV) => void;
   handlePreview: (cv: CV) => void;
   handleClosePreview: () => void;
-  handleDelete: (cvId: string) => void;
+  handleDelete: (cvId: string) => Promise<void>;
   // Sync dialog handlers
   handleCloseSyncSummaryDialog: () => void;
   handleCloseSyncConfirmDialog: () => void;
@@ -800,21 +800,48 @@ export const useCVActions = (
     setPreviewUrl(null);
   }, []);
 
-  const handleDelete = useCallback((cvId: string) => {
+  const handleDelete = useCallback(async (cvId: string) => {
     if (window.confirm("Are you sure you want to delete this CV?")) {
-      setUploadedCVs(prev => prev.filter(cv => cv.id !== cvId));
-      setBuiltCVs(prev => prev.filter(cv => cv.id !== cvId));
-      setDraftCVs(prev => prev.filter(cv => cv.id !== cvId));
-
-      // Update default if deleted CV was default
-      if (defaultCV?.id === cvId) {
-        const remaining = [...uploadedCVs, ...builtCVs, ...draftCVs].filter(cv => cv.id !== cvId);
-        setDefaultCV(remaining[0] || null);
+      const resumeId = parseInt(cvId, 10);
+      
+      if (isNaN(resumeId)) {
+        console.error('❌ Invalid resume ID:', cvId);
+        toast.error('Invalid CV ID');
+        return;
       }
 
-      toast.success("CV deleted");
+      try {
+        toast.loading('Deleting CV...', { id: 'delete-cv' });
+        
+        // Call API to delete resume
+        await resumeService.deleteResume(resumeId);
+        
+        // Update local state
+        setUploadedCVs(prev => prev.filter(cv => cv.id !== cvId));
+        setBuiltCVs(prev => prev.filter(cv => cv.id !== cvId));
+        setDraftCVs(prev => prev.filter(cv => cv.id !== cvId));
+
+        // Update default if deleted CV was default
+        if (defaultCV?.id === cvId) {
+          const remaining = [...uploadedCVs, ...builtCVs, ...draftCVs].filter(cv => cv.id !== cvId);
+          setDefaultCV(remaining[0] || null);
+        }
+
+        // Refresh data from API
+        if (refresh) {
+          await refresh();
+        }
+
+        toast.success("CV deleted successfully", { id: 'delete-cv' });
+      } catch (error: any) {
+        console.error('❌ Failed to delete CV:', error);
+        toast.error(
+          error.message || 'Failed to delete CV',
+          { id: 'delete-cv' }
+        );
+      }
     }
-  }, [defaultCV, uploadedCVs, builtCVs, draftCVs, setUploadedCVs, setBuiltCVs, setDraftCVs, setDefaultCV]);
+  }, [defaultCV, uploadedCVs, builtCVs, draftCVs, setUploadedCVs, setBuiltCVs, setDraftCVs, setDefaultCV, refresh]);
 
   return {
     showPreview,

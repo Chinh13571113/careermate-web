@@ -250,6 +250,7 @@ export default function JobsDetailPage() {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [showJobRecommendModal, setShowJobRecommendModal] = useState<boolean>(false);
+  const [showNoCVModal, setShowNoCVModal] = useState<boolean>(false);
 
   // ✅ Fetch candidateId if authenticated but missing
   useEffect(() => {
@@ -386,8 +387,8 @@ export default function JobsDetailPage() {
       const activeResume = await resumeService.getActiveResume();
 
       if (!activeResume || !activeResume.resumeUrl) {
-        toast.error("Please upload or create a CV first to use this feature");
-        router.push("/candidate/cv-management");
+        setIsAnalyzing(false);
+        setShowNoCVModal(true);
         return;
       }
 
@@ -1361,6 +1362,57 @@ ${jobData.recruiterInfo?.about || 'N/A'}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors"
                 >
                   Continue to login
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No CV Default Modal */}
+      {showNoCVModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowNoCVModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+
+            {/* Modal content */}
+            <div className="p-8">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                No Default CV Attached
+              </h2>
+              <p className="text-gray-600 mb-6 text-center">
+                Currently you have no CV Default Attached. Would you like to attach new Default CV?
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowNoCVModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNoCVModal(false);
+                    router.push("/candidate/cv-management");
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors"
+                >
+                  Continue
                 </button>
               </div>
             </div>
