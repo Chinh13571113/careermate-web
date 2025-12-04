@@ -648,18 +648,18 @@ ${jobData.recruiterInfo?.about || 'N/A'}
 
   return (
     <>
-      <div className="min-h-screen bg-background pt-20">
+      <div className="min-h-screen bg-gray-50 pt-20">
         {/* Search Bar Section */}
-        <div className="py-4 bg-background">
+        <div className="py-4 bg-gray-50">
           <div className="mx-auto max-w-7xl px-4 md:px-6">
-            <div className="bg-card border border-border shadow-sm rounded-xl p-4">
+            <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4">
               <div className="flex flex-col md:flex-row gap-3">
                 {/* Location Dropdown */}
                 <div className="relative flex-shrink-0">
                   <select
                     value={searchLocation}
                     onChange={(e) => setSearchLocation(e.target.value)}
-                    className="appearance-none w-full md:w-64 pl-10 pr-10 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-card cursor-pointer text-foreground"
+                    className="appearance-none w-full md:w-64 pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white cursor-pointer text-gray-700"
                   >
                     git add src/app/(home)/jobs-detail/page.tsx
                     <option value="Ho Chi Minh">Ho Chi Minh</option>
@@ -816,7 +816,7 @@ ${jobData.recruiterInfo?.about || 'N/A'}
                 </div>
 
                 {/* Filter Button */}
-                <button className="ml-auto flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm">
+                <button className="ml-auto flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm">
                   <IoFilterOutline className="w-5 h-5" />
                   Filter
                 </button>
@@ -830,10 +830,10 @@ ${jobData.recruiterInfo?.about || 'N/A'}
           <main className="mx-auto max-w-7xl px-4 md:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <aside className="lg:col-span-5">
-                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   {/* Header Section: Title + Job Recommend Button */}
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-foreground">
+                    <h2 className="text-xl font-semibold text-gray-900">
                       Available Jobs{" "}
                       <span className="text-blue-600">({totalElements})</span>
                     </h2>
@@ -947,7 +947,7 @@ ${jobData.recruiterInfo?.about || 'N/A'}
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages - 1}
-                            className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Next
                           </button>
@@ -960,20 +960,20 @@ ${jobData.recruiterInfo?.about || 'N/A'}
 
               <section className="lg:col-span-7">
                 {selectedJob ? (
-                  <div className="sticky top-20 bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                  <div className="sticky top-20 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Header with company and job title - Fixed */}
-                    <div className="p-6 border-b border-border">
+                    <div className="p-6 border-b border-gray-200">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                               {selectedJob.company}
                             </span>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-gray-700">
                               ✓ You will love it
                             </span>
                           </div>
-                          <h1 className="text-2xl font-bold text-foreground mb-2">
+                          <h1 className="text-2xl font-bold text-gray-900 mb-2">
                             {selectedJob.title}
                           </h1>
 
