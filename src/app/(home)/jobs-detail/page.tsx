@@ -8,6 +8,7 @@ import { FiMapPin, FiSearch, FiX, FiStar } from "react-icons/fi";
 import { IoFilterOutline } from "react-icons/io5";
 import { AiFillStar, AiFillLike, AiOutlineLike } from "react-icons/ai";
 import { HiOutlineDocumentSearch } from "react-icons/hi";
+import { Lock } from "lucide-react";
 import {
   fetchJobPostings,
   transformJobPosting,
@@ -23,6 +24,7 @@ import toast from "react-hot-toast";
 import { JobCardSkeleton, JobDetailSkeleton } from "@/components/skeletons";
 import { resumeService } from "@/services/resumeService";
 import { analyzeCVATS } from "@/lib/cv-ats-api";
+import { checkCVAnalyseAccess } from "@/lib/entitlement-api";
 import api from "@/lib/api";
 
 interface JobListing {
@@ -253,6 +255,10 @@ export default function JobsDetailPage() {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [showJobRecommendModal, setShowJobRecommendModal] = useState<boolean>(false);
+  const [showNoCVModal, setShowNoCVModal] = useState<boolean>(false);
+  const [showCVAnalyseUpgradeModal, setShowCVAnalyseUpgradeModal] = useState<boolean>(false);
+  const [hasCVAnalyseAccess, setHasCVAnalyseAccess] = useState<boolean | null>(null);
+  const [checkingCVAnalyseAccess, setCheckingCVAnalyseAccess] = useState<boolean>(false);
 
   // ✅ Fetch candidateId if authenticated but missing
   useEffect(() => {
@@ -429,12 +435,24 @@ export default function JobsDetailPage() {
     setIsAnalyzing(true);
 
     try {
+      // Check subscription access first
+      setCheckingCVAnalyseAccess(true);
+      const accessRes = await checkCVAnalyseAccess();
+      setCheckingCVAnalyseAccess(false);
+      setHasCVAnalyseAccess(accessRes.hasAccess);
+
+      if (!accessRes.hasAccess) {
+        setIsAnalyzing(false);
+        setShowCVAnalyseUpgradeModal(true);
+        return;
+      }
+
       // 1. Fetch default/active CV
       const activeResume = await resumeService.getActiveResume();
 
       if (!activeResume || !activeResume.resumeUrl) {
-        toast.error("Please upload or create a CV first to use this feature");
-        router.push("/candidate/cv-management");
+        setIsAnalyzing(false);
+        setShowNoCVModal(true);
         return;
       }
 
@@ -630,18 +648,18 @@ ${jobData.recruiterInfo?.about || 'N/A'}
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="min-h-screen bg-background pt-20">
         {/* Search Bar Section */}
-        <div className="py-4 bg-gray-50">
+        <div className="py-4 bg-background">
           <div className="mx-auto max-w-7xl px-4 md:px-6">
-            <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4">
+            <div className="bg-card border border-border shadow-sm rounded-xl p-4">
               <div className="flex flex-col md:flex-row gap-3">
                 {/* Location Dropdown */}
                 <div className="relative flex-shrink-0">
                   <select
                     value={searchLocation}
                     onChange={(e) => setSearchLocation(e.target.value)}
-                    className="appearance-none w-full md:w-64 pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white cursor-pointer text-gray-700"
+                    className="appearance-none w-full md:w-64 pl-10 pr-10 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-card cursor-pointer text-foreground"
                   >
                     git add src/app/(home)/jobs-detail/page.tsx
                     <option value="Ho Chi Minh">Ho Chi Minh</option>
@@ -798,7 +816,7 @@ ${jobData.recruiterInfo?.about || 'N/A'}
                 </div>
 
                 {/* Filter Button */}
-                <button className="ml-auto flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm">
+                <button className="ml-auto flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm">
                   <IoFilterOutline className="w-5 h-5" />
                   Filter
                 </button>
@@ -812,10 +830,10 @@ ${jobData.recruiterInfo?.about || 'N/A'}
           <main className="mx-auto max-w-7xl px-4 md:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <aside className="lg:col-span-5">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                   {/* Header Section: Title + Job Recommend Button */}
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">
+                    <h2 className="text-xl font-semibold text-foreground">
                       Available Jobs{" "}
                       <span className="text-blue-600">({totalElements})</span>
                     </h2>
@@ -929,7 +947,7 @@ ${jobData.recruiterInfo?.about || 'N/A'}
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages - 1}
-                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Next
                           </button>
@@ -942,20 +960,20 @@ ${jobData.recruiterInfo?.about || 'N/A'}
 
               <section className="lg:col-span-7">
                 {selectedJob ? (
-                  <div className="sticky top-20 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="sticky top-20 bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                     {/* Header with company and job title - Fixed */}
-                    <div className="p-6 border-b border-gray-200">
+                    <div className="p-6 border-b border-border">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
                               {selectedJob.company}
                             </span>
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-muted-foreground">
                               ✓ You will love it
                             </span>
                           </div>
-                          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                          <h1 className="text-2xl font-bold text-foreground mb-2">
                             {selectedJob.title}
                           </h1>
 
@@ -1408,6 +1426,128 @@ ${jobData.recruiterInfo?.about || 'N/A'}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors"
                 >
                   Continue to login
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No CV Default Modal */}
+      {showNoCVModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowNoCVModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+
+            {/* Modal content */}
+            <div className="p-8">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                No Default CV Attached
+              </h2>
+              <p className="text-gray-600 mb-6 text-center">
+                Currently you have no CV Default Attached. Would you like to attach new Default CV?
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowNoCVModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNoCVModal(false);
+                    router.push("/candidate/cv-management");
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#3a4660] to-gray-400 text-white rounded-md hover:bg-gradient-to-r hover:from-[#3a4660] hover:to-[#3a4660] transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CV Analyse Upgrade Modal */}
+      {showCVAnalyseUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowCVAnalyseUpgradeModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+
+            {/* Modal content */}
+            <div className="p-8">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <Lock className="w-8 h-8 text-indigo-600" />
+                </div>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                Upgrade Required
+              </h2>
+              <p className="text-gray-600 mb-6 text-center">
+                CV Analyse is a premium feature. Upgrade your subscription to unlock AI-powered CV analysis and get personalized feedback on how well your CV matches this job.
+              </p>
+
+              {/* Features list */}
+              <div className="mb-6 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>AI-powered CV analysis</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Match score with job requirements</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Personalized improvement suggestions</span>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCVAnalyseUpgradeModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Maybe Later
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCVAnalyseUpgradeModal(false);
+                    router.push("/candidate/subscription");
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md hover:from-indigo-700 hover:to-purple-700 transition-colors font-medium"
+                >
+                  Upgrade Now
                 </button>
               </div>
             </div>
