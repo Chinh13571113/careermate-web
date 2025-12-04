@@ -51,7 +51,7 @@ const JobCard: React.FC<JobCardProps> = ({
   const { Icon, className, label } = getWorkModeUI(workMode);
 
   return (
-    <div className={`bg-white rounded-lg border p-4 mb-4 transition-all ${isSelected ? 'border-[#3a4660] border-l-4 shadow-md bg-[#f0f2f5]' : 'border-gray-200 hover:shadow-md'
+    <div className={`bg-card rounded-lg border p-4 mb-4 transition-all ${isSelected ? 'border-[#3a4660] border-l-4 shadow-md bg-muted' : 'border-border hover:shadow-md'
       }`}>
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
@@ -64,12 +64,12 @@ const JobCard: React.FC<JobCardProps> = ({
                 HOT
               </span>
             )}
-            <h3 className="text-sm font-semibold text-gray-800 flex-1">{title}</h3>
+            <h3 className="text-sm font-semibold text-foreground flex-1">{title}</h3>
           </div>
 
           <div className="flex items-center gap-2 mb-2">
             <span className="w-4 h-4 bg-[#3a4660] rounded-sm flex-shrink-0"></span>
-            <span className="text-sm font-medium text-gray-700">{company}</span>
+            <span className="text-sm font-medium text-muted-foreground">{company}</span>
           </div>
 
           {salaryRange && (
@@ -91,7 +91,7 @@ const JobCard: React.FC<JobCardProps> = ({
         )}
 
         {/* ✅ DÙNG BIẾN Icon/label/className ĐÃ TÍNH Ở TRÊN */}
-        <div className="flex items-center gap-4 text-sm text-gray-600">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <Icon className={`w-5 h-5 ${className}`} />
             {label}
@@ -105,20 +105,20 @@ const JobCard: React.FC<JobCardProps> = ({
           </span>
         </div>
 
-        {companyType && <div className="text-sm text-gray-600">🏢 {companyType}</div>}
+        {companyType && <div className="text-sm text-muted-foreground">🏢 {companyType}</div>}
       </div>
 
       <div className="mb-3">
         <div className="flex flex-wrap gap-1">
           {skills.map((skill, index) => (
-            <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+            <span key={index} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
               {skill}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="text-xs text-gray-500">Posted {postedAgo}</div>
+      <div className="text-xs text-muted-foreground">Posted {postedAgo}</div>
     </div>
   );
 };
