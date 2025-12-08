@@ -91,6 +91,7 @@ const nextConfig = {
     '/api/export-pdf': ['./node_modules/@sparticuz/chromium/bin/**'],
     '/api/export-pdf/job': ['./node_modules/@sparticuz/chromium/bin/**'],
     '/api/export-pdf/job/[jobId]': ['./node_modules/@sparticuz/chromium/bin/**'],
+    '/api/export-pdf-v2': ['./node_modules/@sparticuz/chromium/bin/**'],
     '/candidate/cv/api/export-pdf': ['./node_modules/@sparticuz/chromium/bin/**'],
   },
 
