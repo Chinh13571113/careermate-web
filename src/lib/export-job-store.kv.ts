@@ -30,6 +30,19 @@ const JOB_TTL_SECONDS = 10 * 60;
 /** KV key prefix for export jobs */
 const KEY_PREFIX = "export-pdf-job:";
 
+/** Check if KV is properly configured */
+const isKVConfigured = Boolean(
+  process.env.KV_REST_API_URL &&
+  process.env.KV_REST_API_TOKEN &&
+  process.env.KV_REST_API_URL !== "asd" &&
+  process.env.KV_REST_API_TOKEN !== "asd"
+);
+
+/** In-memory fallback store for development */
+const memoryStore = new Map<string, ExportJobState>();
+
+console.log(`[ExportJobStore:KV] KV Configured: ${isKVConfigured}`);
+
 // =============================================================================
 // Helper Functions
 // =============================================================================
@@ -82,10 +95,20 @@ export async function createJob(
     updatedAt: now,
   };
 
-  // Store in KV with automatic expiration
-  await kv.set(getJobKey(jobId), job, { ex: JOB_TTL_SECONDS });
-
-  console.log(`[ExportJobStore:KV] Created job ${jobId} for resume ${resumeId}`);
+  // Use KV if configured, otherwise fall back to memory store
+  if (isKVConfigured) {
+    try {
+      await kv.set(getJobKey(jobId), job, { ex: JOB_TTL_SECONDS });
+      console.log(`[ExportJobStore:KV] Created job ${jobId} for resume ${resumeId}`);
+    } catch (error: any) {
+      console.error(`[ExportJobStore:KV] KV storage failed, using memory fallback:`, error.message);
+      memoryStore.set(jobId, job);
+      console.log(`[ExportJobStore:Memory] Created job ${jobId} for resume ${resumeId}`);
+    }
+  } else {
+    memoryStore.set(jobId, job);
+    console.log(`[ExportJobStore:Memory] Created job ${jobId} for resume ${resumeId} (KV not configured)`);
+  }
 
   return job;
 }
@@ -97,12 +120,28 @@ export async function createJob(
  * @returns The job state or null if not found
  */
 export async function getJob(jobId: string): Promise<ExportJobState | null> {
-  const job = await kv.get<ExportJobState>(getJobKey(jobId));
+  let job: ExportJobState | null = null;
 
-  if (job) {
-    console.log(`[ExportJobStore:KV] Retrieved job ${jobId}: ${job.status}`);
+  // Use KV if configured, otherwise fall back to memory store
+  if (isKVConfigured) {
+    try {
+      job = await kv.get<ExportJobState>(getJobKey(jobId));
+      if (job) {
+        console.log(`[ExportJobStore:KV] Retrieved job ${jobId}: ${job.status}`);
+      } else {
+        console.log(`[ExportJobStore:KV] Job ${jobId} not found (may have expired)`);
+      }
+    } catch (error: any) {
+      console.error(`[ExportJobStore:KV] KV retrieval failed, using memory fallback:`, error.message);
+      job = memoryStore.get(jobId) || null;
+    }
   } else {
-    console.log(`[ExportJobStore:KV] Job ${jobId} not found (may have expired)`);
+    job = memoryStore.get(jobId) || null;
+    if (job) {
+      console.log(`[ExportJobStore:Memory] Retrieved job ${jobId}: ${job.status}`);
+    } else {
+      console.log(`[ExportJobStore:Memory] Job ${jobId} not found`);
+    }
   }
 
   return job;
@@ -121,7 +160,7 @@ export async function updateJob(
   const existing = await getJob(jobId);
 
   if (!existing) {
-    console.warn(`[ExportJobStore:KV] Cannot update non-existent job: ${jobId}`);
+    console.warn(`[ExportJobStore] Cannot update non-existent job: ${jobId}`);
     return;
   }
 
@@ -131,14 +170,28 @@ export async function updateJob(
     updatedAt: Date.now(),
   };
 
-  // Update in KV with TTL refresh
-  await kv.set(getJobKey(jobId), updated, { ex: JOB_TTL_SECONDS });
-
-  console.log(`[ExportJobStore:KV] Updated job ${jobId}:`, {
-    status: updated.status,
-    hasFileUrl: !!updated.fileUrl,
-    hasError: !!updated.error,
-  });
+  // Use KV if configured, otherwise fall back to memory store
+  if (isKVConfigured) {
+    try {
+      await kv.set(getJobKey(jobId), updated, { ex: JOB_TTL_SECONDS });
+      console.log(`[ExportJobStore:KV] Updated job ${jobId}:`, {
+        status: updated.status,
+        hasFileUrl: !!updated.fileUrl,
+        hasError: !!updated.error,
+      });
+    } catch (error: any) {
+      console.error(`[ExportJobStore:KV] KV update failed, using memory fallback:`, error.message);
+      memoryStore.set(jobId, updated);
+      console.log(`[ExportJobStore:Memory] Updated job ${jobId}`);
+    }
+  } else {
+    memoryStore.set(jobId, updated);
+    console.log(`[ExportJobStore:Memory] Updated job ${jobId}:`, {
+      status: updated.status,
+      hasFileUrl: !!updated.fileUrl,
+      hasError: !!updated.error,
+    });
+  }
 }
 
 /**
@@ -153,7 +206,7 @@ export async function completeJob(jobId: string, fileUrl: string): Promise<void>
     fileUrl,
   });
 
-  console.log(`[ExportJobStore:KV] Job ${jobId} completed with URL: ${fileUrl.substring(0, 50)}...`);
+  console.log(`[ExportJobStore] Job ${jobId} completed with URL: ${fileUrl.substring(0, 50)}...`);
 }
 
 /**
@@ -168,7 +221,7 @@ export async function failJob(jobId: string, error: string): Promise<void> {
     error,
   });
 
-  console.error(`[ExportJobStore:KV] Job ${jobId} failed: ${error}`);
+  console.error(`[ExportJobStore] Job ${jobId} failed: ${error}`);
 }
 
 /**
@@ -177,8 +230,20 @@ export async function failJob(jobId: string, error: string): Promise<void> {
  * @param jobId - The job ID to delete
  */
 export async function deleteJob(jobId: string): Promise<void> {
-  await kv.del(getJobKey(jobId));
-  console.log(`[ExportJobStore:KV] Deleted job ${jobId}`);
+  // Use KV if configured, otherwise fall back to memory store
+  if (isKVConfigured) {
+    try {
+      await kv.del(getJobKey(jobId));
+      console.log(`[ExportJobStore:KV] Deleted job ${jobId}`);
+    } catch (error: any) {
+      console.error(`[ExportJobStore:KV] KV delete failed, using memory fallback:`, error.message);
+      memoryStore.delete(jobId);
+      console.log(`[ExportJobStore:Memory] Deleted job ${jobId}`);
+    }
+  } else {
+    memoryStore.delete(jobId);
+    console.log(`[ExportJobStore:Memory] Deleted job ${jobId}`);
+  }
 }
 
 // =============================================================================
