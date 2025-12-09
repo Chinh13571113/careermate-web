@@ -20,25 +20,25 @@ export type ExportJobStatus = "processing" | "done" | "error";
 export interface ExportJobState {
   /** Unique job identifier (UUID) */
   jobId: string;
-  
+
   /** Current status of the job */
   status: ExportJobStatus;
-  
+
   /** Firebase download URL when job is complete */
   fileUrl?: string;
-  
+
   /** Error message if job failed */
   error?: string;
-  
+
   /** Timestamp when job was created */
   createdAt: number;
-  
+
   /** Timestamp when job was last updated */
   updatedAt: number;
-  
+
   /** Resume ID being exported */
   resumeId: number;
-  
+
   /** Template ID used for export */
   templateId: string;
 }
@@ -53,19 +53,19 @@ export interface ExportJobState {
 export interface CreateExportJobRequest {
   /** Resume ID to export */
   resumeId: number;
-  
+
   /** Template ID for the CV */
   templateId: string;
-  
+
   /** CV data to render */
   cvData: ExportCVData;
-  
+
   /** Optional filename for the PDF */
   fileName?: string;
-  
+
   /** User's subscription package (affects watermark) */
   userPackage?: string;
-  
+
   /** Candidate ID for Firebase upload path (NOT email) */
   candidateId?: string;
 }
@@ -77,13 +77,13 @@ export interface CreateExportJobRequest {
 export interface CreateExportJobResponse {
   /** Job ID to poll for status */
   jobId: string;
-  
+
   /** Status: "done" (sync) or "processing" (async) */
   status: ExportJobStatus;
-  
+
   /** Message for the client */
   message: string;
-  
+
   /** Download URL if completed immediately (sync mode) */
   fileUrl?: string;
 }
@@ -94,13 +94,13 @@ export interface CreateExportJobResponse {
 export interface GetExportJobResponse {
   /** Job ID */
   jobId: string;
-  
+
   /** Current status */
   status: ExportJobStatus;
-  
+
   /** Download URL when complete */
   fileUrl?: string;
-  
+
   /** Error message if failed */
   error?: string;
 }
@@ -123,46 +123,46 @@ export interface ExportCVData {
   dob?: string;
   gender?: string;
   summary?: string;
-  
+
   experience?: Array<{
     position: string;
     company: string;
     period: string;
     description: string;
   }>;
-  
+
   education?: Array<{
     degree: string;
     institution: string;
     period: string;
     description?: string;
   }>;
-  
+
   skills?: Array<{
     category: string;
     items: string[];
   }>;
-  
+
   softSkills?: string[];
-  
+
   languages?: Array<{
     name: string;
     level: string;
   }>;
-  
+
   certifications?: Array<{
     name: string;
     issuer: string;
     date: string;
   }>;
-  
+
   projects?: Array<{
     name: string;
     description: string;
     period: string;
     url?: string;
   }>;
-  
+
   awards?: string[];
 }
 
@@ -176,16 +176,16 @@ export interface ExportCVData {
 export interface UseExportPDFJobState {
   /** Whether an export is in progress */
   isExporting: boolean;
-  
+
   /** Current job status */
   status: ExportJobStatus | null;
-  
+
   /** Progress message for UI */
   progressMessage: string;
-  
+
   /** Error message if export failed */
   error: string | null;
-  
+
   /** Download URL when complete */
   fileUrl: string | null;
 }
@@ -196,7 +196,7 @@ export interface UseExportPDFJobState {
 export interface UseExportPDFJobActions {
   /** Start a new export job */
   startExport: (request: CreateExportJobRequest) => Promise<string | null>;
-  
+
   /** Reset the hook state */
   reset: () => void;
 }

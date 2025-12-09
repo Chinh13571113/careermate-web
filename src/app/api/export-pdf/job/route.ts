@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     // setImmediate() doesn't work on Vercel - background tasks are killed
     // when the response is sent. We must process before responding.
     // =======================================================================
-    
+
     console.log(`[ExportJob] Starting PDF processing for job ${jobId}`);
     const startTime = Date.now();
 
@@ -83,9 +83,9 @@ export async function POST(req: NextRequest) {
         console.error(`[ExportJob] PDF generation failed for job ${jobId}:`, result.error);
         console.error(`[ExportJob] Error details:`, result.details || 'No additional details');
         await exportJobStore.failJob(jobId, result.error);
-        
+
         return NextResponse.json(
-          { 
+          {
             error: "PDF generation failed",
             details: result.error,
             jobId,
@@ -98,12 +98,12 @@ export async function POST(req: NextRequest) {
 
       // Step 2: Upload to Firebase
       console.log(`[ExportJob] Uploading to Firebase for job ${jobId}...`);
-      
+
       try {
         // Convert Buffer to Blob for uploadCVPDF
         const pdfBlob = new Blob([new Uint8Array(result.pdfBuffer)], { type: "application/pdf" });
         const cleanFileName = fileName || `cv-${resumeId}`;
-        
+
         // Use candidateId for Firebase path (NOT email)
         // Path: careermate-files/candidates/{candidateId}/cv/{fileName}
         const uploadCandidateId = candidateId || "anonymous";
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         console.log(`[ExportJob] Job ${jobId} completed successfully in ${duration}s`);
-        
+
         // Return success response with file URL
         const response: CreateExportJobResponse = {
           jobId,
@@ -127,14 +127,14 @@ export async function POST(req: NextRequest) {
         };
 
         return NextResponse.json(response, { status: 200 });
-        
+
       } catch (uploadError: any) {
         console.error(`[ExportJob] Firebase upload failed for job ${jobId}:`, uploadError);
         console.error(`[ExportJob] Upload error details:`, uploadError.message, uploadError.stack);
         await exportJobStore.failJob(jobId, `Upload failed: ${uploadError.message}`);
-        
+
         return NextResponse.json(
-          { 
+          {
             error: "Upload failed",
             details: uploadError.message,
             jobId,
@@ -146,9 +146,9 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
       console.error(`[ExportJob] Processing failed for job ${jobId}:`, error);
       await exportJobStore.failJob(jobId, error.message || "Unknown error during export");
-      
+
       return NextResponse.json(
-        { 
+        {
           error: "Export failed",
           details: error.message,
           jobId,
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("[ExportJob] Failed to create export job:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to create export job",
         details: error.message,
       },
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   const stats = exportJobStore.getStoreStats();
-  
+
   return NextResponse.json({
     service: "PDF Export Job API",
     stats,

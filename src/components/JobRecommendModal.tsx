@@ -31,7 +31,7 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
   const [collaborativeJobs, setCollaborativeJobs] = useState<JobRecommendation[]>([]);
   const [hotJobs, setHotJobs] = useState<JobRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'main' | 'recommended' | 'hot'>('main');
-  
+
   // New states for input form
   const [showInputForm, setShowInputForm] = useState(true);
   const [titleInput, setTitleInput] = useState("");
@@ -53,11 +53,11 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
   const checkAccessAndLoadSkills = async () => {
     try {
       setLoading(true);
-      
+
       // Check access
       const accessRes = await checkJobRecommendationAccess();
       setHasAccess(accessRes.hasAccess);
-      
+
       if (!accessRes.hasAccess) {
         setShowUpgradePrompt(true);
         setLoading(false);
@@ -75,7 +75,7 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
 
       // Load skills from active resume
       await loadActiveResumeSkills();
-      
+
     } catch (error) {
       console.error('Error checking access:', error);
       setShowUpgradePrompt(true);
@@ -87,16 +87,16 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
   const loadActiveResumeSkills = async () => {
     try {
       setLoadingSkills(true);
-      
+
       // Fetch all resumes
       const resumeResponse = await api.get('/api/resume');
-      
+
       if (resumeResponse.data.result && resumeResponse.data.result.length > 0) {
         // Find active resume
         const activeResume = resumeResponse.data.result.find(
           (resume: any) => resume.isActive === true
         );
-        
+
         if (activeResume && activeResume.skills && activeResume.skills.length > 0) {
           const skills = activeResume.skills.map((skill: ResumeSkill) => skill.skillName);
           setResumeSkills(skills);
@@ -154,16 +154,16 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
       console.log('🔵 Job Recommendation Request:', requestData);
 
       const response = await getJobRecommendations(requestData);
-      
+
       // Set data for 3 sections
       setContentBasedJobs(response.results.content_based || []);
       setCollaborativeJobs(response.results.collaborative || []);
       setHotJobs(response.results.hybrid_top || []);
-      
-      const totalJobs = (response.results.content_based?.length || 0) + 
-                        (response.results.collaborative?.length || 0) + 
-                        (response.results.hybrid_top?.length || 0);
-      
+
+      const totalJobs = (response.results.content_based?.length || 0) +
+        (response.results.collaborative?.length || 0) +
+        (response.results.hybrid_top?.length || 0);
+
       if (totalJobs > 0) {
         toast.success(`Tìm thấy ${totalJobs} công việc phù hợp!`);
       } else {
@@ -203,7 +203,7 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
-          
+
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-indigo-600" />
@@ -295,12 +295,13 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
                     value={titleInput}
                     onChange={(e) => setTitleInput(e.target.value)}
                     placeholder="VD: Frontend Developer, Backend Engineer, Fullstack..."
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    className="w-full pl-10 pr-4 py-3 border bg-gray-100 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500 cursor-not-allowed"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleSearchRecommendations();
                       }
                     }}
+                    disabled={true}
                   />
                 </div>
               </div>
@@ -313,7 +314,7 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
                     Skills từ CV của bạn
                   </label>
                 </div>
-                
+
                 {loadingSkills ? (
                   <div className="flex items-center gap-2 text-gray-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -429,31 +430,28 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
               <div className="flex gap-2 mb-6 border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab('main')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'main'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'main'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   Phù hợp nhất ({contentBasedJobs.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('recommended')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'recommended'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'recommended'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   Recommend for you ({collaborativeJobs.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('hot')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'hot'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'hot'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   Job Hot 🔥 ({hotJobs.length})
                 </button>

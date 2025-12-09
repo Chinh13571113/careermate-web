@@ -263,7 +263,7 @@ export function useExportPDFJob(): UseExportPDFJobReturn {
               // Still processing - update progress message with elapsed time
               const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
               let progressMsg = `Generating PDF... (${elapsedSeconds}s)`;
-              
+
               // Add helpful messages at different time intervals
               if (elapsedSeconds > 60 && elapsedSeconds <= 90) {
                 progressMsg += " - This is taking longer than usual...";
@@ -272,7 +272,7 @@ export function useExportPDFJob(): UseExportPDFJobReturn {
               } else if (elapsedSeconds > 120) {
                 progressMsg += " - Almost there, this might be a cold start...";
               }
-              
+
               setProgressMessage(progressMsg);
 
             } catch (pollError: unknown) {
@@ -291,11 +291,11 @@ export function useExportPDFJob(): UseExportPDFJobReturn {
       } catch (error: unknown) {
         console.error("[useExportPDFJob] Export failed:", error);
         cleanup();
-        
+
         const errorMsg = error instanceof Error
           ? (error.name === "AbortError" ? "Export cancelled" : error.message)
           : "Unknown error occurred";
-        
+
         setError(errorMsg);
         setProgressMessage(PROGRESS_MESSAGES.error);
         setStatus("error");

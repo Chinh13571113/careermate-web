@@ -83,7 +83,7 @@ export async function generatePDF(params: PDFGenerationParams): Promise<PDFGener
     // ========================================
     // 1. VALIDATE INPUT
     // ========================================
-    
+
     if (!cvData) {
       return { success: false, error: "CV data is required" };
     }
@@ -93,9 +93,9 @@ export async function generatePDF(params: PDFGenerationParams): Promise<PDFGener
     }
 
     if (!VALID_TEMPLATES.includes(templateId)) {
-      return { 
-        success: false, 
-        error: `Invalid template ID. Valid options: ${VALID_TEMPLATES.join(', ')}` 
+      return {
+        success: false,
+        error: `Invalid template ID. Valid options: ${VALID_TEMPLATES.join(', ')}`
       };
     }
 
@@ -115,46 +115,79 @@ export async function generatePDF(params: PDFGenerationParams): Promise<PDFGener
     // ========================================
     // 2. LAUNCH BROWSER
     // ========================================
-    
-    if (isDev) {
-      // Local development - Use full puppeteer with bundled Chromium
-      const puppeteer = require("puppeteer");
-      
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-          "--disable-web-security",
-          "--disable-features=IsolateOrigins,site-per-process",
-          "--font-render-hinting=none",
-        ],
-        defaultViewport: {
-          width: 794,
-          height: 1123,
-          deviceScaleFactor: 1,
-        },
-      });
-    } else {
-      // Production - Use puppeteer-core + @sparticuz/chromium for serverless
-      const puppeteerCore = require("puppeteer-core");
-      const chromium = (await import("@sparticuz/chromium")).default;
-      
-      browser = await puppeteerCore.launch({
-        args: chromium.args,
-        defaultViewport: { 
-          width: 794, 
-          height: 1123,
-          deviceScaleFactor: 1,
-        },
-        executablePath: await chromium.executablePath(),
-        headless: true,
-      });
-    }
 
-    console.log("✅ Browser launched successfully");
+    console.log("🚀 Attempting to launch browser...");
+    console.log("Environment:", isDev ? "Development" : "Production");
+    console.log("Platform:", process.platform);
+    console.log("Node version:", process.version);
+
+    try {
+      if (isDev) {
+        // Local development - Use full puppeteer with bundled Chromium
+        console.log("Loading puppeteer for local development...");
+        const puppeteer = require("puppeteer");
+
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-web-security",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--font-render-hinting=none",
+          ],
+          defaultViewport: {
+            width: 794,
+            height: 1123,
+            deviceScaleFactor: 1,
+          },
+        });
+      } else {
+        // Production - Use puppeteer-core + @sparticuz/chromium for serverless
+        console.log("Loading puppeteer-core and @sparticuz/chromium for production...");
+
+        try {
+          const puppeteerCore = require("puppeteer-core");
+          const chromium = (await import("@sparticuz/chromium")).default;
+
+          console.log("Getting Chromium executable path...");
+          const executablePath = await chromium.executablePath();
+          console.log("Chromium path:", executablePath);
+
+          console.log("Launching browser with Chromium args...");
+          browser = await puppeteerCore.launch({
+            args: [
+              ...chromium.args,
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+            ],
+            defaultViewport: {
+              width: 794,
+              height: 1123,
+              deviceScaleFactor: 1,
+            },
+            executablePath: executablePath,
+            headless: chromium.headless,
+          });
+        } catch (chromiumError: unknown) {
+          console.error("❌ Failed to launch with @sparticuz/chromium:", chromiumError);
+          console.error("This might be due to:");
+          console.error("  1. Vercel Free Plan memory limits (512MB max)");
+          console.error("  2. Missing dependencies or incorrect configuration");
+          console.error("  3. Incompatible Chromium version");
+          throw new Error(`Chromium launch failed: ${chromiumError instanceof Error ? chromiumError.message : String(chromiumError)}`);
+        }
+      }
+
+      console.log("✅ Browser launched successfully");
+    } catch (launchError: unknown) {
+      console.error("❌ Browser launch failed:", launchError);
+      throw new Error(`Failed to launch browser: ${launchError instanceof Error ? launchError.message : String(launchError)}`);
+    }
 
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(90000); // 90 seconds for job-based approach
@@ -162,25 +195,31 @@ export async function generatePDF(params: PDFGenerationParams): Promise<PDFGener
     // ========================================
     // 3. NAVIGATE TO PRINT PAGE
     // ========================================
-    
+
     const packageParam = userPackage ? `&package=${encodeURIComponent(userPackage)}` : '';
     const printUrl = `${BASE_URL}/candidate/cv/print/${templateId}?data=${encodeURIComponent(encodedData)}${packageParam}`;
-    
-    console.log("🌐 Navigating to print page...");
 
-    await page.goto(printUrl, {
-      waitUntil: "networkidle2",
-      timeout: 90000,
-    });
-    
-    console.log("✅ Page loaded successfully");
+    console.log("🌐 Navigating to print page...");
+    console.log("URL:", printUrl.substring(0, 100) + '...');
+
+    try {
+      await page.goto(printUrl, {
+        waitUntil: "networkidle2",
+        timeout: 90000,
+      });
+
+      console.log("✅ Page loaded successfully");
+    } catch (navError: unknown) {
+      console.error("❌ Navigation failed:", navError);
+      throw new Error(`Failed to load print page: ${navError instanceof Error ? navError.message : String(navError)}`);
+    }
 
     // ========================================
     // 4. PREPARE FOR PDF GENERATION
     // ========================================
-    
+
     await page.emulateMediaType("screen");
-    
+
     // Wait for fonts
     try {
       await page.evaluateHandle('document.fonts.ready');
@@ -195,9 +234,9 @@ export async function generatePDF(params: PDFGenerationParams): Promise<PDFGener
     // ========================================
     // 5. GENERATE PDF
     // ========================================
-    
+
     console.log("📄 Generating PDF...");
-    
+
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -213,7 +252,7 @@ export async function generatePDF(params: PDFGenerationParams): Promise<PDFGener
     // ========================================
     // 6. CLEANUP & RETURN
     // ========================================
-    
+
     await browser.close();
     console.log("✅ Browser closed");
 

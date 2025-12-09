@@ -41,12 +41,12 @@ export async function uploadAvatar(candidateId: string, file: File): Promise<Upl
     const fileName = `${Date.now()}_${file.name}`;
     const storagePath = getAvatarStoragePath(candidateId, fileName);
     const fileRef = ref(storage, storagePath);
-    
+
     await uploadBytes(fileRef, file);
     const downloadUrl = await getDownloadURL(fileRef);
-    
+
     console.log("✅ Avatar uploaded:", { storagePath, downloadUrl });
-    
+
     return {
       storagePath,
       downloadUrl,
@@ -74,10 +74,10 @@ export async function uploadCV(userId: string, file: File): Promise<string> {
   try {
     const fileName = `${Date.now()}_${file.name}`;
     const fileRef = ref(storage, `careermate-files/candidates/${userId}/cv/${fileName}`);
-    
+
     await uploadBytes(fileRef, file);
     const downloadURL = await getDownloadURL(fileRef);
-    
+
     return downloadURL;
   } catch (error) {
     console.error("Error uploading CV:", error);
@@ -91,24 +91,24 @@ export async function uploadCV(userId: string, file: File): Promise<string> {
  * Path: /careermate-files/candidates/{userId}/cv/{fileName}
  */
 export async function uploadCVPDF(
-  userId: string, 
-  pdfBlob: Blob, 
+  userId: string,
+  pdfBlob: Blob,
   customFileName?: string
 ): Promise<string> {
   try {
     console.log(`[uploadCVPDF] Starting upload for user ${userId}, fileName: ${customFileName}`);
     console.log(`[uploadCVPDF] Blob size: ${(pdfBlob.size / 1024).toFixed(2)} KB`);
-    
+
     const timestamp = Date.now();
-    const fileName = customFileName 
+    const fileName = customFileName
       ? `${timestamp}_${customFileName}.pdf`
       : `cv_${timestamp}.pdf`;
-    
+
     const storagePath = `careermate-files/candidates/${userId}/cv/${fileName}`;
     console.log(`[uploadCVPDF] Storage path: ${storagePath}`);
-    
+
     const fileRef = ref(storage, storagePath);
-    
+
     // Upload blob with metadata
     console.log(`[uploadCVPDF] Uploading to Firebase...`);
     await uploadBytes(fileRef, pdfBlob, {
@@ -118,10 +118,10 @@ export async function uploadCVPDF(
         type: "generated-cv",
       },
     });
-    
+
     console.log(`[uploadCVPDF] Upload complete, getting download URL...`);
     const downloadURL = await getDownloadURL(fileRef);
-    
+
     console.log("✅ CV PDF uploaded successfully:", downloadURL);
     return downloadURL;
   } catch (error: any) {
@@ -157,18 +157,18 @@ export async function uploadCvFile(candidateId: string, file: File) {
   try {
     // Extract file extension
     const ext = file.name.split('.').pop() || 'pdf';
-    
+
     // Generate unique filename using crypto.randomUUID()
     const filename = crypto.randomUUID() + '.' + ext;
-    
+
     // Build storage path using helper function
     const path = getCvStoragePath(candidateId, filename);
-    
+
     // Upload to Firebase Storage
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, file);
     const downloadUrl = await getDownloadURL(storageRef);
-    
+
     // Return ONLY metadata (no File/Blob)
     return {
       id: filename,
@@ -200,13 +200,13 @@ export async function uploadJobApplicationCV(jobId: string | number, file: File)
     const originalName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
     const ext = file.name.split('.').pop() || 'pdf';
     const timestamp = Date.now();
-    
+
     // Generate filename: {originalName}_CM_{timestamp}.{ext}
     const filename = `${originalName}_CM_${timestamp}.${ext}`;
-    
+
     // Build storage path
     const storagePath = `careermate-files/job-applications/${jobId}/${filename}`;
-    
+
     // Upload to Firebase Storage
     const storageRef = ref(storage, storagePath);
     await uploadBytes(storageRef, file, {
@@ -218,11 +218,11 @@ export async function uploadJobApplicationCV(jobId: string | number, file: File)
         type: 'job-application-cv',
       },
     });
-    
+
     const downloadUrl = await getDownloadURL(storageRef);
-    
+
     console.log("✅ Job Application CV uploaded:", { storagePath, downloadUrl });
-    
+
     return {
       storagePath,
       downloadUrl,
