@@ -38,7 +38,16 @@ function getCvStoragePath(candidateId: string, filename: string): string {
  */
 export async function uploadAvatar(candidateId: string, file: File): Promise<UploadResult> {
   try {
-    const fileName = `${Date.now()}_${file.name}`;
+    // Extract file extension properly
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+
+    // Sanitize filename: remove extension and special chars
+    const sanitizedName = file.name
+      .replace(/\.[^/.]+$/, '') // Remove extension
+      .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace special chars
+      .substring(0, 50); // Limit length
+
+    const fileName = `${Date.now()}_${sanitizedName}.${ext}`;
     const storagePath = getAvatarStoragePath(candidateId, fileName);
     const fileRef = ref(storage, storagePath);
     
@@ -69,16 +78,30 @@ export async function uploadAvatarUrl(candidateId: string, file: File): Promise<
 /**
  * Upload CV to Firebase Storage (private)
  * Path: /careermate-files/candidates/{userId}/cv/{fileName}
+ *
+ * @returns Storage path (to be saved in database)
  */
 export async function uploadCV(userId: string, file: File): Promise<string> {
   try {
-    const fileName = `${Date.now()}_${file.name}`;
-    const fileRef = ref(storage, `careermate-files/candidates/${userId}/cv/${fileName}`);
-    
+    // Extract file extension properly
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+
+    // Sanitize filename
+    const sanitizedName = file.name
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .substring(0, 50);
+
+    const fileName = `${Date.now()}_${sanitizedName}.${ext}`;
+    const storagePath = `careermate-files/candidates/${userId}/cv/${fileName}`;
+    const fileRef = ref(storage, storagePath);
+
     await uploadBytes(fileRef, file);
-    const downloadURL = await getDownloadURL(fileRef);
-    
-    return downloadURL;
+
+    console.log("✅ CV uploaded:", storagePath);
+
+    // Return storage path, not download URL
+    return storagePath;
   } catch (error) {
     console.error("Error uploading CV:", error);
     throw new Error("Failed to upload CV");
