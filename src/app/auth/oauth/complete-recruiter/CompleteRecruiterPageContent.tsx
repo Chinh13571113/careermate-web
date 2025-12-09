@@ -280,7 +280,7 @@ export default function CompleteRecruiterPageContent({
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
                   errors.contactPerson ? "border-red-500" : "border-gray-300"
                 }`}
-                placeholder="Nguyễn Văn A"
+                placeholder="John Smith"
               />
               {errors.contactPerson && (
                 <p className="text-sm text-red-600 mt-1">

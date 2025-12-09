@@ -38,16 +38,7 @@ function getCvStoragePath(candidateId: string, filename: string): string {
  */
 export async function uploadAvatar(candidateId: string, file: File): Promise<UploadResult> {
   try {
-    // Extract file extension properly
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-
-    // Sanitize filename: remove extension and special chars
-    const sanitizedName = file.name
-      .replace(/\.[^/.]+$/, '') // Remove extension
-      .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace special chars
-      .substring(0, 50); // Limit length
-
-    const fileName = `${Date.now()}_${sanitizedName}.${ext}`;
+    const fileName = `${Date.now()}_${file.name}`;
     const storagePath = getAvatarStoragePath(candidateId, fileName);
     const fileRef = ref(storage, storagePath);
     
@@ -78,32 +69,19 @@ export async function uploadAvatarUrl(candidateId: string, file: File): Promise<
 /**
  * Upload CV to Firebase Storage (private)
  * Path: /careermate-files/candidates/{userId}/cv/{fileName}
- *
- * @returns Storage path (to be saved in database)
  */
 export async function uploadCV(userId: string, file: File): Promise<string> {
   try {
-    // Extract file extension properly
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
-
-    // Sanitize filename
-    const sanitizedName = file.name
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .substring(0, 50);
-
-    const fileName = `${Date.now()}_${sanitizedName}.${ext}`;
-    const storagePath = `careermate-files/candidates/${userId}/cv/${fileName}`;
-    const fileRef = ref(storage, storagePath);
+    const fileName = `${Date.now()}_${file.name}`;
+    const fileRef = ref(storage, `careermate-files/candidates/${userId}/cv/${fileName}`);
 
     await uploadBytes(fileRef, file);
+    const downloadURL = await getDownloadURL(fileRef);
 
-    console.log("✅ CV uploaded:", storagePath);
-
-    // Return storage path, not download URL
-    return storagePath;
+    console.log("✅ CV uploaded successfully:", downloadURL);
+    return downloadURL;
   } catch (error) {
-    console.error("Error uploading CV:", error);
+    console.error("❌ Error uploading CV:", error);
     throw new Error("Failed to upload CV");
   }
 }
@@ -119,14 +97,10 @@ export async function uploadCVPDF(
   customFileName?: string
 ): Promise<string> {
   try {
-    const timestamp = Date.now();
-    const fileName = customFileName 
-      ? `${timestamp}_${customFileName}.pdf`
-      : `cv_${timestamp}.pdf`;
-    
+    const fileName = customFileName || `${Date.now()}_generated_cv.pdf`;
     const fileRef = ref(storage, `careermate-files/candidates/${userId}/cv/${fileName}`);
     
-    // Upload blob với metadata
+    // Upload blob with metadata
     await uploadBytes(fileRef, pdfBlob, {
       contentType: "application/pdf",
       customMetadata: {

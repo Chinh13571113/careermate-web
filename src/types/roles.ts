@@ -1,6 +1,6 @@
 /**
  * Role Types & Constants
- * Định nghĩa các role trong hệ thống
+ * Define roles in the system
  */
 
 export const USER_ROLES = {

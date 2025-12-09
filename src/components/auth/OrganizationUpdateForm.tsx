@@ -58,12 +58,12 @@ export function OrganizationUpdateForm({
     try {
       await updateOrganization(formData);
       toast.success(
-        "Thông tin doanh nghiệp đã được cập nhật thành công! Vui lòng chờ phê duyệt lại."
+        "Organization information has been updated successfully! Please wait for re-approval."
       );
       onSuccess?.();
     } catch (error: any) {
       console.error("Error submitting organization info:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi cập nhật thông tin");
+      toast.error(error.message || "An error occurred while updating information");
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +75,7 @@ export function OrganizationUpdateForm({
         {/* Company Name */}
         <fieldset className="space-y-2 md:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Tên công ty <span className="text-red-500">*</span>
+            Company Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -84,7 +84,7 @@ export function OrganizationUpdateForm({
             onChange={handleInputChange}
             required
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors"
-            placeholder="VD: FPT Corporation"
+            placeholder="E.g.: FPT Corporation"
           />
         </fieldset>
 
@@ -135,7 +135,7 @@ export function OrganizationUpdateForm({
         {/* Business License */}
         <fieldset className="space-y-2 md:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Email công ty
+            Company Email
           </label>
           <input
             type="email"
@@ -143,14 +143,14 @@ export function OrganizationUpdateForm({
             value={formData.companyEmail}
             onChange={handleInputChange}
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors"
-            placeholder="VD: contact@company.com"
+            placeholder="E.g.: contact@company.com"
           />
         </fieldset>
 
         {/* Contact Person */}
         <fieldset className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
-            Người liên hệ <span className="text-red-500">*</span>
+            Contact Person <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -159,14 +159,14 @@ export function OrganizationUpdateForm({
             onChange={handleInputChange}
             required
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors"
-            placeholder="Nguyễn Văn A"
+            placeholder="John Smith"
           />
         </fieldset>
 
         {/* Phone Number */}
         <fieldset className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
-            Số điện thoại <span className="text-red-500">*</span>
+            Phone Number <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
@@ -183,7 +183,7 @@ export function OrganizationUpdateForm({
         {/* Company Address */}
         <fieldset className="space-y-2 md:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Địa chỉ công ty <span className="text-red-500">*</span>
+            Company Address <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -192,7 +192,7 @@ export function OrganizationUpdateForm({
             onChange={handleInputChange}
             required
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-colors"
-            placeholder="VD: Ftown1, Đà Nẵng"
+            placeholder="E.g.: Ftown1, Da Nang"
           />
         </fieldset>
       </div>

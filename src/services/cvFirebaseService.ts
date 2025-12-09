@@ -366,27 +366,16 @@ export async function uploadCvFile(candidateId: string, file: File) {
 /**
  * Upload avatar to Firebase Storage (public)
  * Path: /careermate-files/candidates/{userId}/avatar/{fileName}
- *
- * @returns Storage path (NOT download URL) to be saved in database
  */
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   try {
-    // Extract file extension properly
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-
-    // Sanitize filename: remove extension and special chars, then add timestamp
-    const sanitizedName = file.name
-      .replace(/\.[^/.]+$/, '') // Remove extension
-      .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace special chars with underscore
-      .substring(0, 50); // Limit length
-
-    const fileName = `${Date.now()}_${sanitizedName}.${ext}`;
-    const storagePath = `careermate-files/candidates/${userId}/avatar/${fileName}`;
-    const fileRef = ref(storage, storagePath);
+    const fileName = `${Date.now()}_${file.name}`;
+    const fileRef = ref(storage, `careermate-files/candidates/${userId}/avatar/${fileName}`);
 
     await uploadBytes(fileRef, file);
 
     // Return storage path, not download URL
+    const downloadURL = await getDownloadURL(fileRef);
     // Frontend will call getFileUrl(storagePath) when needed
     return storagePath;
   } catch (error) {
@@ -398,10 +387,8 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 /**
  * Upload CV PDF from Blob to Firebase Storage (private)
  * Used after generating PDF with Puppeteer
- * Path: /careermate-files/candidates/{candidateId}/cv/{fileName}
- */
-export async function uploadCVPDF(
-  candidateId: string, 
+    return downloadURL;
+  candidateId: string,
   pdfBlob: Blob, 
   customFileName?: string
 ): Promise<string> {

@@ -81,9 +81,9 @@ export default function JobsManagementPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Quản lý Jobs</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Manage Jobs</h1>
             <p className="text-gray-600 mt-2">
-              Quản lý tất cả tin tuyển dụng của bạn
+              Manage all your job postings
             </p>
           </div>
           <Link
@@ -91,7 +91,7 @@ export default function JobsManagementPage() {
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
-            Đăng tin mới
+            Post New Job
           </Link>
         </div>
 

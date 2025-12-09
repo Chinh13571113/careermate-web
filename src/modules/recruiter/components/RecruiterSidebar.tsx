@@ -98,11 +98,11 @@ export function RecruiterSidebar() {
 
     // Load trạng thái ban đầu - RESET về mặc định
     React.useEffect(() => {
-        // Clear localStorage để đảm bảo fresh start
+        // Clear localStorage to ensure fresh start
         localStorage.removeItem("sidebar-pinned");
         localStorage.setItem("sidebar-open", "false");
         
-        // Set trạng thái mặc định
+        // Set default state
         setIsOpen(false);
         setShowText(false);
         setIsPinned(false);
@@ -115,17 +115,17 @@ export function RecruiterSidebar() {
         }
     }, []);
 
-    // Hover mở sidebar
+    // Hover opens sidebar
     const handleMouseEnter = () => {
         console.log('🔵 Mouse entered sidebar, isPinned:', isPinned); // Debug log
         
-        // Clear timeout nếu có
+        // Clear timeout if any
         if (hoverTimeout) {
             clearTimeout(hoverTimeout);
             setHoverTimeout(null);
         }
         
-        // Mở sidebar ngay lập tức
+        // Open sidebar immediately
         setIsOpen(true);
         setTimeout(() => setShowText(true), 150);
         
@@ -137,17 +137,17 @@ export function RecruiterSidebar() {
         console.log('✅ Sidebar opened by hover');
     };
 
-    // Hover rời sidebar → đóng
+    // Hover leaves sidebar → close
     const handleMouseLeave = () => {
         console.log('🔴 Mouse left sidebar, isPinned:', isPinned); // Debug log
         
-        // Nếu được pin bởi button, không đóng
+        // If pinned by button, don't close
         if (isPinned) {
             console.log('❌ Sidebar is pinned, not closing');
             return;
         }
 
-        // Set timeout để đóng sidebar
+        // Set timeout to close sidebar
         const timeout = setTimeout(() => {
             console.log('🔒 Closing sidebar due to mouse leave');
             setIsOpen(false);
@@ -158,12 +158,12 @@ export function RecruiterSidebar() {
                 detail: { isOpen: false, isHover: false }
             }));
             
-            // Chỉ update localStorage nếu không được pin
+            // Only update localStorage if not pinned
             if (!isPinned) {
                 localStorage.setItem("sidebar-open", "false");
                 window.dispatchEvent(new CustomEvent("sidebar-toggle"));
             }
-        }, 200); // Giảm delay xuống 200ms
+        }, 200); // Reduce delay to 200ms
 
         setHoverTimeout(timeout);
     };
@@ -176,7 +176,7 @@ export function RecruiterSidebar() {
         };
     }, [hoverTimeout]);
 
-    // Đồng bộ khi toggle từ hamburger button
+    // Sync when toggle from hamburger button
     React.useEffect(() => {
         const handleSidebarToggle = () => {
             const savedState = localStorage.getItem("sidebar-open");
@@ -203,7 +203,7 @@ export function RecruiterSidebar() {
         };
     }, []);
 
-    // Debug helpers - có thể dùng trong console
+    // Debug helpers - can be used in console
     React.useEffect(() => {
         (window as any).debugSidebar = () => {
             console.log('📊 Sidebar Debug Info:', {

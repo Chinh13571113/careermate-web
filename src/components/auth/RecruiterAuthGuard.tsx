@@ -197,11 +197,11 @@ export default function RecruiterAuthGuard({
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Không có quyền truy cập
+            Access Denied
           </h2>
           <p className="text-gray-600 mb-6">
-            Trang này chỉ dành cho <strong>Nhà tuyển dụng</strong> và{" "}
-            <strong>Quản trị viên</strong>.
+            This page is only for <strong>Recruiters</strong> and{" "}
+            <strong>Administrators</strong>.
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-700">

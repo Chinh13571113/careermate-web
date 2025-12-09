@@ -59,11 +59,11 @@ export default function NewJobPage() {
           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          Quay lại danh sách jobs
+          Back to jobs list
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Đăng tin tuyển dụng mới</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Post New Job Opening</h1>
         <p className="text-gray-600 mt-2">
-          Điền thông tin để đăng tin tuyển dụng
+          Fill in the information to post a job opening
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export default function NewJobPage() {
           {/* Job Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tên vị trí <span className="text-red-500">*</span>
+              Position Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -216,7 +216,7 @@ export default function NewJobPage() {
           {/* Deadline */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Hạn nộp hồ sơ <span className="text-red-500">*</span>
+              Application Deadline <span className="text-red-500">*</span>
             </label>
             <input
               type="date"

@@ -210,7 +210,7 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Job Recommendations</h2>
-              <p className="text-sm text-gray-600">Gợi ý công việc phù hợp với hồ sơ của bạn</p>
+              <p className="text-sm text-gray-600">Job suggestions that match your profile</p>
             </div>
           </div>
         </div>
@@ -354,9 +354,9 @@ export default function JobRecommendModal({ isOpen, onClose }: JobRecommendModal
                   <strong>💡 Mẹo:</strong> Hệ thống sẽ phân tích title và skills để tìm các công việc phù hợp nhất với bạn dựa trên:
                 </p>
                 <ul className="mt-2 text-sm text-indigo-700 space-y-1 ml-4">
-                  <li>• Content-based: Dựa trên nội dung mô tả công việc</li>
-                  <li>• Collaborative: Dựa trên hành vi của ứng viên tương tự</li>
-                  <li>• Hybrid: Kết hợp cả hai phương pháp</li>
+                  <li>• Content-based: Based on job description content</li>
+                  <li>• Collaborative: Based on similar candidate behavior</li>
+                  <li>• Hybrid: Combines both methods</li>
                 </ul>
               </div>
 

@@ -6,11 +6,11 @@ import axios from "axios";
 // ===== Storage keys =====
 // CHỈ LƯU những gì CẦN THIẾT TUYỆT ĐỐI để tránh XSS đánh cắp thông tin
 const ACCESS_TOKEN_KEY = "access_token";
-const REFRESH_TOKEN_KEY = "refresh_token"; // để tương thích cũ
+const REFRESH_TOKEN_KEY = "refresh_token"; // for backward compatibility
 const TOKEN_EXPIRES_AT_KEY = "token_expires_at";
 // KHÔNG LƯU: user_info (email, name), user_role (decode từ JWT khi cần)
 
-// ===== Throttle đơn giản để tránh spam refresh/logout song song =====
+// ===== Simple throttle to prevent spam refresh/logout in parallel =====
 class SimpleThrottle {
   private static instances = new Map<string, Promise<any>>();
   static async throttle<T>(key: string, fn: () => Promise<T>): Promise<T> {
@@ -78,7 +78,7 @@ function isAdminByRoles(roles: string[]) {
 
 interface AuthState {
   accessToken: string | null;
-  refreshToken: string | null; // giữ tương thích, không dùng
+  refreshToken: string | null; // for backward compatibility, not used
   isLoading: boolean;
   isAuthenticated: boolean;
   tokenExpiresAt: number | null;
@@ -123,21 +123,21 @@ function startRefreshTimer(
   const now = Date.now();
   const ttl = tokenExpiresAt - now;
 
-  // Nếu token rất ngắn, đặt buffer lớn hơn một chút
-  // Làm mới ~20% trước khi hết hạn, tối thiểu 5s, tối đa 60s trước
+  // If token is very short, set a slightly larger buffer
+  // Refresh ~20% before expiration, minimum 5s, maximum 60s before
   const buffer = Math.max(Math.min(Math.floor(ttl * 0.2), 60000), 5000);
   const delay = Math.max(ttl - buffer, 1000);
 
   refreshTimer = setTimeout(async () => {
     const ok = await refresh();
-    // Nếu refresh thành công, timer sẽ được set lại trong setAuthFromTokens
+    // If refresh succeeds, timer will be reset in setAuthFromTokens
     if (!ok) {
-      // Nếu refresh fail, để UI/guard xử lý bằng isAuthenticated false ở nơi khác
+      // If refresh fails, let UI/guard handle with isAuthenticated false elsewhere
     }
   }, delay);
 }
 
-// ===== Helper: đọc localStorage ban đầu (client) =====
+// ===== Helper: read localStorage initially (client) =====
 function getInitialAuthState() {
   if (typeof window === "undefined") {
     return {
@@ -181,7 +181,7 @@ function getInitialAuthState() {
       };
     }
 
-    // Decode user info & role từ JWT thay vì lưu localStorage (an toàn hơn)
+    // Decode user info & role from JWT instead of storing in localStorage (more secure)
     let userInfo: any = null;
     let role: string | null = null;
 
@@ -245,7 +245,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   role: initial.role,
   candidateId: null, // ✅ Initialize candidateId
 
-  // -------- Actions cơ bản để hook gọi --------
+  // -------- Basic actions for hooks to call --------
   setLoading: (v) => set({ isLoading: v }),
 
   setAuthFromTokens: ({
@@ -255,8 +255,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     role,
     user,
   }) => {
-    // Cập nhật localStorage - CHỈ LƯU token và expiry
-    // KHÔNG LƯU role - decode từ JWT khi cần
+    // Update localStorage - ONLY SAVE token and expiry
+    // DON'T SAVE role - decode from JWT when needed
     if (typeof window !== "undefined") {
       if (accessToken && tokenExpiresAt && isAuthenticated) {
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
@@ -270,8 +270,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
       }
-      // KHÔNG lưu role vào localStorage - decode từ JWT
-      // KHÔNG lưu user_info vào localStorage - chỉ giữ trong memory
+      // DON'T save role to localStorage - decode from JWT
+      // DON'T save user_info to localStorage - only keep in memory
     }
 
     set((s) => ({
@@ -283,7 +283,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: user !== undefined ? user : s.user,
     }));
 
-    // Lên lịch refresh tự động nếu hợp lệ
+    // Schedule automatic refresh if valid
     if (accessToken && tokenExpiresAt && isAuthenticated) {
       startRefreshTimer(get, get().refresh);
     } else if (refreshTimer) {
@@ -297,7 +297,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
-      // Xóa legacy keys nếu có
+      // Remove legacy keys if any
       localStorage.removeItem("user_role");
       localStorage.removeItem("user_info");
     }
@@ -364,7 +364,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const client = axios.create({
         timeout: 10000,
         headers: { "Content-Type": "application/json" },
-        withCredentials: true, // để backend set cookie refresh
+        withCredentials: true, // for backend to set refresh cookie
       });
 
       const res = await client.post("/api/auth/login", { email, password });
@@ -387,7 +387,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const expMs = decoded?.exp
         ? decoded.exp * 1000
         : Date.now() + result.expiresIn * 1000;
-      const expiresAt = Math.min(expMs, Date.now() + result.expiresIn * 1000); // an toàn hơn
+      const expiresAt = Math.min(expMs, Date.now() + result.expiresIn * 1000); // safer
 
       const userInfo = {
         id: decoded?.sub ?? null,
@@ -402,7 +402,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         name: decoded?.name ?? decoded?.email ?? email,
       });
 
-      // Đẩy vào action chung (tự lưu localStorage + set timer)
+      // Push to common action (auto saves localStorage + sets timer)
       get().setAuthFromTokens({
         accessToken,
         tokenExpiresAt: expiresAt,
@@ -432,7 +432,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   getTokenExpiration: (token: string) => {
     const decoded = decodeJwt(token);
     return decoded?.exp ? decoded.exp * 1000 : 0;
-    // fallback 0 = hết hạn/không hợp lệ
+    // fallback 0 = expired/invalid
   },
 
   refresh: async () => {
@@ -448,7 +448,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const client = axios.create({
           timeout: 10000,
           headers: { "Content-Type": "application/json" },
-          withCredentials: true, // lấy refresh cookie
+          withCredentials: true, // get refresh cookie
         });
         const res = await client.post("/api/auth/token-refresh");
         const result = res.data?.result as TokenResponse | undefined;
@@ -461,7 +461,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const roles = extractRoles(decoded);
         const role = roles[0] ?? null;
 
-        // buffer nhẹ cho token siêu ngắn
+        // light buffer for very short tokens
         const buffer = result.expiresIn <= 10 ? 500 : 0;
         const expMs =
           (decoded?.exp
@@ -472,12 +472,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           accessToken,
           tokenExpiresAt: expMs,
           isAuthenticated: true,
-          role, // cập nhật role nếu backend đổi scope
+          role, // update role if backend changes scope
         });
 
         return accessToken;
       } catch (err: any) {
-        // Network lỗi: đừng xoá ngay, trả null để guard xử lý
+        // Network error: don't clear immediately, return null to let guard handle
         if (!err?.response) return null;
 
         // 401 / 5xx: clear
@@ -499,7 +499,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!ok) return { valid: false, exp: 0 };
       return { valid: !!ok.valid, exp: Number(ok.exp ?? 0) };
     } catch (err: any) {
-      // Network: fallback dùng exp trong token nếu còn hạn
+      // Network: fallback to using exp in token if still valid
       const d = decodeJwt(token);
       if (d?.exp && d.exp * 1000 > Date.now()) {
         return { valid: true, exp: d.exp };

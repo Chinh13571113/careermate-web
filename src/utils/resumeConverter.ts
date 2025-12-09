@@ -56,9 +56,9 @@ function formatFileSize(bytes: number): string {
 function getFileNameFromUrl(url: string): string {
   try {
     const pathname = new URL(url).pathname;
-    const encodedName = pathname.split("%2F").pop(); // lấy phần sau ký tự %2F cuối cùng
+    const encodedName = pathname.split("%2F").pop(); // get part after last %2F character
     const decoded = decodeURIComponent(encodedName || "");
-    return extractOriginalName(decoded); // bỏ _CM_timestamp
+    return extractOriginalName(decoded); // remove _CM_timestamp
   } catch {
     return "Unknown.pdf";
   }

@@ -62,16 +62,16 @@ export default function CandidateRegistrationPage() {
               {/* Left side - Form */}
               <div className="p-8 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                 <h3 className="mb-6 text-xl font-semibold text-gray-900">
-                  Thông tin ứng viên
+                  Candidate Information
                 </h3>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Personal Information */}
                   <div className="space-y-4">
-                    {/* Họ và tên */}
+                    {/* Full Name */}
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Họ và tên *
+                        Full Name *
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

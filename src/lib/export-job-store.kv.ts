@@ -3,62 +3,20 @@
  *
  * Persistent job store for managing PDF export jobs using Redis (Railway).
  * This replaces the in-memory Map/globalThis approach to work properly
- * on serverless infrastructure where functions don't share memory.
+ * on Vercel's serverless infrastructure where functions don't share memory.
  *
  * Features:
  * - ✅ Works across multiple serverless function instances
  * - ✅ Automatic job expiration after 10 minutes (TTL)
  * - ✅ No cleanup intervals needed (Redis handles it)
- * - ✅ Production-ready for Railway deployment
+ * - ✅ Production-ready for Vercel deployment
  *
  * Environment Variables:
- * - REDIS_URL: Redis connection URL (e.g., redis://default:password@host:port)
+ * - REDIS_URL (from Railway)
  */
 
-import Redis from "ioredis";
 import { ExportJobState } from "@/types/export-job";
-
-// =============================================================================
-// Redis Client
-// =============================================================================
-
-let redis: Redis | null = null;
-
-/**
- * Get or create Redis client instance
- */
-function getRedisClient(): Redis | null {
-  if (!process.env.REDIS_URL) {
-    return null;
-  }
-
-  if (!redis) {
-    try {
-      redis = new Redis(process.env.REDIS_URL, {
-        maxRetriesPerRequest: 3,
-        retryStrategy(times) {
-          return Math.min(times * 50, 2000);
-        },
-        lazyConnect: false,
-        enableOfflineQueue: true,
-      });
-
-      redis.on("error", (err) => {
-        console.error("[ExportJobStore:Redis] Connection error:", err.message);
-      });
-
-      redis.on("connect", () => {
-        console.log("[ExportJobStore:Redis] Connected successfully");
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("[ExportJobStore:Redis] Failed to create client:", errorMessage);
-      redis = null;
-    }
-  }
-
-  return redis;
-}
+import Redis from "ioredis";
 
 // =============================================================================
 // Configuration
@@ -77,6 +35,37 @@ const isRedisConfigured = Boolean(process.env.REDIS_URL);
 const memoryStore = new Map<string, ExportJobState>();
 
 console.log(`[ExportJobStore:Redis] Redis Configured: ${isRedisConfigured}`);
+
+// =============================================================================
+// Redis Client
+// =============================================================================
+
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  if (!isRedisConfigured) {
+    return null;
+  }
+
+  if (!redisClient) {
+    try {
+      redisClient = new Redis(process.env.REDIS_URL!, {
+        maxRetriesPerRequest: 3,
+        retryStrategy(times) {
+          const delay = Math.min(times * 50, 2000);
+          return delay;
+        },
+      });
+      console.log("[ExportJobStore:Redis] Redis client initialized");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("[ExportJobStore:Redis] Failed to initialize Redis client:", errorMessage);
+      return null;
+    }
+  }
+
+  return redisClient;
+}
 
 // =============================================================================
 // Helper Functions
@@ -110,8 +99,8 @@ function generateUUID(): string {
 /**
  * Create a new export job in Redis
  *
- * @param resumeId - The resume ID being exported
- * @param templateId - The template ID used for export
+ * @param resumeId - The resume ID to export
+ * @param templateId - The template ID to use
  * @returns The created job state with a unique job ID
  */
 export async function createJob(
@@ -206,15 +195,14 @@ export async function updateJob(
   jobId: string,
   updates: Partial<Omit<ExportJobState, "jobId" | "createdAt">>
 ): Promise<void> {
-  const existing = await getJob(jobId);
-
-  if (!existing) {
-    console.warn(`[ExportJobStore] Cannot update non-existent job: ${jobId}`);
+  const job = await getJob(jobId);
+  if (!job) {
+    console.warn(`[ExportJobStore] Attempted to update non-existent job: ${jobId}`);
     return;
   }
 
   const updated: ExportJobState = {
-    ...existing,
+    ...job,
     ...updates,
     updatedAt: Date.now(),
   };
@@ -251,7 +239,7 @@ export async function updateJob(
 
 /**
  * Mark a job as complete with a file URL
- * 
+ *
  * @param jobId - The job ID to complete
  * @param fileUrl - The Firebase download URL for the generated PDF
  */
@@ -266,7 +254,7 @@ export async function completeJob(jobId: string, fileUrl: string): Promise<void>
 
 /**
  * Mark a job as failed with an error message
- * 
+ *
  * @param jobId - The job ID to fail
  * @param error - The error message
  */
@@ -321,3 +309,4 @@ export const exportJobStore = {
 };
 
 export default exportJobStore;
+

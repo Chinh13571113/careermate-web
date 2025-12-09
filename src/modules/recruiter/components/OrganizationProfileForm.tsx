@@ -363,8 +363,8 @@ export function OrganizationProfileForm() {
                 <input
                   type="url"
                   name="website"
-                  value={truncateText(formData.website, 60)} // Hiển thị cắt ngắn trong input nếu không mở rộng
-                  readOnly // Đảm bảo người dùng không thể sửa khi bị cắt ngắn
+                  value={truncateText(formData.website, 60)} // Display truncated in input if not expanded
+                  readOnly // Ensure user cannot edit when truncated
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 text-gray-600"
                 />
                 <button

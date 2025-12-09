@@ -84,11 +84,11 @@ export interface CVData {
 // Define the complete sample CV data for a student
 export const SAMPLE_CV_DATA: CVData = {
   personalInfo: {
-    fullName: "Nguyễn Văn An",
+    fullName: "John Smith",
     position: "IT Student",
     email: "an.nguyen@email.com",
     phone: "+84 123 456 789",
-    location: "Hà Nội, Việt Nam",
+    location: "Hanoi, Vietnam",
     website: "https://annguyen.dev",
     linkedin: "https://linkedin.com/in/annguyen/",
     summary:
@@ -215,8 +215,8 @@ export const SAMPLE_CV_DATA: CVData = {
   previewImage: "https://randomuser.me/api/portraits/men/26.jpg",
   hobbies: ['Programming', 'Reading', 'Photography', 'Basketball'],
   references: [
-    { name: 'Dr. Trần Minh', relation: 'Academic Advisor', contact: 'minh.tran@hust.edu.vn' },
-    { name: 'Lê Hoàng', relation: 'Internship Supervisor', contact: 'hoang.le@techviet.com' }
+    { name: 'Dr. Michael Tran', relation: 'Academic Advisor', contact: 'minh.tran@hust.edu.vn' },
+    { name: 'David Le', relation: 'Internship Supervisor', contact: 'hoang.le@techviet.com' }
   ],
   softSkills: ["Communication", "Problem Solving", "Time Management", "Teamwork", "Adaptability"]
 };
@@ -397,7 +397,7 @@ export const CV_TEMPLATES: CVTemplate[] = [
 /* 
 export const CV_DATA_PROFESSIONAL: CVData = {
   personalInfo: {
-    fullName: "Nguyễn Thành Công",
+    fullName: "Michael Nguyen",
     position: "Senior Software Engineer",
     email: "cong.nguyen@techcompany.com",
     phone: "+84 901 234 567",
