@@ -72,16 +72,20 @@ export interface CreateExportJobRequest {
 
 /**
  * Response from creating an export job
+ * NOW: Can be immediate (done) or async (processing)
  */
 export interface CreateExportJobResponse {
   /** Job ID to poll for status */
   jobId: string;
   
-  /** Initial status (always "processing") */
-  status: "processing";
+  /** Status: "done" (sync) or "processing" (async) */
+  status: ExportJobStatus;
   
   /** Message for the client */
   message: string;
+  
+  /** Download URL if completed immediately (sync mode) */
+  fileUrl?: string;
 }
 
 /**

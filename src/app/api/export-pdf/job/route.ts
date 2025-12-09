@@ -61,35 +61,45 @@ export async function POST(req: NextRequest) {
     console.log(`[ExportJob] Created job ${jobId} for resume ${resumeId}`);
 
     // =======================================================================
-    // Background Processing using setImmediate
-    // This allows the response to return immediately while PDF generates
+    // IMPORTANT: Process synchronously for Vercel/serverless compatibility
+    // setImmediate() doesn't work on Vercel - background tasks are killed
+    // when the response is sent. We must process before responding.
     // =======================================================================
     
-    setImmediate(async () => {
-      console.log(`[ExportJob] Starting background processing for job ${jobId}`);
-      const startTime = Date.now();
+    console.log(`[ExportJob] Starting PDF processing for job ${jobId}`);
+    const startTime = Date.now();
 
-      try {
-        // Step 1: Generate PDF
-        console.log(`[ExportJob] Generating PDF for job ${jobId}...`);
-        const result = await generatePDF({
-          templateId,
-          cvData,
-          fileName,
-          userPackage,
-        });
+    try {
+      // Step 1: Generate PDF
+      console.log(`[ExportJob] Generating PDF for job ${jobId}...`);
+      const result = await generatePDF({
+        templateId,
+        cvData,
+        fileName,
+        userPackage,
+      });
 
-        if (!result.success) {
-          console.error(`[ExportJob] PDF generation failed for job ${jobId}:`, result.error);
-          await exportJobStore.failJob(jobId, result.error);
-          return;
-        }
-
-        console.log(`[ExportJob] PDF generated for job ${jobId} (${result.sizeKB.toFixed(2)} KB)`);
-
-        // Step 2: Upload to Firebase
-        console.log(`[ExportJob] Uploading to Firebase for job ${jobId}...`);
+      if (!result.success) {
+        console.error(`[ExportJob] PDF generation failed for job ${jobId}:`, result.error);
+        console.error(`[ExportJob] Error details:`, result.details || 'No additional details');
+        await exportJobStore.failJob(jobId, result.error);
         
+        return NextResponse.json(
+          { 
+            error: "PDF generation failed",
+            details: result.error,
+            jobId,
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log(`[ExportJob] PDF generated for job ${jobId} (${result.sizeKB.toFixed(2)} KB)`);
+
+      // Step 2: Upload to Firebase
+      console.log(`[ExportJob] Uploading to Firebase for job ${jobId}...`);
+      
+      try {
         // Convert Buffer to Blob for uploadCVPDF
         const pdfBlob = new Blob([new Uint8Array(result.pdfBuffer)], { type: "application/pdf" });
         const cleanFileName = fileName || `cv-${resumeId}`;
@@ -107,24 +117,45 @@ export async function POST(req: NextRequest) {
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         console.log(`[ExportJob] Job ${jobId} completed successfully in ${duration}s`);
+        
+        // Return success response with file URL
+        const response: CreateExportJobResponse = {
+          jobId,
+          status: "done",
+          message: "Export completed successfully",
+          fileUrl: downloadURL,
+        };
 
-      } catch (error: any) {
-        console.error(`[ExportJob] Background processing failed for job ${jobId}:`, error);
-        await exportJobStore.failJob(jobId, error.message || "Unknown error during export");
+        return NextResponse.json(response, { status: 200 });
+        
+      } catch (uploadError: any) {
+        console.error(`[ExportJob] Firebase upload failed for job ${jobId}:`, uploadError);
+        console.error(`[ExportJob] Upload error details:`, uploadError.message, uploadError.stack);
+        await exportJobStore.failJob(jobId, `Upload failed: ${uploadError.message}`);
+        
+        return NextResponse.json(
+          { 
+            error: "Upload failed",
+            details: uploadError.message,
+            jobId,
+          },
+          { status: 500 }
+        );
       }
-    });
 
-    // =======================================================================
-    // Immediate Response
-    // =======================================================================
-
-    const response: CreateExportJobResponse = {
-      jobId,
-      status: "processing",
-      message: "Export job created. Poll /api/export-pdf/job/{jobId} for status.",
-    };
-
-    return NextResponse.json(response, { status: 202 }); // 202 Accepted
+    } catch (error: any) {
+      console.error(`[ExportJob] Processing failed for job ${jobId}:`, error);
+      await exportJobStore.failJob(jobId, error.message || "Unknown error during export");
+      
+      return NextResponse.json(
+        { 
+          error: "Export failed",
+          details: error.message,
+          jobId,
+        },
+        { status: 500 }
+      );
+    }
 
   } catch (error: any) {
     console.error("[ExportJob] Failed to create export job:", error);

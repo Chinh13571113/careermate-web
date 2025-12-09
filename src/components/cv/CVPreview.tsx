@@ -922,7 +922,10 @@ export default function CVPreview({
       });
 
       if (!downloadURL) {
-        throw new Error(exportError || "PDF export failed. Please try again.");
+        const errorMsg = exportError || "PDF export failed. Please try again.";
+        console.error("❌ Export failed:", errorMsg);
+        console.error("Job status:", status);
+        throw new Error(errorMsg);
       }
 
       console.log("✅ PDF exported and uploaded:", downloadURL);
@@ -959,28 +962,57 @@ export default function CVPreview({
       toast.success("CV saved successfully!", { id: loadingToast });
 
       // Trigger download from the Firebase URL
-      // Use fetch to download blob and trigger native download
+      // Use multiple fallback methods for production compatibility
       try {
         console.log("📥 Starting PDF download...");
-        const response = await fetch(downloadURL);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
         
+        // Method 1: Try fetch with CORS-safe approach (for local dev)
+        try {
+          const response = await fetch(downloadURL, { mode: 'cors' });
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = `${fileName}.pdf`;
+            link.style.display = "none";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up blob URL after download
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+            console.log("✅ PDF download triggered successfully (fetch method)");
+            return downloadURL;
+          }
+        } catch (fetchError) {
+          console.warn("⚠️ Fetch download failed, trying direct link method:", fetchError);
+        }
+        
+        // Method 2: Direct link download (production fallback)
         const link = document.createElement("a");
-        link.href = blobUrl;
+        link.href = downloadURL;
         link.download = `${fileName}.pdf`;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
         link.style.display = "none";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        console.log("✅ PDF download triggered successfully (direct link method)");
         
-        // Clean up blob URL after download
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-        console.log("✅ PDF download triggered successfully");
+        // Small delay, then open in new tab as additional fallback
+        setTimeout(() => {
+          console.log("🔗 Opening PDF in new tab as backup");
+          window.open(downloadURL, "_blank", "noopener,noreferrer");
+        }, 500);
+        
       } catch (downloadError) {
-        console.warn("⚠️ Could not auto-download PDF, opening in new tab:", downloadError);
-        // Fallback: open in new tab
-        window.open(downloadURL, "_blank");
+        console.error("❌ All download methods failed:", downloadError);
+        // Last resort: just open in new tab
+        window.open(downloadURL, "_blank", "noopener,noreferrer");
+        toast.success("PDF opened in new tab. Right-click to download.", { duration: 5000 });
       }
 
       return downloadURL;

@@ -96,14 +96,21 @@ export async function uploadCVPDF(
   customFileName?: string
 ): Promise<string> {
   try {
+    console.log(`[uploadCVPDF] Starting upload for user ${userId}, fileName: ${customFileName}`);
+    console.log(`[uploadCVPDF] Blob size: ${(pdfBlob.size / 1024).toFixed(2)} KB`);
+    
     const timestamp = Date.now();
     const fileName = customFileName 
       ? `${timestamp}_${customFileName}.pdf`
       : `cv_${timestamp}.pdf`;
     
-    const fileRef = ref(storage, `careermate-files/candidates/${userId}/cv/${fileName}`);
+    const storagePath = `careermate-files/candidates/${userId}/cv/${fileName}`;
+    console.log(`[uploadCVPDF] Storage path: ${storagePath}`);
     
-    // Upload blob với metadata
+    const fileRef = ref(storage, storagePath);
+    
+    // Upload blob with metadata
+    console.log(`[uploadCVPDF] Uploading to Firebase...`);
     await uploadBytes(fileRef, pdfBlob, {
       contentType: "application/pdf",
       customMetadata: {
@@ -112,13 +119,17 @@ export async function uploadCVPDF(
       },
     });
     
+    console.log(`[uploadCVPDF] Upload complete, getting download URL...`);
     const downloadURL = await getDownloadURL(fileRef);
     
     console.log("✅ CV PDF uploaded successfully:", downloadURL);
     return downloadURL;
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error uploading CV PDF:", error);
-    throw new Error("Failed to upload CV PDF to Firebase");
+    console.error("❌ Error code:", error.code);
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Error stack:", error.stack);
+    throw new Error(`Failed to upload CV PDF to Firebase: ${error.message}`);
   }
 }
 
